@@ -191,6 +191,11 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                         ),
                         const SizedBox(height: 16),
                         _Tarjeta(
+                          titulo: 'Farmacia',
+                          filas: {'Dirección de la farmacia': solicitud.direccionFarmacia},
+                        ),
+                        const SizedBox(height: 16),
+                        _Tarjeta(
                           titulo: 'Identidad y entrega',
                           filas: {'Dirección de entrega': solicitud.direccionEntrega},
                           miniatura: solicitud.cedulaUrl,
@@ -275,6 +280,9 @@ List<String> _calcularFaltantes(Solicitud solicitud) {
     if (parseada != null && parseada.isBefore(hoySinHora)) {
       faltantes.add('La receta está vencida — sube una foto de una receta vigente');
     }
+  }
+  if (solicitud.direccionFarmacia == null || solicitud.direccionFarmacia!.trim().isEmpty) {
+    faltantes.add('Dirección de la farmacia');
   }
   if (solicitud.direccionEntrega == null || solicitud.direccionEntrega!.trim().isEmpty) {
     faltantes.add('Dirección de entrega');

@@ -87,6 +87,7 @@ String? _vacioComoNulo(String texto) => texto.trim().isEmpty ? null : texto.trim
 class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
   final List<_LineaMedicamento> _lineas = [];
   final _direccionEntrega = TextEditingController();
+  final _direccionFarmacia = TextEditingController();
   DateTime? _recetaFechaVencimiento;
 
   String? _recetaUrlServidor;
@@ -107,12 +108,14 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     super.initState();
     _solicitudIdRemoto = widget.solicitudId;
     _direccionEntrega.addListener(_onCambioCampo);
+    _direccionFarmacia.addListener(_onCambioCampo);
     _inicializar();
   }
 
   @override
   void dispose() {
     _direccionEntrega.dispose();
+    _direccionFarmacia.dispose();
     for (final linea in _lineas) {
       linea.dispose();
     }
@@ -129,6 +132,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
           medicamentos: solicitud.medicamentos,
           recetaFechaVencimiento: solicitud.recetaFechaVencimiento,
           direccionEntrega: solicitud.direccionEntrega,
+          direccionFarmacia: solicitud.direccionFarmacia,
         );
         _rellenar(datos);
         _recetaUrlServidor = solicitud.recetaUrl;
@@ -165,6 +169,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       _agregarLinea(inicial: medicamento, notificar: false);
     }
     _direccionEntrega.text = datos.direccionEntrega ?? '';
+    _direccionFarmacia.text = datos.direccionFarmacia ?? '';
     if (datos.recetaFechaVencimiento != null) {
       _recetaFechaVencimiento = DateTime.tryParse(datos.recetaFechaVencimiento!);
     }
@@ -191,6 +196,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       medicamentos: _lineas.map((l) => l.aMedicamento()).toList(),
       recetaFechaVencimiento: _recetaFechaVencimiento != null ? _isoFecha(_recetaFechaVencimiento!) : null,
       direccionEntrega: _vacioComoNulo(_direccionEntrega.text),
+      direccionFarmacia: _vacioComoNulo(_direccionFarmacia.text),
     );
   }
 
@@ -210,7 +216,8 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       return hayMedicamento ||
           hayRecetaPendiente ||
           datos.recetaFechaVencimiento != null ||
-          datos.direccionEntrega != null;
+          datos.direccionEntrega != null ||
+          datos.direccionFarmacia != null;
     }
     final actuales = _datosActuales();
     final originales = _datosOriginales;
@@ -531,6 +538,20 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                           label: 'Fecha de vencimiento de la receta',
                           fecha: _recetaFechaVencimiento,
                           onTap: _guardando ? null : _elegirFechaReceta,
+                        ),
+                        const SizedBox(height: 24),
+                        const _TituloSeccion('Farmacia'),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Dónde el domiciliario retira el medicamento.',
+                          style: TextStyle(color: AppColors.teal, fontSize: 13),
+                        ),
+                        const SizedBox(height: 12),
+                        AppTextField(
+                          label: 'Dirección de la farmacia',
+                          icono: Icons.local_pharmacy_outlined,
+                          controller: _direccionFarmacia,
+                          enabled: !_guardando,
                         ),
                         const SizedBox(height: 24),
                         const _TituloSeccion('Entrega'),

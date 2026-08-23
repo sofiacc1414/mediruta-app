@@ -11,6 +11,7 @@ class Solicitud {
     required this.recetaUrl,
     required this.recetaFechaVencimiento,
     required this.direccionEntrega,
+    required this.direccionFarmacia,
     required this.creadoEn,
     required this.enviadoEn,
     required this.canceladoEn,
@@ -28,6 +29,10 @@ class Solicitud {
   final String? recetaUrl;
   final String? recetaFechaVencimiento;
   final String? direccionEntrega;
+
+  /// Dónde el domiciliario retira el medicamento — distinta de
+  /// `direccionEntrega`, no un duplicado.
+  final String? direccionFarmacia;
   final String creadoEn;
   final String? enviadoEn;
   final String? canceladoEn;
@@ -48,6 +53,7 @@ class Solicitud {
       recetaUrl: json['recetaUrl'] as String?,
       recetaFechaVencimiento: json['recetaFechaVencimiento'] as String?,
       direccionEntrega: json['direccionEntrega'] as String?,
+      direccionFarmacia: json['direccionFarmacia'] as String?,
       creadoEn: json['creadoEn'] as String,
       enviadoEn: json['enviadoEn'] as String?,
       canceladoEn: json['canceladoEn'] as String?,

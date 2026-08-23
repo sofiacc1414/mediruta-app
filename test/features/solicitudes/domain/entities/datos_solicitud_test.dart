@@ -18,22 +18,24 @@ const _vencimientoVigente = '2099-08-01';
 
 void main() {
   group('DatosSolicitud.calcularFaltantes', () {
-    test('G05 — lista los 4 requisitos si todo está vacío', () {
+    test('G05 — lista los 5 requisitos si todo está vacío', () {
       const datos = DatosSolicitud();
 
       expect(datos.calcularFaltantes(tieneRecetaSubida: false), [
         'Al menos un medicamento',
         'Foto de la receta',
         'Fecha de vencimiento de la receta',
+        'Dirección de la farmacia',
         'Dirección de entrega',
       ]);
     });
 
-    test('vacío si hay al menos un medicamento completo, receta, fecha vigente y dirección', () {
+    test('vacío si hay medicamento completo, receta, fecha vigente y ambas direcciones', () {
       const datos = DatosSolicitud(
         medicamentos: [_medicamentoCompleto],
         recetaFechaVencimiento: _vencimientoVigente,
         direccionEntrega: 'Calle 1 #2-3',
+        direccionFarmacia: 'Carrera 5 #6-7',
       );
 
       expect(datos.calcularFaltantes(tieneRecetaSubida: true), isEmpty);
@@ -47,6 +49,7 @@ void main() {
         ],
         recetaFechaVencimiento: _vencimientoVigente,
         direccionEntrega: 'Calle 1 #2-3',
+        direccionFarmacia: 'Carrera 5 #6-7',
       );
 
       expect(
@@ -60,6 +63,7 @@ void main() {
         medicamentos: [Medicamento()],
         recetaFechaVencimiento: _vencimientoVigente,
         direccionEntrega: 'Calle 1 #2-3',
+        direccionFarmacia: 'Carrera 5 #6-7',
       );
 
       expect(
@@ -73,6 +77,7 @@ void main() {
         medicamentos: [_medicamentoCompleto],
         recetaFechaVencimiento: _vencimientoVigente,
         direccionEntrega: 'Calle 1 #2-3',
+        direccionFarmacia: 'Carrera 5 #6-7',
       );
 
       expect(
@@ -86,6 +91,7 @@ void main() {
         medicamentos: [_medicamentoCompleto],
         recetaFechaVencimiento: '2020-01-01',
         direccionEntrega: 'Calle 1 #2-3',
+        direccionFarmacia: 'Carrera 5 #6-7',
       );
 
       expect(
@@ -102,9 +108,23 @@ void main() {
         medicamentos: const [_medicamentoCompleto],
         recetaFechaVencimiento: hoyIso,
         direccionEntrega: 'Calle 1 #2-3',
+        direccionFarmacia: 'Carrera 5 #6-7',
       );
 
       expect(datos.calcularFaltantes(tieneRecetaSubida: true), isEmpty);
+    });
+
+    test('sin dirección de la farmacia avisa "Dirección de la farmacia"', () {
+      const datos = DatosSolicitud(
+        medicamentos: [_medicamentoCompleto],
+        recetaFechaVencimiento: _vencimientoVigente,
+        direccionEntrega: 'Calle 1 #2-3',
+      );
+
+      expect(
+        datos.calcularFaltantes(tieneRecetaSubida: true),
+        contains('Dirección de la farmacia'),
+      );
     });
   });
 }

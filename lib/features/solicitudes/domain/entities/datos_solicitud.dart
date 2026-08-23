@@ -2,13 +2,16 @@ import 'medicamento.dart';
 
 /// Los campos editables de una solicitud: la lista de medicamentos +
 /// receta (foto, sube aparte con `SubirRecetaUseCase`; acá solo viaja
-/// `recetaFechaVencimiento`) + dirección de entrega. Comunes a crear
+/// `recetaFechaVencimiento`) + dirección de la farmacia (dónde se
+/// retira el medicamento) + dirección de entrega (dónde se lo lleva al
+/// paciente) — dos puntos distintos de un mismo pedido. Comunes a crear
 /// (G01), editar (G04) y al borrador local en progreso.
 class DatosSolicitud {
   const DatosSolicitud({
     this.medicamentos = const [],
     this.recetaFechaVencimiento,
     this.direccionEntrega,
+    this.direccionFarmacia,
   });
 
   final List<Medicamento> medicamentos;
@@ -17,6 +20,10 @@ class DatosSolicitud {
   /// lo que permite detectar una receta vencida sin abrir la foto.
   final String? recetaFechaVencimiento;
   final String? direccionEntrega;
+
+  /// Dónde el domiciliario retira el medicamento — distinta de
+  /// `direccionEntrega`, no un duplicado.
+  final String? direccionFarmacia;
 
   /// G05 — mismos requisitos que valida `app.enviar_solicitud` en la API
   /// (la cédula NO se revisa acá: ya se exige antes de poder crear la
@@ -45,6 +52,9 @@ class DatosSolicitud {
         faltantes.add('La receta está vencida — sube una foto de una receta vigente');
       }
     }
+    if (direccionFarmacia == null || direccionFarmacia!.trim().isEmpty) {
+      faltantes.add('Dirección de la farmacia');
+    }
     if (direccionEntrega == null || direccionEntrega!.trim().isEmpty) {
       faltantes.add('Dirección de entrega');
     }
@@ -56,6 +66,7 @@ class DatosSolicitud {
       'medicamentos': medicamentos.map((m) => m.toJson()).toList(),
       'recetaFechaVencimiento': recetaFechaVencimiento,
       'direccionEntrega': direccionEntrega,
+      'direccionFarmacia': direccionFarmacia,
     };
   }
 
@@ -67,6 +78,7 @@ class DatosSolicitud {
           .toList(),
       recetaFechaVencimiento: json['recetaFechaVencimiento'] as String?,
       direccionEntrega: json['direccionEntrega'] as String?,
+      direccionFarmacia: json['direccionFarmacia'] as String?,
     );
   }
 }

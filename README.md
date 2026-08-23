@@ -67,13 +67,13 @@ medicamentos, y la receta se sube como foto, no se tipea):
 - **Varios medicamentos por solicitud**: sección repetible, "Agregar medicamento" suma una línea, cada una con botón "Quitar" (deshabilitado si es la única).
 - **Receta = foto**, no texto — mismo selector cámara/galería/PDF que los documentos de HU-02, más el campo de **fecha de vencimiento** (el único dato tipeado que queda; corregido desde "fecha de expedición" — esa no servía para detectar una receta vencida, era el dato equivocado).
 - **Antes de poder crear una solicitud**, si el perfil del paciente no tiene foto de cédula cargada (HU-02), un diálogo lo manda directo a "Mi perfil" — ni siquiera entra al formulario. La cédula del pedido en sí es una referencia viva al perfil, nunca una subida aparte.
-- Dirección de entrega precargada del perfil (HU-02), editable por solicitud.
+- **Dos direcciones**: dirección de la farmacia (dónde el domiciliario retira el medicamento, se escribe a mano) y dirección de entrega (dónde se lo lleva al paciente, precargada del perfil HU-02 pero editable) — puntos distintos, no un duplicado.
 - "Mis solicitudes" (lista) → detalle con los medicamentos, miniatura de receta, miniatura de cédula (de solo lectura) e historial de estados → Editar/Enviar/Cancelar según el estado actual.
 - **Miniatura de receta/cédula tocable**: una imagen de 44px no alcanza para leer una fórmula médica — tocarla abre `app_image_viewer.dart` (visor a pantalla completa con zoom, sin paquete nuevo, usa `InteractiveViewer` nativo), tanto para la foto recién elegida (todavía no subida) como para la ya subida al servidor.
 - "Enviar solicitud" se deshabilita solo si falta algún requisito, mostrando cuáles — mismo cálculo que hace la API (`app.enviar_solicitud`), incluyendo **receta vencida** (`recetaFechaVencimiento` ya pasada), para no depender de chocar con el error para avisar.
 - **Código de pedido**: se genera recién al enviar (`MR-000001`, ...) — antes no existía, la solicitud enviada solo tenía su uuid interno. Al enviar aparece un diálogo con el código (pantalla de creación) o un snackbar (pantalla de detalle); de ahí en más reemplaza a "Solicitud del &lt;fecha&gt;" como título en la lista y en el detalle.
 
-58/58 tests pasando.
+59/59 tests pasando.
 
 ### Notas técnicas para quien retome esto
 
