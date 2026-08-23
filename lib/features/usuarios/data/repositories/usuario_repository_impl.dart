@@ -18,11 +18,13 @@ class UsuarioRepositoryImpl implements UsuarioRepository {
     required String correo,
     required String password,
     required String tipoRegistro,
+    bool? altaPaciente,
   }) {
     return _datasource.registrar(
       correo: correo,
       password: password,
       tipoRegistro: tipoRegistro,
+      altaPaciente: altaPaciente,
     );
   }
 
@@ -121,5 +123,17 @@ class UsuarioRepositoryImpl implements UsuarioRepository {
   @override
   Future<bool> haySesionGuardada() async {
     return await _apiClient.accessToken != null;
+  }
+
+  @override
+  Future<String> solicitarRolPaciente() async {
+    final respuesta = await _datasource.solicitarRolPaciente();
+    return respuesta['message'] as String;
+  }
+
+  @override
+  Future<String> solicitarRolDomiciliario() async {
+    final respuesta = await _datasource.solicitarRolDomiciliario();
+    return respuesta['message'] as String;
   }
 }

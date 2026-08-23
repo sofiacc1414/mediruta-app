@@ -11,6 +11,9 @@ class FakeUsuarioRepository implements UsuarioRepository {
   Usuario? usuarioARetornar;
   bool refrescarSesionResultado = true;
   bool haySesionGuardadaResultado = true;
+  String solicitarRolPacienteResultado = 'Ahora también sos Paciente.';
+  String solicitarRolDomiciliarioResultado =
+      'Listo — completá tus datos de Domiciliario para que un administrador te valide.';
 
   Map<String, dynamic>? ultimaLlamada;
 
@@ -30,11 +33,13 @@ class FakeUsuarioRepository implements UsuarioRepository {
     required String correo,
     required String password,
     required String tipoRegistro,
+    bool? altaPaciente,
   }) async {
     _registrar('registrar', {
       'correo': correo,
       'password': password,
       'tipoRegistro': tipoRegistro,
+      'altaPaciente': altaPaciente,
     });
     _lanzarSiCorresponde();
   }
@@ -105,5 +110,19 @@ class FakeUsuarioRepository implements UsuarioRepository {
   Future<bool> haySesionGuardada() async {
     _registrar('haySesionGuardada', {});
     return haySesionGuardadaResultado;
+  }
+
+  @override
+  Future<String> solicitarRolPaciente() async {
+    _registrar('solicitarRolPaciente', {});
+    _lanzarSiCorresponde();
+    return solicitarRolPacienteResultado;
+  }
+
+  @override
+  Future<String> solicitarRolDomiciliario() async {
+    _registrar('solicitarRolDomiciliario', {});
+    _lanzarSiCorresponde();
+    return solicitarRolDomiciliarioResultado;
   }
 }

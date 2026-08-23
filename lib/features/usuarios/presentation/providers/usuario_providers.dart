@@ -14,6 +14,8 @@ import '../../domain/usecases/refrescar_sesion_usecase.dart';
 import '../../domain/usecases/registrar_usuario_usecase.dart';
 import '../../domain/usecases/restablecer_contrasena_usecase.dart';
 import '../../domain/usecases/solicitar_recuperacion_contrasena_usecase.dart';
+import '../../domain/usecases/solicitar_rol_domiciliario_usecase.dart';
+import '../../domain/usecases/solicitar_rol_paciente_usecase.dart';
 
 /// Cableado de dependencias del feature `usuarios` (DOCS/context.md, Parte
 /// B, sección 11 — providers de Riverpod).
@@ -72,6 +74,14 @@ final cambiarContrasenaUseCaseProvider = Provider(
 
 final haySesionGuardadaUseCaseProvider = Provider(
   (ref) => HaySesionGuardadaUseCase(ref.watch(usuarioRepositoryProvider)),
+);
+
+final solicitarRolPacienteUseCaseProvider = Provider(
+  (ref) => SolicitarRolPacienteUseCase(ref.watch(usuarioRepositoryProvider)),
+);
+
+final solicitarRolDomiciliarioUseCaseProvider = Provider(
+  (ref) => SolicitarRolDomiciliarioUseCase(ref.watch(usuarioRepositoryProvider)),
 );
 
 /// Conecta `ApiClient.onSesionExpirada` con `RefrescarSesionUseCase` — un

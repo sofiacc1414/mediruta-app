@@ -29,6 +29,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
   final _correoController = TextEditingController();
   final _passwordController = TextEditingController();
   String _tipoRegistro = 'PACIENTE';
+  bool _altaPaciente = false;
   bool _aceptaTerminos = false;
   bool _cargando = false;
   String? _error;
@@ -57,6 +58,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
             correo: _correoController.text,
             password: _passwordController.text,
             tipoRegistro: _tipoRegistro,
+            altaPaciente: _tipoRegistro == 'DOMICILIARIO' ? _altaPaciente : null,
           );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -141,6 +143,17 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                   tipoRegistroSeleccionado: _tipoRegistro,
                   onChanged: (valor) => setState(() => _tipoRegistro = valor),
                 ),
+                if (_tipoRegistro == 'DOMICILIARIO') ...[
+                  const SizedBox(height: 8),
+                  AppCheckboxRow(
+                    valor: _altaPaciente,
+                    onChanged: (v) => setState(() => _altaPaciente = v),
+                    label: const Text(
+                      'También quiero registrarme como Paciente',
+                      style: TextStyle(color: AppColors.navy),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 AppCheckboxRow(
                   valor: _aceptaTerminos,

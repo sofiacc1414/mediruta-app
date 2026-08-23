@@ -10,11 +10,13 @@ class RegistrarUsuarioUseCase {
     required String correo,
     required String password,
     required String tipoRegistro,
+    bool? altaPaciente,
   }) {
     return _repository.registrar(
       correo: correo,
       password: password,
       tipoRegistro: tipoRegistro,
+      altaPaciente: altaPaciente,
     );
   }
 }

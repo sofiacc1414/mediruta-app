@@ -14,6 +14,7 @@ import '../../domain/entities/perfil.dart';
 import '../../domain/value-objects/tipo_documento_domiciliario.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/perfil_providers.dart';
+import '../providers/usuario_providers.dart';
 import 'cambiar_contrasena_screen.dart';
 
 /// HU-02 — pantalla "Mi perfil". Secciones condicionales según los roles
@@ -69,6 +70,12 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     final modo = ref.watch(modoActivoProvider) ?? (roles.isNotEmpty ? roles.first.codigo : null);
     final esPaciente = modo == 'PACIENTE';
     final esDomiciliario = modo == 'DOMICILIARIO';
+    // Distinto de esPaciente/esDomiciliario (que reflejan el "modo"
+    // activo, no qué roles tiene realmente la cuenta) — acá sí importa
+    // la existencia real del rol, para ofrecer "Solicitar ser X" solo
+    // cuando de verdad falta.
+    final tienePaciente = roles.any((r) => r.codigo == 'PACIENTE');
+    final tieneDomiciliario = roles.any((r) => r.codigo == 'DOMICILIARIO');
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mi perfil')),
@@ -109,6 +116,13 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                           _SeccionDomiciliario(
                             perfil: _perfil?.domiciliario,
                             onCambio: _cargarPerfil,
+                          ),
+                        ],
+                        if (!tienePaciente || !tieneDomiciliario) ...[
+                          const SizedBox(height: 24),
+                          _SeccionAgregarRol(
+                            ofrecerPaciente: !tienePaciente,
+                            ofrecerDomiciliario: !tieneDomiciliario,
                           ),
                         ],
                         const SizedBox(height: 32),
@@ -689,6 +703,89 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
           onArchivoElegido: (b, n, c) =>
               _subirDocumento(TipoDocumentoDomiciliario.tecnicomecanica, b, n, c),
         ),
+      ],
+    );
+  }
+}
+
+/// Ofrece pedir el rol que le falta a la cuenta (PACIENTE y/o
+/// DOMICILIARIO) sin pasar por un registro nuevo. Al agregarse, refresca
+/// los roles de la sesión (`authSessionProvider.sesionIniciada` — los
+/// roles no viven en el JWT, hay que volver a pedirlos) para que el
+/// selector de "Modo" en Inicio pase a aparecer apenas corresponda
+/// (`roles.length > 1`). No navega directo al rol nuevo — con más de un
+/// rol, elegir modo siempre es una acción explícita en Inicio, igual que
+/// para cualquier otra cuenta multirol.
+class _SeccionAgregarRol extends ConsumerStatefulWidget {
+  const _SeccionAgregarRol({
+    required this.ofrecerPaciente,
+    required this.ofrecerDomiciliario,
+  });
+
+  final bool ofrecerPaciente;
+  final bool ofrecerDomiciliario;
+
+  @override
+  ConsumerState<_SeccionAgregarRol> createState() => _SeccionAgregarRolState();
+}
+
+class _SeccionAgregarRolState extends ConsumerState<_SeccionAgregarRol> {
+  bool _procesando = false;
+  String? _error;
+
+  Future<void> _solicitar(Future<String> Function() ejecutar) async {
+    setState(() {
+      _procesando = true;
+      _error = null;
+    });
+    try {
+      final mensaje = await ejecutar();
+      final usuarioActualizado = await ref.read(obtenerSesionActualUseCaseProvider).execute();
+      ref.read(authSessionProvider.notifier).sesionIniciada(usuarioActualizado);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
+    } on ApiException catch (error) {
+      setState(() => _error = error.message);
+    } on ApiSinConexionException catch (error) {
+      setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _procesando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _Tarjeta(
+      children: [
+        const _TituloSeccion('Otro rol'),
+        const SizedBox(height: 4),
+        const Text(
+          'Podés usar la misma cuenta para los dos roles.',
+          style: TextStyle(color: AppColors.teal, fontSize: 13),
+        ),
+        const SizedBox(height: 12),
+        if (_error != null) ...[
+          AppErrorBanner(mensaje: _error!),
+          const SizedBox(height: 12),
+        ],
+        if (widget.ofrecerPaciente) ...[
+          AppLoadingButton(
+            variante: AppButtonVariante.secondary,
+            label: 'Solicitar ser Paciente',
+            cargando: _procesando,
+            onPressed: () =>
+                _solicitar(() => ref.read(solicitarRolPacienteUseCaseProvider).execute()),
+          ),
+          if (widget.ofrecerDomiciliario) const SizedBox(height: 8),
+        ],
+        if (widget.ofrecerDomiciliario)
+          AppLoadingButton(
+            variante: AppButtonVariante.secondary,
+            label: 'Solicitar ser Domiciliario',
+            cargando: _procesando,
+            onPressed: () =>
+                _solicitar(() => ref.read(solicitarRolDomiciliarioUseCaseProvider).execute()),
+          ),
       ],
     );
   }

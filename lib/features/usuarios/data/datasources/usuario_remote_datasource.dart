@@ -13,6 +13,7 @@ class UsuarioRemoteDatasource {
     required String correo,
     required String password,
     required String tipoRegistro,
+    bool? altaPaciente,
   }) {
     return _apiClient.post(
       '/auth/registro',
@@ -20,6 +21,7 @@ class UsuarioRemoteDatasource {
         'correo': correo,
         'password': password,
         'tipoRegistro': tipoRegistro,
+        if (altaPaciente != null) 'altaPaciente': altaPaciente,
       },
     );
   }
@@ -84,5 +86,21 @@ class UsuarioRemoteDatasource {
       },
       autenticado: true,
     );
+  }
+
+  Future<Map<String, dynamic>> solicitarRolPaciente() async {
+    final respuesta = await _apiClient.post(
+      '/perfil/paciente/solicitar',
+      autenticado: true,
+    );
+    return respuesta as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> solicitarRolDomiciliario() async {
+    final respuesta = await _apiClient.post(
+      '/perfil/domiciliario/solicitar',
+      autenticado: true,
+    );
+    return respuesta as Map<String, dynamic>;
   }
 }

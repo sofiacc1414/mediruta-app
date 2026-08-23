@@ -5,10 +5,13 @@ import '../entities/usuario.dart';
 /// sección 11). Lo implementa `UsuarioRepositoryImpl` en `data/`.
 abstract class UsuarioRepository {
   /// G01/G02 — registro público. Solo PACIENTE o DOMICILIARIO.
+  /// `altaPaciente` solo tiene efecto si `tipoRegistro == DOMICILIARIO`
+  /// — no todos los domiciliarios quieren ser también pacientes.
   Future<void> registrar({
     required String correo,
     required String password,
     required String tipoRegistro,
+    bool? altaPaciente,
   });
 
   /// G03/G04 — login. Persiste los tokens y devuelve la identidad.
@@ -46,4 +49,13 @@ abstract class UsuarioRepository {
   /// true si hay tokens guardados localmente (no implica que sigan siendo
   /// válidos en la API — eso lo confirma `obtenerSesionActual`).
   Future<bool> haySesionGuardada();
+
+  /// Agrega el rol PACIENTE a la cuenta autenticada, si todavía no lo
+  /// tiene (idempotente). Devuelve el mensaje de la API.
+  Future<String> solicitarRolPaciente();
+
+  /// Agrega el rol DOMICILIARIO (pendiente_validacion) a la cuenta
+  /// autenticada, si todavía no lo tiene (idempotente). Devuelve el
+  /// mensaje de la API.
+  Future<String> solicitarRolDomiciliario();
 }

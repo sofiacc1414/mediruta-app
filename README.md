@@ -42,7 +42,7 @@ flutter test
 
 | Historia | Estado | Notas |
 |---|---|---|
-| **HU-01** — Gestión de acceso (onboarding, registro, login, cambio/recuperación de contraseña, logout) | ✅ Completa | Incluye selector de "Modo" post-login para cuentas con los dos roles (Paciente + Domiciliario) — la elección de rol nunca ocurre en el login, es una decisión de presentación después de autenticarse. **Sesión única por usuario** (política nueva del lado de la API): loguearse en otro dispositivo cierra la sesión acá — no requirió ningún cambio en la App, el manejo de "el refresh token ya no sirve" (limpia tokens, fuerza login) ya existía para cualquier otro motivo de invalidación. |
+| **HU-01** — Gestión de acceso (onboarding, registro, login, cambio/recuperación de contraseña, logout) | ✅ Completa | Incluye selector de "Modo" post-login para cuentas con los dos roles (Paciente + Domiciliario) — la elección de rol nunca ocurre en el login, es una decisión de presentación después de autenticarse; con un solo rol no aparece selector, se resuelve solo. **Sesión única por usuario** (política nueva del lado de la API): loguearse en otro dispositivo cierra la sesión acá — no requirió ningún cambio en la App, el manejo de "el refresh token ya no sirve" (limpia tokens, fuerza login) ya existía para cualquier otro motivo de invalidación. Registrarse como Domiciliario ya no otorga Paciente automático — es un checkbox opcional en el registro; cualquier cuenta puede pedir después el rol que le falte desde "Mi perfil" ("Solicitar ser Paciente"/"Solicitar ser Domiciliario", ver detalle en HU-02). |
 | **HU-02** — Administración del perfil de usuario | ✅ Completa | Pantalla "Mi perfil", accesible desde Inicio. Ver detalle abajo. |
 | **HU-08** — Validación de domiciliarios | — | Es de Web (rol Administrador), no de App — completa en `mediruta-web`. |
 | **HU-03** — Creación y gestión de solicitudes médicas | ✅ Completa | "Mis solicitudes", accesible desde Inicio (solo modo Paciente). Ver detalle abajo. |
@@ -58,6 +58,7 @@ flutter test
 - Miniaturas reales de los documentos ya subidos (imagen o ícono de PDF), no solo un check — usa las URLs firmadas que devuelve la API.
 - Subida de documentos con 3 orígenes: cámara, galería o **elegir PDF** del dispositivo (para SOAT/tecnomecánica que ya existen como PDF, sin forzar a fotografiarlos).
 - Desactivación de cuenta con confirmación, cierra la sesión localmente.
+- **"Otro rol"**: si a la cuenta le falta el rol Paciente y/o Domiciliario, aparece un botón por cada uno que falte ("Solicitar ser Paciente"/"Solicitar ser Domiciliario"). Paciente se agrega al instante; Domiciliario queda `pendiente_validacion` — de ahí en más es exactamente el mismo perfil a completar (vehículo, documentos) que un Domiciliario recién registrado. Después de agregar un rol se refresca la sesión (`authSessionProvider.sesionIniciada`, los roles no viven en el JWT) para que el selector de "Modo" en Inicio aparezca solo — no navega directo al rol nuevo, elegir modo sigue siendo una acción explícita en Inicio.
 
 ### HU-03 — qué incluye
 
@@ -75,7 +76,7 @@ medicamentos, y la receta se sube como foto, no se tipea):
 - "Enviar solicitud" se deshabilita solo si falta algún requisito, mostrando cuáles — mismo cálculo que hace la API (`app.enviar_solicitud`), incluyendo **receta vencida** (`recetaFechaVencimiento` ya pasada), para no depender de chocar con el error para avisar.
 - **Código de pedido**: se genera recién al enviar (`MR-000001`, ...) — antes no existía, la solicitud enviada solo tenía su uuid interno. Al enviar aparece un diálogo con el código (pantalla de creación) o un snackbar (pantalla de detalle); de ahí en más reemplaza a "Solicitud del &lt;fecha&gt;" como título en la lista y en el detalle.
 
-59/59 tests pasando.
+64/64 tests pasando.
 
 ### Notas técnicas para quien retome esto
 

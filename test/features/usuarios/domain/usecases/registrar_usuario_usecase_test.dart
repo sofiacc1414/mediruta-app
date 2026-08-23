@@ -21,7 +21,22 @@ void main() {
         'correo': 'paciente@mail.com',
         'password': 'ClaveValida1!',
         'tipoRegistro': 'PACIENTE',
+        'altaPaciente': null,
       });
+    });
+
+    test('propaga altaPaciente cuando el domiciliario lo pide', () async {
+      final repo = FakeUsuarioRepository();
+      final usecase = RegistrarUsuarioUseCase(repo);
+
+      await usecase.execute(
+        correo: 'domi@mail.com',
+        password: 'ClaveValida1!',
+        tipoRegistro: 'DOMICILIARIO',
+        altaPaciente: true,
+      );
+
+      expect(repo.ultimaLlamada?['altaPaciente'], true);
     });
 
     test('propaga el error de dominio del repositorio (G02)', () async {
