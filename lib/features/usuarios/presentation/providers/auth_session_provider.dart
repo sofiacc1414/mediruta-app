@@ -78,8 +78,23 @@ class AuthSessionNotifier extends StateNotifier<AuthEstado> {
   }
 }
 
+/// "Modo" activo elegido en `home_screen.dart` para cuentas multirol —
+/// decisión de presentación, no de permisos (context.md, Parte B, sección
+/// 4.1: la API siempre valida el rol real contra `usuario_roles`, esto
+/// solo filtra qué se muestra). `null` mientras no se elige nada todavía
+/// (pantallas que lo consumen caen al primer rol de la cuenta como
+/// default). Vive en un provider compartido — no como estado local de
+/// `HomeScreen` — para que otras pantallas (ej. `PerfilScreen`) lo
+/// respeten al navegar en vez de mostrar todos los roles de la cuenta.
+final modoActivoProvider = StateProvider<String?>((ref) => null);
+
 final authSessionProvider =
     StateNotifierProvider<AuthSessionNotifier, AuthEstado>((ref) {
+      // Fuerza a que se conecte ApiClient.onSesionExpirada apenas arranca
+      // la app (ver comentario en apiClientRefreshWiringProvider) — sin
+      // este watch, el callback nunca se asignaría y un 401 no renovaría
+      // la sesión.
+      ref.watch(apiClientRefreshWiringProvider);
       return AuthSessionNotifier(
         haySesionGuardada: ref.watch(haySesionGuardadaUseCaseProvider),
         obtenerSesionActual: ref.watch(obtenerSesionActualUseCaseProvider),

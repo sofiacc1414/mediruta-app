@@ -49,6 +49,20 @@ class PerfilRemoteDatasource {
     );
   }
 
+  Future<void> subirFotoPerfil({
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  }) {
+    return _apiClient.postMultipart(
+      '/perfil/foto',
+      bytes: bytes,
+      nombreArchivo: nombreArchivo,
+      contentType: contentType,
+      autenticado: true,
+    );
+  }
+
   Future<void> actualizarPerfilDomiciliario({
     required String direccion,
     required String vehiculoTipo,

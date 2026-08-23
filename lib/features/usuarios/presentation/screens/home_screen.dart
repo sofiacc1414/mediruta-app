@@ -16,17 +16,10 @@ import '../providers/auth_session_provider.dart';
 /// siempre determina los permisos reales consultando `usuario_roles`, no
 /// lo que se elija acá). Se reemplaza cuando se implementen las
 /// pantallas reales de cada rol.
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   static const routeName = '/home';
-
-  @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends ConsumerState<HomeScreen> {
-  String? _modo;
 
   static const _etiquetas = {'PACIENTE': 'Paciente', 'DOMICILIARIO': 'Domiciliario'};
   static const _iconos = {
@@ -35,17 +28,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   };
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final estado = ref.watch(authSessionProvider);
     final usuario = estado is AuthAutenticado ? estado.usuario : null;
     final roles = usuario?.roles ?? const <RolAsignado>[];
 
-    // Por defecto, el modo activo es el primer rol de la cuenta. No se
-    // persiste entre sesiones — cada login vuelve a arrancar en el rol
-    // por defecto (mismo alcance simplificado que el onboarding).
-    if (_modo == null && roles.isNotEmpty) {
-      _modo = roles.first.codigo;
-    }
+    // Por defecto, el modo activo es el primer rol de la cuenta — vive en
+    // `modoActivoProvider` (no como estado local de esta pantalla) para
+    // que se mantenga al navegar a otras pantallas, ej. `PerfilScreen`,
+    // que también deben respetar el modo elegido acá.
+    final modo = ref.watch(modoActivoProvider) ?? (roles.isNotEmpty ? roles.first.codigo : null);
 
     return Scaffold(
       body: Center(
@@ -79,8 +71,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             icono: _iconos[rol.codigo] ?? Icons.person_outline,
                             label: _etiquetas[rol.codigo] ?? rol.codigo,
                             sublabel: rol.estado == 'habilitado' ? null : 'Pendiente de validación',
-                            seleccionado: _modo == rol.codigo,
-                            onTap: () => setState(() => _modo = rol.codigo),
+                            seleccionado: modo == rol.codigo,
+                            onTap: () =>
+                                ref.read(modoActivoProvider.notifier).state = rol.codigo,
                           ),
                         ),
                         if (rol != roles.last) const SizedBox(width: 12),
@@ -111,6 +104,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   variante: AppButtonVariante.secondary,
                   onPressed: () async {
                     await ref.read(authSessionProvider.notifier).cerrarSesion();
+                    ref.invalidate(modoActivoProvider);
                     if (context.mounted) {
                       Navigator.of(
                         context,

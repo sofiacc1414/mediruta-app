@@ -16,13 +16,9 @@ import '../../domain/usecases/restablecer_contrasena_usecase.dart';
 import '../../domain/usecases/solicitar_recuperacion_contrasena_usecase.dart';
 
 /// Cableado de dependencias del feature `usuarios` (DOCS/context.md, Parte
-/// B, sección 11 — providers de Riverpod). `apiClientProvider` conecta
-/// `onSesionExpirada` a `refrescarSesionUseCaseProvider` de forma perezosa
-/// (con `ref.read` dentro del closure, no `ref.watch`) para evitar un
-/// ciclo real en el grafo de providers.
+/// B, sección 11 — providers de Riverpod).
 final Provider<ApiClient> apiClientProvider = Provider<ApiClient>((ref) {
   final client = ApiClient(baseUrl: AppConfig.apiBaseUrl);
-  client.onSesionExpirada = () => ref.read(refrescarSesionUseCaseProvider).execute();
   ref.onDispose(client.close);
   return client;
 });
@@ -77,3 +73,19 @@ final cambiarContrasenaUseCaseProvider = Provider(
 final haySesionGuardadaUseCaseProvider = Provider(
   (ref) => HaySesionGuardadaUseCase(ref.watch(usuarioRepositoryProvider)),
 );
+
+/// Conecta `ApiClient.onSesionExpirada` con `RefrescarSesionUseCase` — un
+/// provider intermedio, distinto de `apiClientProvider`, a propósito: si la
+/// asignación viviera dentro del `build` de `apiClientProvider` mismo, su
+/// `ref.read(refrescarSesionUseCaseProvider)` formaría un ciclo real en el
+/// grafo (`refrescarSesionUseCaseProvider` depende de
+/// `usuarioRepositoryProvider`, que depende de `apiClientProvider`), y
+/// Riverpod lo detecta incluso con `ref.read` (no solo `ref.watch`) porque
+/// ya quedaría registrada la dependencia inversa. Este provider en cambio
+/// depende de ambos sin que ninguno dependa de él, así que no es
+/// autorreferencial. Alguien debe `watch`earlo una vez al arrancar la app
+/// para que el `build` corra — lo hace `authSessionProvider`.
+final Provider<void> apiClientRefreshWiringProvider = Provider<void>((ref) {
+  final client = ref.watch(apiClientProvider);
+  client.onSesionExpirada = () => ref.read(refrescarSesionUseCaseProvider).execute();
+});

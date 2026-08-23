@@ -11,19 +11,20 @@ class FakePerfilRepository implements PerfilRepository {
   Perfil perfilARetornar = const Perfil(
     nombreCompleto: null,
     telefono: null,
+    fotoPerfilUrl: null,
     paciente: PerfilPaciente(
       direccion: null,
       fechaNacimiento: null,
-      fotoCedulaPath: null,
+      fotoCedulaUrl: null,
     ),
     domiciliario: PerfilDomiciliario(
       direccion: null,
       vehiculoTipo: null,
       vehiculoPlaca: null,
-      cedulaPath: null,
-      licenciaPath: null,
-      soatPath: null,
-      tecnicomecanicaPath: null,
+      cedulaUrl: null,
+      licenciaUrl: null,
+      soatUrl: null,
+      tecnicomecanicaUrl: null,
     ),
   );
 
@@ -78,6 +79,20 @@ class FakePerfilRepository implements PerfilRepository {
     required String contentType,
   }) async {
     _registrar('subirFotoCedulaPaciente', {
+      'bytes': bytes,
+      'nombreArchivo': nombreArchivo,
+      'contentType': contentType,
+    });
+    _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<void> subirFotoPerfil({
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  }) async {
+    _registrar('subirFotoPerfil', {
       'bytes': bytes,
       'nombreArchivo': nombreArchivo,
       'contentType': contentType,

@@ -3,18 +3,21 @@ class PerfilPaciente {
   const PerfilPaciente({
     required this.direccion,
     required this.fechaNacimiento,
-    required this.fotoCedulaPath,
+    required this.fotoCedulaUrl,
   });
 
   final String? direccion;
   final String? fechaNacimiento;
-  final String? fotoCedulaPath;
+
+  /// URL firmada de corta duración (la API nunca expone el path interno
+  /// de Storage — DOCS/context.md, Parte B, sección 3).
+  final String? fotoCedulaUrl;
 
   factory PerfilPaciente.fromJson(Map<String, dynamic> json) {
     return PerfilPaciente(
       direccion: json['direccion'] as String?,
       fechaNacimiento: json['fechaNacimiento'] as String?,
-      fotoCedulaPath: json['fotoCedulaPath'] as String?,
+      fotoCedulaUrl: json['fotoCedulaUrl'] as String?,
     );
   }
 }

@@ -50,6 +50,19 @@ class PerfilRepositoryImpl implements PerfilRepository {
   }
 
   @override
+  Future<void> subirFotoPerfil({
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  }) {
+    return _datasource.subirFotoPerfil(
+      bytes: bytes,
+      nombreArchivo: nombreArchivo,
+      contentType: contentType,
+    );
+  }
+
+  @override
   Future<void> actualizarPerfilDomiciliario({
     required String direccion,
     required String vehiculoTipo,

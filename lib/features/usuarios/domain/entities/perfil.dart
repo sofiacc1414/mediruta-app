@@ -8,12 +8,16 @@ class Perfil {
   const Perfil({
     required this.nombreCompleto,
     required this.telefono,
+    required this.fotoPerfilUrl,
     required this.paciente,
     required this.domiciliario,
   });
 
   final String? nombreCompleto;
   final String? telefono;
+
+  /// URL firmada de corta duración del avatar (común a cualquier rol).
+  final String? fotoPerfilUrl;
   final PerfilPaciente? paciente;
   final PerfilDomiciliario? domiciliario;
 
@@ -23,6 +27,7 @@ class Perfil {
     return Perfil(
       nombreCompleto: json['nombreCompleto'] as String?,
       telefono: json['telefono'] as String?,
+      fotoPerfilUrl: json['fotoPerfilUrl'] as String?,
       paciente: paciente != null ? PerfilPaciente.fromJson(paciente) : null,
       domiciliario: domiciliario != null
           ? PerfilDomiciliario.fromJson(domiciliario)

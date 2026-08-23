@@ -26,6 +26,13 @@ abstract class PerfilRepository {
     required String contentType,
   });
 
+  /// Foto de perfil (avatar), común a cualquier rol.
+  Future<void> subirFotoPerfil({
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  });
+
   /// G01/G03 — dirección + vehículo del Domiciliario.
   Future<void> actualizarPerfilDomiciliario({
     required String direccion,

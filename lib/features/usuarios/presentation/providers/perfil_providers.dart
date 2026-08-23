@@ -10,6 +10,7 @@ import '../../domain/usecases/desactivar_cuenta_usecase.dart';
 import '../../domain/usecases/obtener_perfil_usecase.dart';
 import '../../domain/usecases/subir_documento_domiciliario_usecase.dart';
 import '../../domain/usecases/subir_foto_cedula_paciente_usecase.dart';
+import '../../domain/usecases/subir_foto_perfil_usecase.dart';
 import 'usuario_providers.dart';
 
 /// Cableado de dependencias del perfil (HU-02) — mismo espíritu que
@@ -37,6 +38,10 @@ final actualizarPerfilPacienteUseCaseProvider = Provider(
 
 final subirFotoCedulaPacienteUseCaseProvider = Provider(
   (ref) => SubirFotoCedulaPacienteUseCase(ref.watch(perfilRepositoryProvider)),
+);
+
+final subirFotoPerfilUseCaseProvider = Provider(
+  (ref) => SubirFotoPerfilUseCase(ref.watch(perfilRepositoryProvider)),
 );
 
 final actualizarPerfilDomiciliarioUseCaseProvider = Provider(

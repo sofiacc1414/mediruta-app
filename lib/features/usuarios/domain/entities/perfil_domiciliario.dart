@@ -5,29 +5,32 @@ class PerfilDomiciliario {
     required this.direccion,
     required this.vehiculoTipo,
     required this.vehiculoPlaca,
-    required this.cedulaPath,
-    required this.licenciaPath,
-    required this.soatPath,
-    required this.tecnicomecanicaPath,
+    required this.cedulaUrl,
+    required this.licenciaUrl,
+    required this.soatUrl,
+    required this.tecnicomecanicaUrl,
   });
 
   final String? direccion;
   final String? vehiculoTipo;
   final String? vehiculoPlaca;
-  final String? cedulaPath;
-  final String? licenciaPath;
-  final String? soatPath;
-  final String? tecnicomecanicaPath;
+
+  /// URLs firmadas de corta duración (la API nunca expone el path interno
+  /// de Storage — DOCS/context.md, Parte B, sección 3).
+  final String? cedulaUrl;
+  final String? licenciaUrl;
+  final String? soatUrl;
+  final String? tecnicomecanicaUrl;
 
   factory PerfilDomiciliario.fromJson(Map<String, dynamic> json) {
     return PerfilDomiciliario(
       direccion: json['direccion'] as String?,
       vehiculoTipo: json['vehiculoTipo'] as String?,
       vehiculoPlaca: json['vehiculoPlaca'] as String?,
-      cedulaPath: json['cedulaPath'] as String?,
-      licenciaPath: json['licenciaPath'] as String?,
-      soatPath: json['soatPath'] as String?,
-      tecnicomecanicaPath: json['tecnicomecanicaPath'] as String?,
+      cedulaUrl: json['cedulaUrl'] as String?,
+      licenciaUrl: json['licenciaUrl'] as String?,
+      soatUrl: json['soatUrl'] as String?,
+      tecnicomecanicaUrl: json['tecnicomecanicaUrl'] as String?,
     );
   }
 }

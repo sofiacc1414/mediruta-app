@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -59,8 +60,14 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   Widget build(BuildContext context) {
     final estado = ref.watch(authSessionProvider);
     final usuario = estado is AuthAutenticado ? estado.usuario : null;
-    final esPaciente = usuario?.tieneRol('PACIENTE') ?? false;
-    final esDomiciliario = usuario?.tieneRol('DOMICILIARIO') ?? false;
+    final roles = usuario?.roles ?? const [];
+    // Mismo "modo" activo que se elige en home_screen.dart — si la cuenta
+    // es multirol, acá solo se muestra la tarjeta del rol activo, no la de
+    // todos los roles que tenga la cuenta (para cambiar de tarjeta hay que
+    // cambiar el modo en Inicio).
+    final modo = ref.watch(modoActivoProvider) ?? (roles.isNotEmpty ? roles.first.codigo : null);
+    final esPaciente = modo == 'PACIENTE';
+    final esDomiciliario = modo == 'DOMICILIARIO';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mi perfil')),
@@ -77,8 +84,11 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Center(
-                          child: AppIconBadge(icono: Icons.badge_outlined),
+                        Center(
+                          child: _AvatarPerfil(
+                            fotoPerfilUrl: _perfil?.fotoPerfilUrl,
+                            onCambio: _cargarPerfil,
+                          ),
                         ),
                         const SizedBox(height: 20),
                         if (_errorCarga != null) ...[
@@ -108,6 +118,147 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                 ),
               ),
             ),
+    );
+  }
+}
+
+/// Avatar del usuario, en la cabecera de la pantalla — muestra la foto de
+/// perfil ya subida (URL firmada) o el badge por defecto, con un botón de
+/// cámara superpuesto para subir/reemplazar.
+class _AvatarPerfil extends ConsumerStatefulWidget {
+  const _AvatarPerfil({required this.fotoPerfilUrl, required this.onCambio});
+
+  final String? fotoPerfilUrl;
+  final Future<void> Function() onCambio;
+
+  @override
+  ConsumerState<_AvatarPerfil> createState() => _AvatarPerfilState();
+}
+
+class _AvatarPerfilState extends ConsumerState<_AvatarPerfil> {
+  bool _subiendo = false;
+  String? _error;
+
+  Future<void> _elegirYSubir() async {
+    final origen = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Tomar foto'),
+              onTap: () => Navigator.of(context).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Elegir de la galería'),
+              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (origen == null) return;
+
+    final archivo = await ImagePicker().pickImage(source: origen, imageQuality: 85);
+    if (archivo == null || !mounted) return;
+
+    setState(() {
+      _subiendo = true;
+      _error = null;
+    });
+    try {
+      final bytes = await archivo.readAsBytes();
+      await ref
+          .read(subirFotoPerfilUseCaseProvider)
+          .execute(
+            bytes: bytes,
+            nombreArchivo: archivo.name,
+            contentType: _contentTypeDesde(archivo.name),
+          );
+      await widget.onCambio();
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } on ApiSinConexionException catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _subiendo = false);
+    }
+  }
+
+  String _contentTypeDesde(String nombreArchivo) {
+    final minuscula = nombreArchivo.toLowerCase();
+    if (minuscula.endsWith('.png')) return 'image/png';
+    return 'image/jpeg';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            ClipOval(
+              child: widget.fotoPerfilUrl != null
+                  ? Image.network(
+                      widget.fotoPerfilUrl!,
+                      width: 96,
+                      height: 96,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const SizedBox(
+                          width: 96,
+                          height: 96,
+                          child: Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) =>
+                          const AppIconBadge(icono: Icons.badge_outlined),
+                    )
+                  : const AppIconBadge(icono: Icons.badge_outlined),
+            ),
+            Positioned(
+              right: -4,
+              bottom: -4,
+              child: InkWell(
+                onTap: _subiendo ? null : _elegirYSubir,
+                customBorder: const CircleBorder(),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    color: AppColors.navy,
+                    shape: BoxShape.circle,
+                  ),
+                  child: _subiendo
+                      ? const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.white,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.photo_camera_outlined,
+                          color: AppColors.white,
+                          size: 18,
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 8),
+          AppErrorBanner(mensaje: _error!),
+        ],
+      ],
     );
   }
 }
@@ -351,7 +502,7 @@ class _SeccionPacienteState extends ConsumerState<_SeccionPaciente> {
         const SizedBox(height: 16),
         _DocumentoUploadRow(
           label: 'Foto de cédula',
-          yaSubido: widget.perfil?.fotoCedulaPath != null,
+          url: widget.perfil?.fotoCedulaUrl,
           onArchivoElegido: (bytes, nombre, contentType) async {
             await ref
                 .read(subirFotoCedulaPacienteUseCaseProvider)
@@ -461,7 +612,7 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
           const SizedBox(height: 12),
         ],
         AppTextField(
-          label: 'Dirección',
+          label: 'Dirección de residencia',
           icono: Icons.home_outlined,
           controller: _direccionController,
           enabled: !_guardando,
@@ -494,25 +645,25 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
         const SizedBox(height: 8),
         _DocumentoUploadRow(
           label: 'Cédula',
-          yaSubido: widget.perfil?.cedulaPath != null,
+          url: widget.perfil?.cedulaUrl,
           onArchivoElegido: (b, n, c) => _subirDocumento(TipoDocumentoDomiciliario.cedula, b, n, c),
         ),
         const SizedBox(height: 8),
         _DocumentoUploadRow(
           label: 'Licencia de conducción',
-          yaSubido: widget.perfil?.licenciaPath != null,
+          url: widget.perfil?.licenciaUrl,
           onArchivoElegido: (b, n, c) => _subirDocumento(TipoDocumentoDomiciliario.licencia, b, n, c),
         ),
         const SizedBox(height: 8),
         _DocumentoUploadRow(
           label: 'SOAT',
-          yaSubido: widget.perfil?.soatPath != null,
+          url: widget.perfil?.soatUrl,
           onArchivoElegido: (b, n, c) => _subirDocumento(TipoDocumentoDomiciliario.soat, b, n, c),
         ),
         const SizedBox(height: 8),
         _DocumentoUploadRow(
           label: 'Tecnomecánica',
-          yaSubido: widget.perfil?.tecnicomecanicaPath != null,
+          url: widget.perfil?.tecnicomecanicaUrl,
           onArchivoElegido: (b, n, c) =>
               _subirDocumento(TipoDocumentoDomiciliario.tecnicomecanica, b, n, c),
         ),
@@ -595,16 +746,18 @@ class _SeccionDesactivarCuentaState extends ConsumerState<_SeccionDesactivarCuen
   }
 }
 
-/// Fila reutilizable para elegir (cámara/galería) y subir un documento.
+/// Fila reutilizable para elegir (cámara/galería) y subir un documento —
+/// muestra una miniatura real (o un ícono de PDF) del archivo ya subido en
+/// vez de solo un check, usando la URL firmada que devuelve la API.
 class _DocumentoUploadRow extends StatefulWidget {
   const _DocumentoUploadRow({
     required this.label,
-    required this.yaSubido,
+    required this.url,
     required this.onArchivoElegido,
   });
 
   final String label;
-  final bool yaSubido;
+  final String? url;
   final Future<void> Function(List<int> bytes, String nombre, String contentType)
   onArchivoElegido;
 
@@ -612,12 +765,30 @@ class _DocumentoUploadRow extends StatefulWidget {
   State<_DocumentoUploadRow> createState() => _DocumentoUploadRowState();
 }
 
+enum _OrigenDocumento { camara, galeria, pdf }
+
+/// Resultado uniforme de elegir un archivo, venga de la cámara/galería
+/// (`image_picker`) o de un PDF del dispositivo (`file_picker`) — muchos
+/// documentos de validación (SOAT, tecnomecánica) existen como PDF
+/// original y no tiene sentido forzar a fotografiarlos.
+class _ArchivoElegido {
+  const _ArchivoElegido({
+    required this.bytes,
+    required this.nombre,
+    required this.contentType,
+  });
+
+  final List<int> bytes;
+  final String nombre;
+  final String contentType;
+}
+
 class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
   bool _subiendo = false;
   String? _error;
 
   Future<void> _elegirYSubir() async {
-    final origen = await showModalBottomSheet<ImageSource>(
+    final origen = await showModalBottomSheet<_OrigenDocumento>(
       context: context,
       builder: (context) => SafeArea(
         child: Column(
@@ -626,12 +797,17 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
               title: const Text('Tomar foto'),
-              onTap: () => Navigator.of(context).pop(ImageSource.camera),
+              onTap: () => Navigator.of(context).pop(_OrigenDocumento.camara),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
               title: const Text('Elegir de la galería'),
-              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+              onTap: () => Navigator.of(context).pop(_OrigenDocumento.galeria),
+            ),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: const Text('Elegir PDF'),
+              onTap: () => Navigator.of(context).pop(_OrigenDocumento.pdf),
             ),
           ],
         ),
@@ -639,47 +815,75 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
     );
     if (origen == null) return;
 
-    final archivo = await ImagePicker().pickImage(source: origen, imageQuality: 85);
-    if (archivo == null) return;
+    final elegido = origen == _OrigenDocumento.pdf
+        ? await _elegirPdf()
+        : await _elegirImagen(origen);
+    if (elegido == null || !mounted) return;
 
     setState(() {
       _subiendo = true;
       _error = null;
     });
     try {
-      final bytes = await archivo.readAsBytes();
-      await widget.onArchivoElegido(bytes, archivo.name, _contentTypeDesde(archivo.name));
+      await widget.onArchivoElegido(
+        elegido.bytes,
+        elegido.nombre,
+        elegido.contentType,
+      );
     } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     } on ApiSinConexionException catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _subiendo = false);
     }
   }
 
+  Future<_ArchivoElegido?> _elegirImagen(_OrigenDocumento origen) async {
+    final archivo = await ImagePicker().pickImage(
+      source: origen == _OrigenDocumento.camara ? ImageSource.camera : ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (archivo == null) return null;
+
+    return _ArchivoElegido(
+      bytes: await archivo.readAsBytes(),
+      nombre: archivo.name,
+      contentType: _contentTypeDesde(archivo.name),
+    );
+  }
+
+  Future<_ArchivoElegido?> _elegirPdf() async {
+    final archivo = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
+    if (archivo == null) return null;
+
+    return _ArchivoElegido(
+      bytes: await archivo.readAsBytes(),
+      nombre: archivo.name,
+      contentType: 'application/pdf',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final yaSubido = widget.url != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(
-              widget.yaSubido ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: widget.yaSubido ? AppColors.navy : AppColors.teal,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
+            _Miniatura(url: widget.url),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(widget.label, style: const TextStyle(color: AppColors.navy)),
             ),
             TextButton(
               onPressed: _subiendo ? null : _elegirYSubir,
               child: Text(
-                _subiendo
-                    ? 'Subiendo…'
-                    : (widget.yaSubido ? 'Reemplazar' : 'Subir'),
+                _subiendo ? 'Subiendo…' : (yaSubido ? 'Reemplazar' : 'Subir'),
               ),
             ),
           ],
@@ -694,6 +898,68 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
     if (minuscula.endsWith('.png')) return 'image/png';
     if (minuscula.endsWith('.pdf')) return 'application/pdf';
     return 'image/jpeg';
+  }
+}
+
+/// Miniatura 44x44 de un documento ya subido: imagen real si es
+/// jpg/png, ícono de PDF si corresponde, círculo vacío si no hay nada
+/// subido todavía.
+class _Miniatura extends StatelessWidget {
+  const _Miniatura({required this.url});
+
+  final String? url;
+
+  bool get _esPdf =>
+      url != null && url!.split('?').first.toLowerCase().endsWith('.pdf');
+
+  @override
+  Widget build(BuildContext context) {
+    const tamano = 44.0;
+
+    if (url == null) {
+      return Container(
+        width: tamano,
+        height: tamano,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.teal),
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: tamano,
+        height: tamano,
+        color: AppColors.beige,
+        child: _esPdf
+            ? const Icon(
+                Icons.picture_as_pdf_outlined,
+                color: AppColors.navy,
+                size: 22,
+              )
+            : Image.network(
+                url!,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return const Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.image_not_supported_outlined,
+                  color: AppColors.navy,
+                  size: 20,
+                ),
+              ),
+      ),
+    );
   }
 }
 
