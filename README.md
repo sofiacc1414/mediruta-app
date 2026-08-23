@@ -42,12 +42,14 @@ flutter test
 
 | Historia | Estado | Notas |
 |---|---|---|
-| **HU-01** — Gestión de acceso (onboarding, registro, login, cambio/recuperación de contraseña, logout) | ✅ Completa | Incluye selector de "Modo" post-login para cuentas con los dos roles (Paciente + Domiciliario) — la elección de rol nunca ocurre en el login, es una decisión de presentación después de autenticarse; con un solo rol no aparece selector, se resuelve solo. **Sesión única por usuario** (política nueva del lado de la API): loguearse en otro dispositivo cierra la sesión acá — no requirió ningún cambio en la App, el manejo de "el refresh token ya no sirve" (limpia tokens, fuerza login) ya existía para cualquier otro motivo de invalidación. Registrarse como Domiciliario ya no otorga Paciente automático — es un checkbox opcional en el registro; cualquier cuenta puede pedir después el rol que le falte desde "Mi perfil" ("Solicitar ser Paciente"/"Solicitar ser Domiciliario", ver detalle en HU-02). |
-| **HU-02** — Administración del perfil de usuario | ✅ Completa | Pantalla "Mi perfil", accesible desde Inicio. Ver detalle abajo. |
-| **HU-08** — Validación de domiciliarios | Parcial | El lado del **Administrador** (aprobar/rechazar) es de Web, no de App — completa en `mediruta-web`. El lado del **Domiciliario** (completar perfil/documentos y enviar la solicitud) sí es de App, dentro de "Mi perfil" — ver "Enviar solicitud" en HU-02. |
-| **HU-03** — Creación y gestión de solicitudes médicas | ✅ Completa | "Mis solicitudes", accesible desde Inicio (solo modo Paciente). Ver detalle abajo. |
-| **HU-04** — OCR de fórmula médica | 🔜 Próxima | — |
-| **HU-05** — Gestión de documentos de la solicitud | 🔜 Próxima | — |
+| **HU-01** — Gestión de acceso a la plataforma (onboarding, registro, login, cambio/recuperación de contraseña, logout) | ✅ Completa | Incluye selector de "Modo" post-login para cuentas con los dos roles (Paciente + Domiciliario) — la elección de rol nunca ocurre en el login, es una decisión de presentación después de autenticarse; con un solo rol no aparece selector, se resuelve solo. **Sesión única por usuario** (política nueva del lado de la API): loguearse en otro dispositivo cierra la sesión acá — no requirió ningún cambio en la App, el manejo de "el refresh token ya no sirve" (limpia tokens, fuerza login) ya existía para cualquier otro motivo de invalidación. Registrarse como Domiciliario ya no otorga Paciente automático — es un checkbox opcional en el registro; cualquier cuenta puede pedir después el rol que le falte desde "Mi perfil" ("Solicitar ser Paciente"/"Solicitar ser Domiciliario", ver detalle en HU-02). |
+| **HU-02** — Administración del perfil del usuario | ✅ Completa | Pantalla "Mi perfil", accesible desde Inicio. Ver detalle abajo. |
+| **HU-03** — Creación de solicitudes médicas digitales | ✅ Completa | "Mis solicitudes", accesible desde Inicio (solo modo Paciente). Ver detalle abajo. |
+| **HU-05** — Lectura y validación inicial de documentos médicos | ✅ Completa | Es la carga/reemplazo de documentos — ya cubierta por lo que HU-02 (documentos del Domiciliario, foto de cédula del Paciente) y HU-03 (foto de receta) ya construyeron, no es una pantalla aparte. |
+| **HU-07** — Consulta y actualización del estado del proceso | 🔜 Próxima | — |
+| **HU-08** — Supervisión y trazabilidad administrativa (validación de domiciliarios) | ✅ Completa | El lado del **Administrador** (aprobar/rechazar, con historial de decisiones) es de Web, no de App — completa en `mediruta-web`. El lado del **Domiciliario** (completar perfil/documentos y enviar la solicitud) sí es de App, dentro de "Mi perfil" — ver "Enviar solicitud" en HU-02. |
+| **HU-09** — Asignación y gestión del domiciliario | 🔜 Próxima | — |
+| **HU-10** — Control del proceso de entrega | 🔜 Próxima | — |
 
 ### HU-02 — qué incluye
 
