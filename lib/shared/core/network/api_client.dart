@@ -221,7 +221,10 @@ class ApiClient {
     if (cuerpo is Map && cuerpo['message'] != null) {
       final mensaje = cuerpo['message'];
       if (mensaje is List) {
-        return mensaje.join(' ');
+        // Un salto de línea por mensaje — con varios errores de
+        // validación a la vez (ej. correo y contraseña juntos) se leían
+        // pegados uno atrás del otro en un solo párrafo.
+        return mensaje.join('\n');
       }
       return mensaje.toString();
     }

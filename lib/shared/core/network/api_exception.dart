@@ -1,9 +1,10 @@
 /// Error de un request a la API. Expone el `message` que manda
-/// `DominioHttpFilter` (errores de dominio) o el `ValidationPipe` por
-/// defecto de NestJS (errores de validación) — nunca se inventa un texto
-/// distinto acá, se muestra el mismo mensaje que la API decidió mandar
-/// (DOCS/context.md, Parte B, sección 4.1 y 4.2 — mensajes genéricos
-/// anti-enumeración en login/recuperación).
+/// `DominioHttpFilter` (errores de dominio) o el `ValidationPipe` global
+/// (errores de validación, con `exceptionFactory` propio para que salgan
+/// en español — ver `mensajes-validacion.ts` del lado de la API) — nunca
+/// se inventa un texto distinto acá, se muestra el mismo mensaje que la
+/// API decidió mandar (DOCS/context.md, Parte B, sección 4.1 y 4.2 —
+/// mensajes genéricos anti-enumeración en login/recuperación).
 class ApiException implements Exception {
   const ApiException({required this.statusCode, required this.message});
 
