@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_icon_badge.dart';
+import '../../../../shared/widgets/app_selection_card.dart';
 import '../../domain/entities/rol_asignado.dart';
 import '../providers/auth_session_provider.dart';
 
@@ -27,6 +28,12 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   String? _modo;
 
+  static const _etiquetas = {'PACIENTE': 'Paciente', 'DOMICILIARIO': 'Domiciliario'};
+  static const _iconos = {
+    'PACIENTE': Icons.person_outline,
+    'DOMICILIARIO': Icons.moped_outlined,
+  };
+
   @override
   Widget build(BuildContext context) {
     final estado = ref.watch(authSessionProvider);
@@ -41,43 +48,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('MediRuta')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const AppIconBadge(icono: Icons.check_circle_outline),
-                const SizedBox(height: 16),
+                const Center(child: AppIconBadge(icono: Icons.check_circle_outline)),
+                const SizedBox(height: 20),
                 Text(
                   usuario != null ? 'Hola, ${usuario.correo}' : 'Sesión activa',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: AppColors.navy),
                   textAlign: TextAlign.center,
                 ),
                 if (roles.length > 1) ...[
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   const Text(
                     'Modo',
-                    style: TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
-                  _SelectorModo(
-                    roles: roles,
-                    modoSeleccionado: _modo!,
-                    onChanged: (codigo) => setState(() => _modo = codigo),
+                  Row(
+                    children: [
+                      for (final rol in roles) ...[
+                        Expanded(
+                          child: AppSelectionCard(
+                            icono: _iconos[rol.codigo] ?? Icons.person_outline,
+                            label: _etiquetas[rol.codigo] ?? rol.codigo,
+                            sublabel: rol.estado == 'habilitado' ? null : 'Pendiente de validación',
+                            seleccionado: _modo == rol.codigo,
+                            onTap: () => setState(() => _modo = rol.codigo),
+                          ),
+                        ),
+                        if (rol != roles.last) const SizedBox(width: 12),
+                      ],
+                    ],
                   ),
                 ] else if (roles.length == 1) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Text(
-                    'Rol: ${roles.first.codigo.toLowerCase()}',
+                    'Rol: ${_etiquetas[roles.first.codigo] ?? roles.first.codigo}',
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: AppColors.teal),
                   ),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 AppButton(
                   label: 'Cambiar contraseña',
                   onPressed: () => Navigator.of(context).pushNamed('/cambiar-contrasena'),
@@ -100,50 +118,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Chips "Paciente" / "Domiciliario" — marca "pendiente de validación"
-/// cuando el rol todavía no está `habilitado` (HU-08, aún no implementada:
-/// un Domiciliario recién registrado ve su solicitud pendiente, no se le
-/// oculta el modo).
-class _SelectorModo extends StatelessWidget {
-  const _SelectorModo({
-    required this.roles,
-    required this.modoSeleccionado,
-    required this.onChanged,
-  });
-
-  final List<RolAsignado> roles;
-  final String modoSeleccionado;
-  final ValueChanged<String> onChanged;
-
-  static const _etiquetas = {'PACIENTE': 'Paciente', 'DOMICILIARIO': 'Domiciliario'};
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.center,
-      children: [
-        for (final rol in roles)
-          ChoiceChip(
-            label: Text(
-              rol.estado == 'habilitado'
-                  ? (_etiquetas[rol.codigo] ?? rol.codigo)
-                  : '${_etiquetas[rol.codigo] ?? rol.codigo} (pendiente)',
-            ),
-            selected: modoSeleccionado == rol.codigo,
-            onSelected: (_) => onChanged(rol.codigo),
-            selectedColor: AppColors.navy,
-            labelStyle: TextStyle(
-              color: modoSeleccionado == rol.codigo ? AppColors.white : AppColors.navy,
-            ),
-            backgroundColor: AppColors.skyBlue,
-          ),
-      ],
     );
   }
 }
