@@ -28,6 +28,11 @@ ThemeData buildAppTheme() {
       surface: AppColors.white,
       surfaceContainerHighest: AppColors.skyBlue,
       surfaceContainer: AppColors.beige,
+      // Sin rojo de error por defecto de Material (DOCS/context.md, Parte A,
+      // sección 4 — nunca colores automáticos del framework ni fuera de la
+      // paleta, ni siquiera para error/advertencia/éxito).
+      error: AppColors.navy,
+      onError: AppColors.white,
     ),
     textTheme: bodyTextTheme.copyWith(
       headlineLarge: bodyTextTheme.headlineLarge?.merge(_headingFallback),

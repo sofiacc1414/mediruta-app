@@ -1,4 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+
+import 'api_exception.dart';
 
 /// Wrapper base para hablar con la API de MediRuta.
 ///
@@ -6,19 +11,39 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// autenticación (DOCS/context.md, Parte B, secciones 4.1 y 11). Todo pasa
 /// por aquí. El token JWT (propio, emitido por la API) se guarda en
 /// almacenamiento seguro, nunca en SharedPreferences ni en memoria plana.
+///
+/// Este cliente es del flujo App: nunca manda el header `X-Client-Type` que
+/// usa el Web para pedir el refresh token por cookie HttpOnly — la App
+/// recibe el refresh token en el JSON de la respuesta y lo persiste acá.
 class ApiClient {
-  ApiClient({required this.baseUrl, FlutterSecureStorage? secureStorage})
-    : _secureStorage = secureStorage ?? const FlutterSecureStorage();
+  ApiClient({
+    required this.baseUrl,
+    http.Client? httpClient,
+    FlutterSecureStorage? secureStorage,
+  }) : _http = httpClient ?? http.Client(),
+       _secureStorage = secureStorage ?? const FlutterSecureStorage();
 
   final String baseUrl;
+  final http.Client _http;
   final FlutterSecureStorage _secureStorage;
 
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
 
+  /// Se conecta desde `auth_session_provider` para renovar la sesión ante
+  /// un 401 en un endpoint autenticado. Devuelve `true` si logró renovar
+  /// el access token (y por lo tanto vale la pena reintentar el request
+  /// original una sola vez).
+  Future<bool> Function()? onSesionExpirada;
+
   Future<String?> get accessToken => _secureStorage.read(key: _accessTokenKey);
 
-  Future<void> saveTokens({required String accessToken, required String refreshToken}) async {
+  Future<String?> get refreshToken => _secureStorage.read(key: _refreshTokenKey);
+
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
     await _secureStorage.write(key: _accessTokenKey, value: accessToken);
     await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
   }
@@ -28,8 +53,98 @@ class ApiClient {
     await _secureStorage.delete(key: _refreshTokenKey);
   }
 
-  // Los métodos get/post/patch/delete concretos (con manejo de headers,
-  // refresh automático de token, y parsing de errores) se implementan
-  // junto con el primer caso de uso que los necesite (HU-01), no antes
-  // — ver "planificación obligatoria antes de implementar", sección 12.
+  void close() => _http.close();
+
+  /// GET a `path` (relativo a [baseUrl]). Si `autenticado` es true, adjunta
+  /// el access token guardado y reintenta una vez tras renovarlo ante 401.
+  Future<dynamic> get(String path, {bool autenticado = false}) {
+    return _request('GET', path, autenticado: autenticado);
+  }
+
+  /// POST a `path` con `body` como JSON. Si `autenticado` es true, adjunta
+  /// el access token guardado y reintenta una vez tras renovarlo ante 401.
+  Future<dynamic> post(
+    String path, {
+    Map<String, dynamic>? body,
+    bool autenticado = false,
+  }) {
+    return _request('POST', path, body: body, autenticado: autenticado);
+  }
+
+  Future<dynamic> _request(
+    String metodo,
+    String path, {
+    Map<String, dynamic>? body,
+    required bool autenticado,
+    bool esReintento = false,
+  }) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final headers = {'Content-Type': 'application/json'};
+
+    if (autenticado) {
+      final token = await accessToken;
+      if (token != null) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+    }
+
+    late final http.Response respuesta;
+    try {
+      respuesta = switch (metodo) {
+        'GET' => await _http.get(uri, headers: headers),
+        'POST' => await _http.post(
+          uri,
+          headers: headers,
+          body: body != null ? jsonEncode(body) : null,
+        ),
+        _ => throw UnsupportedError('Método HTTP no soportado: $metodo'),
+      };
+    } on http.ClientException {
+      throw const ApiSinConexionException();
+    }
+
+    if (respuesta.statusCode == 401 &&
+        autenticado &&
+        !esReintento &&
+        onSesionExpirada != null) {
+      final renovada = await onSesionExpirada!();
+      if (renovada) {
+        return _request(
+          metodo,
+          path,
+          body: body,
+          autenticado: autenticado,
+          esReintento: true,
+        );
+      }
+    }
+
+    return _decodificar(respuesta);
+  }
+
+  dynamic _decodificar(http.Response respuesta) {
+    final cuerpo = respuesta.body.isEmpty
+        ? null
+        : jsonDecode(utf8.decode(respuesta.bodyBytes));
+
+    if (respuesta.statusCode >= 200 && respuesta.statusCode < 300) {
+      return cuerpo;
+    }
+
+    throw ApiException(
+      statusCode: respuesta.statusCode,
+      message: _extraerMensaje(cuerpo),
+    );
+  }
+
+  String _extraerMensaje(dynamic cuerpo) {
+    if (cuerpo is Map && cuerpo['message'] != null) {
+      final mensaje = cuerpo['message'];
+      if (mensaje is List) {
+        return mensaje.join(' ');
+      }
+      return mensaje.toString();
+    }
+    return 'Ocurrió un error inesperado. Intenta de nuevo.';
+  }
 }
