@@ -52,6 +52,7 @@ flutter test
 ### HU-02 — qué incluye
 
 - Secciones de perfil condicionales por rol: datos comunes (**correo** de solo lectura, nombre/teléfono editables) siempre; Paciente (dirección de entrega, fecha de nacimiento, foto de cédula) y/o Domiciliario (dirección de residencia, vehículo, cédula/licencia/SOAT/tecnomecánica) según el **"Modo" activo** elegido en Inicio — una cuenta con los dos roles no ve ambas tarjetas mezcladas.
+- **Un solo "Guardar cambios"** al pie de toda la pantalla, no un botón por tarjeta — guarda datos comunes + el perfil del rol activo a la vez. Los controllers de texto viven en `PerfilScreen` (no en cada sub-sección) para que el botón único pueda leerlos a todos. Documentos, avatar y "Enviar solicitud" (Domiciliario) quedan aparte — son acciones inmediatas, no datos de formulario.
 - El correo se muestra pero no se edita acá (no hay esa funcionalidad) — sale de la sesión autenticada (`authSessionProvider`), no de `GET /perfil` (esa respuesta no lo trae).
 - **"Cambiar contraseña"** vive en "Mi perfil" (sección "Datos básicos"), no en Inicio — se movió ahí por ser una acción de cuenta, junto al resto de los datos de la cuenta.
 - Foto de perfil (avatar) con subida/reemplazo desde la propia pantalla.

@@ -20,6 +20,16 @@ import 'cambiar_contrasena_screen.dart';
 /// HU-02 — pantalla "Mi perfil". Secciones condicionales según los roles
 /// de la cuenta (context.md, Parte B, sección 4.1: un usuario puede
 /// tener PACIENTE y DOMICILIARIO a la vez).
+///
+/// Un solo botón "Guardar cambios" al pie guarda datos comunes + el
+/// perfil del rol activo a la vez (antes cada tarjeta tenía su propio
+/// "Guardar" — confuso, varios botones casi idénticos en una pantalla
+/// corta). Por eso los controllers de texto viven acá, no en cada
+/// sub-sección — así el botón único puede leerlos a todos. Documentos y
+/// avatar quedan aparte: son acciones inmediatas al elegir el archivo,
+/// no datos de formulario que tenga sentido "guardar" después. "Enviar
+/// solicitud" (validación de Domiciliario) también queda aparte — es
+/// una acción distinta a guardar los datos, mismo criterio que HU-03.
 class PerfilScreen extends ConsumerStatefulWidget {
   const PerfilScreen({super.key});
 
@@ -34,10 +44,42 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   Perfil? _perfil;
   String? _errorCarga;
 
+  late final TextEditingController _correoController;
+  final _nombreController = TextEditingController();
+  final _telefonoController = TextEditingController();
+
+  final _pacienteDireccionController = TextEditingController();
+  DateTime? _pacienteFechaNacimiento;
+
+  final _domiciliarioDireccionController = TextEditingController();
+  final _vehiculoTipoController = TextEditingController();
+  final _vehiculoPlacaController = TextEditingController();
+
+  bool _guardandoCambios = false;
+  String? _errorGuardar;
+
   @override
   void initState() {
     super.initState();
+    // No se puede `ref.watch` en initState — se lee una sola vez. El
+    // correo no cambia mientras esta pantalla está abierta (no hay
+    // funcionalidad para editarlo).
+    final estadoInicial = ref.read(authSessionProvider);
+    final usuarioInicial = estadoInicial is AuthAutenticado ? estadoInicial.usuario : null;
+    _correoController = TextEditingController(text: usuarioInicial?.correo ?? '');
     _cargarPerfil();
+  }
+
+  @override
+  void dispose() {
+    _correoController.dispose();
+    _nombreController.dispose();
+    _telefonoController.dispose();
+    _pacienteDireccionController.dispose();
+    _domiciliarioDireccionController.dispose();
+    _vehiculoTipoController.dispose();
+    _vehiculoPlacaController.dispose();
+    super.dispose();
   }
 
   Future<void> _cargarPerfil() async {
@@ -48,13 +90,102 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     try {
       final perfil = await ref.read(obtenerPerfilUseCaseProvider).execute();
       if (!mounted) return;
-      setState(() => _perfil = perfil);
+      setState(() {
+        _perfil = perfil;
+        _nombreController.text = perfil.nombreCompleto ?? '';
+        _telefonoController.text = perfil.telefono ?? '';
+        _pacienteDireccionController.text = perfil.paciente?.direccion ?? '';
+        final fechaNacimiento = perfil.paciente?.fechaNacimiento;
+        _pacienteFechaNacimiento =
+            fechaNacimiento != null ? DateTime.tryParse(fechaNacimiento) : null;
+        _domiciliarioDireccionController.text = perfil.domiciliario?.direccion ?? '';
+        _vehiculoTipoController.text = perfil.domiciliario?.vehiculoTipo ?? '';
+        _vehiculoPlacaController.text = perfil.domiciliario?.vehiculoPlaca ?? '';
+      });
     } on ApiException catch (error) {
       setState(() => _errorCarga = error.message);
     } on ApiSinConexionException catch (error) {
       setState(() => _errorCarga = error.toString());
     } finally {
       if (mounted) setState(() => _cargandoPerfil = false);
+    }
+  }
+
+  Future<void> _elegirFechaNacimiento() async {
+    final ahora = DateTime.now();
+    final seleccionada = await showDatePicker(
+      context: context,
+      initialDate: _pacienteFechaNacimiento ?? DateTime(ahora.year - 25),
+      firstDate: DateTime(1900),
+      lastDate: ahora.subtract(const Duration(days: 1)),
+    );
+    if (seleccionada != null) {
+      setState(() => _pacienteFechaNacimiento = seleccionada);
+    }
+  }
+
+  Future<void> _guardarCambios({
+    required bool esPaciente,
+    required bool esDomiciliario,
+  }) async {
+    final faltantes = <String>[];
+    if (_nombreController.text.trim().isEmpty || _telefonoController.text.trim().isEmpty) {
+      faltantes.add('nombre y teléfono');
+    }
+    if (esPaciente &&
+        (_pacienteDireccionController.text.trim().isEmpty ||
+            _pacienteFechaNacimiento == null)) {
+      faltantes.add('dirección y fecha de nacimiento de Paciente');
+    }
+    if (esDomiciliario &&
+        (_domiciliarioDireccionController.text.trim().isEmpty ||
+            _vehiculoTipoController.text.trim().isEmpty ||
+            _vehiculoPlacaController.text.trim().isEmpty)) {
+      faltantes.add('dirección, tipo de vehículo y placa de Domiciliario');
+    }
+    if (faltantes.isNotEmpty) {
+      setState(() => _errorGuardar = 'Completa: ${faltantes.join('; ')}.');
+      return;
+    }
+
+    setState(() {
+      _guardandoCambios = true;
+      _errorGuardar = null;
+    });
+    try {
+      await ref
+          .read(actualizarDatosComunesUseCaseProvider)
+          .execute(
+            nombreCompleto: _nombreController.text.trim(),
+            telefono: _telefonoController.text.trim(),
+          );
+      if (esPaciente) {
+        await ref
+            .read(actualizarPerfilPacienteUseCaseProvider)
+            .execute(
+              direccion: _pacienteDireccionController.text.trim(),
+              fechaNacimiento: _isoFecha(_pacienteFechaNacimiento!),
+            );
+      }
+      if (esDomiciliario) {
+        await ref
+            .read(actualizarPerfilDomiciliarioUseCaseProvider)
+            .execute(
+              direccion: _domiciliarioDireccionController.text.trim(),
+              vehiculoTipo: _vehiculoTipoController.text.trim(),
+              vehiculoPlaca: _vehiculoPlacaController.text.trim(),
+            );
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Cambios guardados.')));
+    } on ApiException catch (error) {
+      setState(() => _errorGuardar = error.message);
+    } on ApiSinConexionException catch (error) {
+      setState(() => _errorGuardar = error.toString());
+    } finally {
+      if (mounted) setState(() => _guardandoCambios = false);
     }
   }
 
@@ -105,11 +236,20 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                           AppErrorBanner(mensaje: _errorCarga!),
                           const SizedBox(height: 16),
                         ],
-                        _SeccionDatosComunes(perfil: _perfil, correo: usuario?.correo),
+                        _SeccionDatosComunes(
+                          correoController: _correoController,
+                          nombreController: _nombreController,
+                          telefonoController: _telefonoController,
+                          enabled: !_guardandoCambios,
+                        ),
                         if (esPaciente) ...[
                           const SizedBox(height: 24),
                           _SeccionPaciente(
                             perfil: _perfil?.paciente,
+                            direccionController: _pacienteDireccionController,
+                            fechaNacimiento: _pacienteFechaNacimiento,
+                            onElegirFecha: _elegirFechaNacimiento,
+                            enabled: !_guardandoCambios,
                             onCambio: _cargarPerfil,
                           ),
                         ],
@@ -118,9 +258,26 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                           _SeccionDomiciliario(
                             perfil: _perfil?.domiciliario,
                             estadoRol: estadoRolDomiciliario,
+                            direccionController: _domiciliarioDireccionController,
+                            vehiculoTipoController: _vehiculoTipoController,
+                            vehiculoPlacaController: _vehiculoPlacaController,
+                            enabled: !_guardandoCambios,
                             onCambio: _cargarPerfil,
                           ),
                         ],
+                        const SizedBox(height: 24),
+                        if (_errorGuardar != null) ...[
+                          AppErrorBanner(mensaje: _errorGuardar!),
+                          const SizedBox(height: 12),
+                        ],
+                        AppLoadingButton(
+                          label: 'Guardar cambios',
+                          cargando: _guardandoCambios,
+                          onPressed: () => _guardarCambios(
+                            esPaciente: esPaciente,
+                            esDomiciliario: esDomiciliario,
+                          ),
+                        ),
                         if (!tienePaciente || !tieneDomiciliario) ...[
                           const SizedBox(height: 24),
                           _SeccionAgregarRol(
@@ -320,70 +477,22 @@ class _Tarjeta extends StatelessWidget {
   }
 }
 
-/// G02/G03/G04 — nombre y teléfono, comunes a cualquier rol.
-class _SeccionDatosComunes extends ConsumerStatefulWidget {
-  const _SeccionDatosComunes({required this.perfil, required this.correo});
+/// G02/G03/G04 — nombre y teléfono, comunes a cualquier rol. Los
+/// controllers los posee `PerfilScreen` (guardado unificado) — esta
+/// sección solo muestra los campos y "Cambiar contraseña" (acción
+/// aparte, no un dato de formulario).
+class _SeccionDatosComunes extends StatelessWidget {
+  const _SeccionDatosComunes({
+    required this.correoController,
+    required this.nombreController,
+    required this.telefonoController,
+    required this.enabled,
+  });
 
-  final Perfil? perfil;
-
-  /// No viene de `Perfil` (`GET /perfil` no lo trae) — es de solo lectura
-  /// acá, así que se toma directo de la sesión autenticada
-  /// (`authSessionProvider`), que ya lo tiene desde el login.
-  final String? correo;
-
-  @override
-  ConsumerState<_SeccionDatosComunes> createState() => _SeccionDatosComunesState();
-}
-
-class _SeccionDatosComunesState extends ConsumerState<_SeccionDatosComunes> {
-  late final _correoController = TextEditingController(text: widget.correo ?? '');
-  late final _nombreController = TextEditingController(
-    text: widget.perfil?.nombreCompleto ?? '',
-  );
-  late final _telefonoController = TextEditingController(
-    text: widget.perfil?.telefono ?? '',
-  );
-  bool _guardando = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _correoController.dispose();
-    _nombreController.dispose();
-    _telefonoController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _guardar() async {
-    if (_nombreController.text.trim().isEmpty ||
-        _telefonoController.text.trim().isEmpty) {
-      setState(() => _error = 'Completa nombre y teléfono.');
-      return;
-    }
-
-    setState(() {
-      _guardando = true;
-      _error = null;
-    });
-    try {
-      await ref
-          .read(actualizarDatosComunesUseCaseProvider)
-          .execute(
-            nombreCompleto: _nombreController.text.trim(),
-            telefono: _telefonoController.text.trim(),
-          );
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Datos actualizados.')));
-    } on ApiException catch (error) {
-      setState(() => _error = error.message);
-    } on ApiSinConexionException catch (error) {
-      setState(() => _error = error.toString());
-    } finally {
-      if (mounted) setState(() => _guardando = false);
-    }
-  }
+  final TextEditingController correoController;
+  final TextEditingController nombreController;
+  final TextEditingController telefonoController;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -391,36 +500,26 @@ class _SeccionDatosComunesState extends ConsumerState<_SeccionDatosComunes> {
       children: [
         const _TituloSeccion('Datos básicos'),
         const SizedBox(height: 12),
-        if (_error != null) ...[
-          AppErrorBanner(mensaje: _error!),
-          const SizedBox(height: 12),
-        ],
         AppTextField(
           label: 'Correo',
           icono: Icons.email_outlined,
-          controller: _correoController,
+          controller: correoController,
           enabled: false,
         ),
         const SizedBox(height: 12),
         AppTextField(
           label: 'Nombre completo',
           icono: Icons.person_outline,
-          controller: _nombreController,
-          enabled: !_guardando,
+          controller: nombreController,
+          enabled: enabled,
         ),
         const SizedBox(height: 12),
         AppTextField(
           label: 'Teléfono',
           icono: Icons.phone_outlined,
-          controller: _telefonoController,
+          controller: telefonoController,
           keyboardType: TextInputType.phone,
-          enabled: !_guardando,
-        ),
-        const SizedBox(height: 12),
-        AppLoadingButton(
-          label: 'Guardar',
-          cargando: _guardando,
-          onPressed: _guardar,
+          enabled: enabled,
         ),
         const SizedBox(height: 16),
         AppButton(
@@ -434,115 +533,49 @@ class _SeccionDatosComunesState extends ConsumerState<_SeccionDatosComunes> {
   }
 }
 
-/// G01/G03/G04 — dirección, fecha de nacimiento y foto de cédula.
-class _SeccionPaciente extends ConsumerStatefulWidget {
-  const _SeccionPaciente({required this.perfil, required this.onCambio});
+/// G01/G03/G04 — dirección, fecha de nacimiento y foto de cédula. El
+/// controller de dirección y la fecha los posee `PerfilScreen`
+/// (guardado unificado); la foto de cédula sigue siendo una subida
+/// inmediata al elegir el archivo, no pasa por "Guardar cambios".
+class _SeccionPaciente extends ConsumerWidget {
+  const _SeccionPaciente({
+    required this.perfil,
+    required this.direccionController,
+    required this.fechaNacimiento,
+    required this.onElegirFecha,
+    required this.enabled,
+    required this.onCambio,
+  });
 
   final dynamic perfil;
+  final TextEditingController direccionController;
+  final DateTime? fechaNacimiento;
+  final VoidCallback onElegirFecha;
+  final bool enabled;
   final Future<void> Function() onCambio;
 
   @override
-  ConsumerState<_SeccionPaciente> createState() => _SeccionPacienteState();
-}
-
-class _SeccionPacienteState extends ConsumerState<_SeccionPaciente> {
-  late final _direccionController = TextEditingController(
-    text: widget.perfil?.direccion as String? ?? '',
-  );
-  DateTime? _fechaNacimiento;
-  bool _guardando = false;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    final fecha = widget.perfil?.fechaNacimiento as String?;
-    if (fecha != null) {
-      _fechaNacimiento = DateTime.tryParse(fecha);
-    }
-  }
-
-  @override
-  void dispose() {
-    _direccionController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _elegirFecha() async {
-    final ahora = DateTime.now();
-    final seleccionada = await showDatePicker(
-      context: context,
-      initialDate: _fechaNacimiento ?? DateTime(ahora.year - 25),
-      firstDate: DateTime(1900),
-      lastDate: ahora.subtract(const Duration(days: 1)),
-    );
-    if (seleccionada != null) {
-      setState(() => _fechaNacimiento = seleccionada);
-    }
-  }
-
-  Future<void> _guardar() async {
-    if (_direccionController.text.trim().isEmpty || _fechaNacimiento == null) {
-      setState(() => _error = 'Completa la dirección y la fecha de nacimiento.');
-      return;
-    }
-
-    setState(() {
-      _guardando = true;
-      _error = null;
-    });
-    try {
-      await ref
-          .read(actualizarPerfilPacienteUseCaseProvider)
-          .execute(
-            direccion: _direccionController.text.trim(),
-            fechaNacimiento: _isoFecha(_fechaNacimiento!),
-          );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Perfil de Paciente actualizado.')),
-      );
-    } on ApiException catch (error) {
-      setState(() => _error = error.message);
-    } on ApiSinConexionException catch (error) {
-      setState(() => _error = error.toString());
-    } finally {
-      if (mounted) setState(() => _guardando = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return _Tarjeta(
       children: [
         const _TituloSeccion('Perfil de Paciente'),
         const SizedBox(height: 12),
-        if (_error != null) ...[
-          AppErrorBanner(mensaje: _error!),
-          const SizedBox(height: 12),
-        ],
         AppTextField(
           label: 'Dirección de entrega',
           icono: Icons.home_outlined,
-          controller: _direccionController,
-          enabled: !_guardando,
+          controller: direccionController,
+          enabled: enabled,
         ),
         const SizedBox(height: 12),
         _CampoFecha(
           label: 'Fecha de nacimiento',
-          fecha: _fechaNacimiento,
-          onTap: _guardando ? null : _elegirFecha,
-        ),
-        const SizedBox(height: 12),
-        AppLoadingButton(
-          label: 'Guardar',
-          cargando: _guardando,
-          onPressed: _guardar,
+          fecha: fechaNacimiento,
+          onTap: enabled ? onElegirFecha : null,
         ),
         const SizedBox(height: 16),
         _DocumentoUploadRow(
           label: 'Foto de cédula',
-          url: widget.perfil?.fotoCedulaUrl,
+          url: perfil?.fotoCedulaUrl,
           onArchivoElegido: (bytes, nombre, contentType) async {
             await ref
                 .read(subirFotoCedulaPacienteUseCaseProvider)
@@ -551,7 +584,7 @@ class _SeccionPacienteState extends ConsumerState<_SeccionPaciente> {
                   nombreArchivo: nombre,
                   contentType: contentType,
                 );
-            await widget.onCambio();
+            await onCambio();
           },
         ),
       ],
@@ -559,11 +592,18 @@ class _SeccionPacienteState extends ConsumerState<_SeccionPaciente> {
   }
 }
 
-/// G01/G03/G04 — dirección, vehículo y documentos de validación.
+/// G01/G03/G04 — dirección, vehículo y documentos de validación. Los
+/// controllers de dirección/vehículo los posee `PerfilScreen` (guardado
+/// unificado). Documentos y "Enviar solicitud" quedan aparte — acciones
+/// propias, no datos de "Guardar cambios".
 class _SeccionDomiciliario extends ConsumerStatefulWidget {
   const _SeccionDomiciliario({
     required this.perfil,
     required this.estadoRol,
+    required this.direccionController,
+    required this.vehiculoTipoController,
+    required this.vehiculoPlacaController,
+    required this.enabled,
     required this.onCambio,
   });
 
@@ -575,6 +615,10 @@ class _SeccionDomiciliario extends ConsumerStatefulWidget {
   /// todavía no se envió), `pendiente_validacion` (ya enviada, un admin
   /// la está revisando), `habilitado` (aprobada) o `rechazado`.
   final String? estadoRol;
+  final TextEditingController direccionController;
+  final TextEditingController vehiculoTipoController;
+  final TextEditingController vehiculoPlacaController;
+  final bool enabled;
   final Future<void> Function() onCambio;
 
   @override
@@ -582,59 +626,8 @@ class _SeccionDomiciliario extends ConsumerStatefulWidget {
 }
 
 class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
-  late final _direccionController = TextEditingController(
-    text: widget.perfil?.direccion as String? ?? '',
-  );
-  late final _vehiculoTipoController = TextEditingController(
-    text: widget.perfil?.vehiculoTipo as String? ?? '',
-  );
-  late final _vehiculoPlacaController = TextEditingController(
-    text: widget.perfil?.vehiculoPlaca as String? ?? '',
-  );
-  bool _guardando = false;
   bool _enviando = false;
   String? _error;
-
-  @override
-  void dispose() {
-    _direccionController.dispose();
-    _vehiculoTipoController.dispose();
-    _vehiculoPlacaController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _guardar() async {
-    if (_direccionController.text.trim().isEmpty ||
-        _vehiculoTipoController.text.trim().isEmpty ||
-        _vehiculoPlacaController.text.trim().isEmpty) {
-      setState(() => _error = 'Completa dirección, tipo de vehículo y placa.');
-      return;
-    }
-
-    setState(() {
-      _guardando = true;
-      _error = null;
-    });
-    try {
-      await ref
-          .read(actualizarPerfilDomiciliarioUseCaseProvider)
-          .execute(
-            direccion: _direccionController.text.trim(),
-            vehiculoTipo: _vehiculoTipoController.text.trim(),
-            vehiculoPlaca: _vehiculoPlacaController.text.trim(),
-          );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Perfil de Domiciliario actualizado.')),
-      );
-    } on ApiException catch (error) {
-      setState(() => _error = error.message);
-    } on ApiSinConexionException catch (error) {
-      setState(() => _error = error.toString());
-    } finally {
-      if (mounted) setState(() => _guardando = false);
-    }
-  }
 
   Future<void> _subirDocumento(
     TipoDocumentoDomiciliario tipo,
@@ -656,6 +649,9 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
   /// Mismos 7 campos obligatorios que ya exige `app.enviar_solicitud_
   /// domiciliario`/`app.aprobar_domiciliario` — se deshabilita "Enviar
   /// solicitud" preventivamente en vez de depender de chocar con el 422.
+  /// A propósito lee `widget.perfil` (lo ya guardado en el servidor), no
+  /// los controllers (lo que se está tipeando pero todavía no se
+  /// guardó) — enviar la solicitud es sobre lo que el servidor ya tiene.
   List<String> _calcularFaltantes() {
     final p = widget.perfil;
     final faltantes = <String>[];
@@ -718,28 +714,22 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
         AppTextField(
           label: 'Dirección de residencia',
           icono: Icons.home_outlined,
-          controller: _direccionController,
-          enabled: !_guardando,
+          controller: widget.direccionController,
+          enabled: widget.enabled,
         ),
         const SizedBox(height: 12),
         AppTextField(
           label: 'Tipo de vehículo',
           icono: Icons.two_wheeler_outlined,
-          controller: _vehiculoTipoController,
-          enabled: !_guardando,
+          controller: widget.vehiculoTipoController,
+          enabled: widget.enabled,
         ),
         const SizedBox(height: 12),
         AppTextField(
           label: 'Placa',
           icono: Icons.pin_outlined,
-          controller: _vehiculoPlacaController,
-          enabled: !_guardando,
-        ),
-        const SizedBox(height: 12),
-        AppLoadingButton(
-          label: 'Guardar',
-          cargando: _guardando,
-          onPressed: _guardar,
+          controller: widget.vehiculoPlacaController,
+          enabled: widget.enabled,
         ),
         const SizedBox(height: 16),
         const Text(
@@ -794,11 +784,9 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
 /// Ofrece pedir el rol que le falta a la cuenta (PACIENTE y/o
 /// DOMICILIARIO) sin pasar por un registro nuevo. Al agregarse, refresca
 /// los roles de la sesión (`authSessionProvider.sesionIniciada` — los
-/// roles no viven en el JWT, hay que volver a pedirlos) para que el
-/// selector de "Modo" en Inicio pase a aparecer apenas corresponda
-/// (`roles.length > 1`). No navega directo al rol nuevo — con más de un
-/// rol, elegir modo siempre es una acción explícita en Inicio, igual que
-/// para cualquier otra cuenta multirol.
+/// roles no viven en el JWT, hay que volver a pedirlos), el perfil (los
+/// datos recién copiados del otro rol) y cambia el "Modo" al rol nuevo
+/// para que la persona vea de una el formulario que acaba de pedir.
 class _SeccionAgregarRol extends ConsumerStatefulWidget {
   const _SeccionAgregarRol({
     required this.ofrecerPaciente,
