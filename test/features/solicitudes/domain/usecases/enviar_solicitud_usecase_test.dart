@@ -6,12 +6,13 @@ import 'fake_solicitud_repository.dart';
 
 void main() {
   group('EnviarSolicitudUseCase', () {
-    test('G05 — delega el id en el repositorio', () async {
-      final repo = FakeSolicitudRepository();
+    test('G05 — delega el id en el repositorio y devuelve el código de pedido', () async {
+      final repo = FakeSolicitudRepository()..codigoPedidoARetornar = 'MR-000123';
       final useCase = EnviarSolicitudUseCase(repo);
 
-      await useCase.execute('solicitud-uuid');
+      final resultado = await useCase.execute('solicitud-uuid');
 
+      expect(resultado, 'MR-000123');
       expect(repo.ultimaLlamada, {'metodo': 'enviar', 'solicitudId': 'solicitud-uuid'});
     });
 

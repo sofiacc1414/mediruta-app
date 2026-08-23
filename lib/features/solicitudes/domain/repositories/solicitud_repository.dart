@@ -28,8 +28,9 @@ abstract class SolicitudRepository {
     required String contentType,
   });
 
-  /// G05.
-  Future<void> enviar(String solicitudId);
+  /// G05. Devuelve el código de pedido recién generado (`MR-000001`,
+  /// ...) — no existía hasta este momento, un Borrador no es un pedido.
+  Future<String> enviar(String solicitudId);
 
   /// G06.
   Future<void> cancelar(String solicitudId);

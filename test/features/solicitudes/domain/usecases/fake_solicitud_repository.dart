@@ -8,6 +8,7 @@ import 'package:mediruta_app/features/solicitudes/domain/repositories/solicitud_
 class FakeSolicitudRepository implements SolicitudRepository {
   Object? errorALanzar;
   String idARetornar = 'solicitud-uuid';
+  String codigoPedidoARetornar = 'MR-000123';
   List<SolicitudResumen> listaARetornar = const [];
   Solicitud? solicitudARetornar;
 
@@ -68,9 +69,10 @@ class FakeSolicitudRepository implements SolicitudRepository {
   }
 
   @override
-  Future<void> enviar(String solicitudId) async {
+  Future<String> enviar(String solicitudId) async {
     _registrar('enviar', {'solicitudId': solicitudId});
     _lanzarSiCorresponde();
+    return codigoPedidoARetornar;
   }
 
   @override

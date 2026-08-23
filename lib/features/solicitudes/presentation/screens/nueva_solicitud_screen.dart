@@ -273,7 +273,8 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     });
     try {
       final id = await _persistir();
-      await ref.read(enviarSolicitudUseCaseProvider).execute(id);
+      final codigoPedido = await ref.read(enviarSolicitudUseCaseProvider).execute(id);
+      if (mounted) await _mostrarPedidoConfirmado(codigoPedido);
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (error) {
       setState(() => _error = error.message);
@@ -282,6 +283,38 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     } finally {
       if (mounted) setState(() => _guardando = false);
     }
+  }
+
+  Future<void> _mostrarPedidoConfirmado(String codigoPedido) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¡Pedido enviado!'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Tu solicitud pasó a revisión. Guardá este código de pedido:'),
+            const SizedBox(height: 12),
+            Text(
+              codigoPedido,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.navy,
+                fontWeight: FontWeight.w800,
+                fontSize: 22,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<bool> _confirmarSalida() async {

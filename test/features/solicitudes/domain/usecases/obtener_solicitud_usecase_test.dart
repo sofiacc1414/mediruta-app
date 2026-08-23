@@ -11,6 +11,7 @@ void main() {
     test('G03 — devuelve el detalle que resuelve el repositorio', () async {
       const solicitud = Solicitud(
         id: 'solicitud-uuid',
+        codigoPedido: 'MR-000123',
         estado: 'borrador',
         recetaUrl: 'https://firmada.test/receta.jpg',
         recetaFechaVencimiento: '2026-08-01',

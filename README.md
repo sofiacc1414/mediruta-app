@@ -71,6 +71,7 @@ medicamentos, y la receta se sube como foto, no se tipea):
 - "Mis solicitudes" (lista) → detalle con los medicamentos, miniatura de receta, miniatura de cédula (de solo lectura) e historial de estados → Editar/Enviar/Cancelar según el estado actual.
 - **Miniatura de receta/cédula tocable**: una imagen de 44px no alcanza para leer una fórmula médica — tocarla abre `app_image_viewer.dart` (visor a pantalla completa con zoom, sin paquete nuevo, usa `InteractiveViewer` nativo), tanto para la foto recién elegida (todavía no subida) como para la ya subida al servidor.
 - "Enviar solicitud" se deshabilita solo si falta algún requisito, mostrando cuáles — mismo cálculo que hace la API (`app.enviar_solicitud`), incluyendo **receta vencida** (`recetaFechaVencimiento` ya pasada), para no depender de chocar con el error para avisar.
+- **Código de pedido**: se genera recién al enviar (`MR-000001`, ...) — antes no existía, la solicitud enviada solo tenía su uuid interno. Al enviar aparece un diálogo con el código (pantalla de creación) o un snackbar (pantalla de detalle); de ahí en más reemplaza a "Solicitud del &lt;fecha&gt;" como título en la lista y en el detalle.
 
 58/58 tests pasando.
 

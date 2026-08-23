@@ -6,6 +6,7 @@ import 'medicamento.dart';
 class Solicitud {
   const Solicitud({
     required this.id,
+    required this.codigoPedido,
     required this.estado,
     required this.recetaUrl,
     required this.recetaFechaVencimiento,
@@ -19,6 +20,10 @@ class Solicitud {
   });
 
   final String id;
+
+  /// Solo existe una vez enviada (G05) — nulo mientras está en
+  /// Borrador, todavía no es un "pedido".
+  final String? codigoPedido;
   final String estado; // 'borrador' | 'pendiente_revision' | 'cancelada'
   final String? recetaUrl;
   final String? recetaFechaVencimiento;
@@ -38,6 +43,7 @@ class Solicitud {
   factory Solicitud.fromJson(Map<String, dynamic> json) {
     return Solicitud(
       id: json['id'] as String,
+      codigoPedido: json['codigoPedido'] as String?,
       estado: json['estado'] as String,
       recetaUrl: json['recetaUrl'] as String?,
       recetaFechaVencimiento: json['recetaFechaVencimiento'] as String?,

@@ -198,12 +198,14 @@ class _FilaSolicitud extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Solicitud del ${_formatearFecha(solicitud.creadoEn)}',
+                    solicitud.codigoPedido ?? 'Solicitud del ${_formatearFecha(solicitud.creadoEn)}',
                     style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _etiquetasEstado[solicitud.estado] ?? solicitud.estado,
+                    solicitud.codigoPedido == null
+                        ? (_etiquetasEstado[solicitud.estado] ?? solicitud.estado)
+                        : '${_etiquetasEstado[solicitud.estado] ?? solicitud.estado} · ${_formatearFecha(solicitud.creadoEn)}',
                     style: const TextStyle(color: AppColors.teal, fontSize: 13),
                   ),
                 ],

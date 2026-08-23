@@ -69,8 +69,15 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
       _error = null;
     });
     try {
-      await ref.read(enviarSolicitudUseCaseProvider).execute(widget.solicitudId);
+      final codigoPedido = await ref
+          .read(enviarSolicitudUseCaseProvider)
+          .execute(widget.solicitudId);
       await _cargar();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('¡Pedido enviado! Tu código es $codigoPedido.')),
+        );
+      }
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } on ApiSinConexionException catch (error) {
@@ -141,6 +148,18 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                         const SizedBox(height: 16),
                       ],
                       if (solicitud != null) ...[
+                        if (solicitud.codigoPedido != null) ...[
+                          Text(
+                            solicitud.codigoPedido!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppColors.navy,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 20,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                        ],
                         Text(
                           _etiquetasEstado[solicitud.estado] ?? solicitud.estado,
                           textAlign: TextAlign.center,

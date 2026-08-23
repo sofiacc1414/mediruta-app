@@ -50,8 +50,12 @@ class SolicitudRemoteDatasource {
     );
   }
 
-  Future<void> enviar(String solicitudId) {
-    return _apiClient.post('/solicitudes/$solicitudId/enviar', autenticado: true);
+  Future<Map<String, dynamic>> enviar(String solicitudId) async {
+    final respuesta = await _apiClient.post(
+      '/solicitudes/$solicitudId/enviar',
+      autenticado: true,
+    );
+    return respuesta as Map<String, dynamic>;
   }
 
   Future<void> cancelar(String solicitudId) {
