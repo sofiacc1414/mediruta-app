@@ -42,7 +42,7 @@ flutter test
 
 | Historia | Estado | Notas |
 |---|---|---|
-| **HU-01** — Gestión de acceso (onboarding, registro, login, cambio/recuperación de contraseña, logout) | ✅ Completa | Incluye selector de "Modo" post-login para cuentas con los dos roles (Paciente + Domiciliario) — la elección de rol nunca ocurre en el login, es una decisión de presentación después de autenticarse. |
+| **HU-01** — Gestión de acceso (onboarding, registro, login, cambio/recuperación de contraseña, logout) | ✅ Completa | Incluye selector de "Modo" post-login para cuentas con los dos roles (Paciente + Domiciliario) — la elección de rol nunca ocurre en el login, es una decisión de presentación después de autenticarse. **Sesión única por usuario** (política nueva del lado de la API): loguearse en otro dispositivo cierra la sesión acá — no requirió ningún cambio en la App, el manejo de "el refresh token ya no sirve" (limpia tokens, fuerza login) ya existía para cualquier otro motivo de invalidación. |
 | **HU-02** — Administración del perfil de usuario | ✅ Completa | Pantalla "Mi perfil", accesible desde Inicio. Ver detalle abajo. |
 | **HU-08** — Validación de domiciliarios | — | Es de Web (rol Administrador), no de App — completa en `mediruta-web`. |
 | **HU-03** — Creación y gestión de solicitudes médicas | ✅ Completa | "Mis solicitudes", accesible desde Inicio (solo modo Paciente). Ver detalle abajo. |
