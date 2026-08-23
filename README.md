@@ -51,7 +51,9 @@ flutter test
 
 ### HU-02 — qué incluye
 
-- Secciones de perfil condicionales por rol: datos comunes (nombre/teléfono) siempre; Paciente (dirección de entrega, fecha de nacimiento, foto de cédula) y/o Domiciliario (dirección de residencia, vehículo, cédula/licencia/SOAT/tecnomecánica) según el **"Modo" activo** elegido en Inicio — una cuenta con los dos roles no ve ambas tarjetas mezcladas.
+- Secciones de perfil condicionales por rol: datos comunes (**correo** de solo lectura, nombre/teléfono editables) siempre; Paciente (dirección de entrega, fecha de nacimiento, foto de cédula) y/o Domiciliario (dirección de residencia, vehículo, cédula/licencia/SOAT/tecnomecánica) según el **"Modo" activo** elegido en Inicio — una cuenta con los dos roles no ve ambas tarjetas mezcladas.
+- El correo se muestra pero no se edita acá (no hay esa funcionalidad) — sale de la sesión autenticada (`authSessionProvider`), no de `GET /perfil` (esa respuesta no lo trae).
+- **"Cambiar contraseña"** vive en "Mi perfil" (sección "Datos básicos"), no en Inicio — se movió ahí por ser una acción de cuenta, junto al resto de los datos de la cuenta.
 - Foto de perfil (avatar) con subida/reemplazo desde la propia pantalla.
 - Miniaturas reales de los documentos ya subidos (imagen o ícono de PDF), no solo un check — usa las URLs firmadas que devuelve la API.
 - Subida de documentos con 3 orígenes: cámara, galería o **elegir PDF** del dispositivo (para SOAT/tecnomecánica que ya existen como PDF, sin forzar a fotografiarlos).

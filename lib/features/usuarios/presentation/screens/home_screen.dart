@@ -105,12 +105,6 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 AppButton(
                   variante: AppButtonVariante.secondary,
-                  label: 'Cambiar contraseña',
-                  onPressed: () => Navigator.of(context).pushNamed('/cambiar-contrasena'),
-                ),
-                const SizedBox(height: 8),
-                AppButton(
-                  variante: AppButtonVariante.secondary,
                   onPressed: () async {
                     await ref.read(authSessionProvider.notifier).cerrarSesion();
                     ref.invalidate(modoActivoProvider);

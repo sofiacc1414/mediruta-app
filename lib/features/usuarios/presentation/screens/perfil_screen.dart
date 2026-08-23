@@ -14,6 +14,7 @@ import '../../domain/entities/perfil.dart';
 import '../../domain/value-objects/tipo_documento_domiciliario.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/perfil_providers.dart';
+import 'cambiar_contrasena_screen.dart';
 
 /// HU-02 — pantalla "Mi perfil". Secciones condicionales según los roles
 /// de la cuenta (context.md, Parte B, sección 4.1: un usuario puede
@@ -95,7 +96,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                           AppErrorBanner(mensaje: _errorCarga!),
                           const SizedBox(height: 16),
                         ],
-                        _SeccionDatosComunes(perfil: _perfil),
+                        _SeccionDatosComunes(perfil: _perfil, correo: usuario?.correo),
                         if (esPaciente) ...[
                           const SizedBox(height: 24),
                           _SeccionPaciente(
@@ -303,15 +304,21 @@ class _Tarjeta extends StatelessWidget {
 
 /// G02/G03/G04 — nombre y teléfono, comunes a cualquier rol.
 class _SeccionDatosComunes extends ConsumerStatefulWidget {
-  const _SeccionDatosComunes({required this.perfil});
+  const _SeccionDatosComunes({required this.perfil, required this.correo});
 
   final Perfil? perfil;
+
+  /// No viene de `Perfil` (`GET /perfil` no lo trae) — es de solo lectura
+  /// acá, así que se toma directo de la sesión autenticada
+  /// (`authSessionProvider`), que ya lo tiene desde el login.
+  final String? correo;
 
   @override
   ConsumerState<_SeccionDatosComunes> createState() => _SeccionDatosComunesState();
 }
 
 class _SeccionDatosComunesState extends ConsumerState<_SeccionDatosComunes> {
+  late final _correoController = TextEditingController(text: widget.correo ?? '');
   late final _nombreController = TextEditingController(
     text: widget.perfil?.nombreCompleto ?? '',
   );
@@ -323,6 +330,7 @@ class _SeccionDatosComunesState extends ConsumerState<_SeccionDatosComunes> {
 
   @override
   void dispose() {
+    _correoController.dispose();
     _nombreController.dispose();
     _telefonoController.dispose();
     super.dispose();
@@ -370,6 +378,13 @@ class _SeccionDatosComunesState extends ConsumerState<_SeccionDatosComunes> {
           const SizedBox(height: 12),
         ],
         AppTextField(
+          label: 'Correo',
+          icono: Icons.email_outlined,
+          controller: _correoController,
+          enabled: false,
+        ),
+        const SizedBox(height: 12),
+        AppTextField(
           label: 'Nombre completo',
           icono: Icons.person_outline,
           controller: _nombreController,
@@ -388,6 +403,13 @@ class _SeccionDatosComunesState extends ConsumerState<_SeccionDatosComunes> {
           label: 'Guardar',
           cargando: _guardando,
           onPressed: _guardar,
+        ),
+        const SizedBox(height: 16),
+        AppButton(
+          variante: AppButtonVariante.secondary,
+          label: 'Cambiar contraseña',
+          onPressed: () =>
+              Navigator.of(context).pushNamed(CambiarContrasenaScreen.routeName),
         ),
       ],
     );
