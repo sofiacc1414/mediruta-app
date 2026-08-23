@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_icon_badge.dart';
 import '../providers/auth_session_provider.dart';
 
 /// Placeholder post-login — todavía no hay más historias implementadas
@@ -26,6 +28,8 @@ class HomeScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                const AppIconBadge(icono: Icons.check_circle_outline),
+                const SizedBox(height: 16),
                 Text(
                   usuario != null ? 'Hola, ${usuario.correo}' : 'Sesión activa',
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -39,12 +43,13 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ],
                 const SizedBox(height: 24),
-                ElevatedButton(
+                AppButton(
+                  label: 'Cambiar contraseña',
                   onPressed: () => Navigator.of(context).pushNamed('/cambiar-contrasena'),
-                  child: const Text('Cambiar contraseña'),
                 ),
                 const SizedBox(height: 8),
-                OutlinedButton(
+                AppButton(
+                  variante: AppButtonVariante.secondary,
                   onPressed: () async {
                     await ref.read(authSessionProvider.notifier).cerrarSesion();
                     if (context.mounted) {
@@ -53,7 +58,7 @@ class HomeScreen extends ConsumerWidget {
                       ).pushNamedAndRemoveUntil('/login', (_) => false);
                     }
                   },
-                  child: const Text('Cerrar sesión'),
+                  label: 'Cerrar sesión',
                 ),
               ],
             ),

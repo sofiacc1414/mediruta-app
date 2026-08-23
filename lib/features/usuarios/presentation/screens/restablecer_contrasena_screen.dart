@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
+import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/core/utils/politica_contrasena.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
+import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../providers/usuario_providers.dart';
@@ -82,7 +84,13 @@ class _RestablecerContrasenaScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Código enviado a ${widget.correo}'),
+                const Center(child: AppIconBadge(icono: Icons.mark_email_read_outlined)),
+                const SizedBox(height: 16),
+                Text(
+                  'Código enviado a ${widget.correo}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.teal),
+                ),
                 const SizedBox(height: 16),
                 if (_error != null) ...[
                   AppErrorBanner(mensaje: _error!),
@@ -90,6 +98,7 @@ class _RestablecerContrasenaScreenState
                 ],
                 AppTextField(
                   label: 'Código de 6 dígitos',
+                  icono: Icons.pin_outlined,
                   controller: _codigoController,
                   keyboardType: TextInputType.number,
                   enabled: !_cargando,
@@ -97,8 +106,9 @@ class _RestablecerContrasenaScreenState
                 const SizedBox(height: 12),
                 AppTextField(
                   label: 'Nueva contraseña',
+                  icono: Icons.lock_outline,
+                  esPassword: true,
                   controller: _nuevaPasswordController,
-                  obscureText: true,
                   autofillHints: const [AutofillHints.newPassword],
                   enabled: !_cargando,
                   errorText: _errorPassword,

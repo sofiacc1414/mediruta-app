@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
-import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/core/theme/app_colors.dart';
+import '../../../../shared/widgets/app_checkbox_row.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
+import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../providers/auth_session_provider.dart';
@@ -23,6 +25,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _correoController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _cargando = false;
+  bool _recordarme = true;
   String? _error;
 
   @override
@@ -60,7 +63,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Iniciar sesión')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
@@ -69,10 +71,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'MediRuta',
+                const Center(child: AppIconBadge(icono: Icons.lock_outline)),
+                const SizedBox(height: 20),
+                Text(
+                  'Iniciar sesión',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: AppColors.navy),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Bienvenido de nuevo a MediRuta',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.teal),
                 ),
                 const SizedBox(height: 24),
                 if (_error != null) ...[
@@ -80,7 +90,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 12),
                 ],
                 AppTextField(
-                  label: 'Correo',
+                  label: 'Correo electrónico',
+                  icono: Icons.mail_outline,
                   controller: _correoController,
                   keyboardType: TextInputType.emailAddress,
                   autofillHints: const [AutofillHints.email],
@@ -89,32 +100,67 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 12),
                 AppTextField(
                   label: 'Contraseña',
+                  icono: Icons.lock_outline,
+                  esPassword: true,
                   controller: _passwordController,
-                  obscureText: true,
                   autofillHints: const [AutofillHints.password],
                   enabled: !_cargando,
                 ),
-                const SizedBox(height: 20),
+                AppCheckboxRow(
+                  valor: _recordarme,
+                  onChanged: (v) => setState(() => _recordarme = v),
+                  label: const Text('Recordarme', style: TextStyle(color: AppColors.navy)),
+                ),
+                const SizedBox(height: 8),
                 AppLoadingButton(
-                  label: 'Ingresar',
+                  label: 'Entrar',
                   cargando: _cargando,
                   onPressed: _iniciarSesion,
                 ),
-                const SizedBox(height: 8),
-                AppButton(
-                  label: 'Olvidé mi contraseña',
-                  variante: AppButtonVariante.secondary,
-                  onPressed: _cargando
-                      ? null
-                      : () => Navigator.of(context).pushNamed('/recuperar-contrasena'),
+                const SizedBox(height: 12),
+                Center(
+                  child: TextButton(
+                    onPressed: _cargando
+                        ? null
+                        : () => Navigator.of(context).pushNamed('/recuperar-contrasena'),
+                    child: const Text('¿Olvidaste tu contraseña?'),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                AppButton(
-                  label: 'Crear una cuenta',
-                  variante: AppButtonVariante.secondary,
-                  onPressed: _cargando
-                      ? null
-                      : () => Navigator.of(context).pushNamed('/registro'),
+                const SizedBox(height: 12),
+                Row(
+                  children: const [
+                    Expanded(child: Divider(color: AppColors.skyBlue)),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('o continúa con', style: TextStyle(color: AppColors.teal, fontSize: 12)),
+                    ),
+                    Expanded(child: Divider(color: AppColors.skyBlue)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: IconButton.filled(
+                    // Biometría no implementada: requiere el paquete
+                    // local_auth + configuración nativa por plataforma y
+                    // su propio diseño de seguridad — fuera de alcance de
+                    // HU-01. Se deja visible (deshabilitado) para no
+                    // fingir una función que no existe.
+                    onPressed: null,
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.skyBlue,
+                      disabledBackgroundColor: AppColors.skyBlue,
+                    ),
+                    icon: const Icon(Icons.fingerprint, color: AppColors.navy),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: TextButton(
+                    onPressed: _cargando
+                        ? null
+                        : () => Navigator.of(context).pushNamed('/registro'),
+                    child: const Text('¿No tienes cuenta? Crear una cuenta'),
+                  ),
                 ),
               ],
             ),

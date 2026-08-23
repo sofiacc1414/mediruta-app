@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
+import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
+import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../providers/usuario_providers.dart';
@@ -66,6 +68,12 @@ class _RecuperarContrasenaScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Center(
+                  child: AppIconBadge(
+                    icono: _solicitudEnviada ? Icons.mark_email_read_outlined : Icons.key_outlined,
+                  ),
+                ),
+                const SizedBox(height: 20),
                 if (_error != null) ...[
                   AppErrorBanner(mensaje: _error!),
                   const SizedBox(height: 12),
@@ -73,6 +81,8 @@ class _RecuperarContrasenaScreenState
                 if (_solicitudEnviada) ...[
                   const Text(
                     'Si el correo está registrado, recibirás un código de recuperación.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.teal),
                   ),
                   const SizedBox(height: 16),
                   AppLoadingButton(
@@ -86,10 +96,13 @@ class _RecuperarContrasenaScreenState
                 ] else ...[
                   const Text(
                     'Ingresa tu correo y te enviaremos un código para restablecer tu contraseña.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.teal),
                   ),
                   const SizedBox(height: 16),
                   AppTextField(
-                    label: 'Correo',
+                    label: 'Correo electrónico',
+                    icono: Icons.mail_outline,
                     controller: _correoController,
                     keyboardType: TextInputType.emailAddress,
                     enabled: !_cargando,

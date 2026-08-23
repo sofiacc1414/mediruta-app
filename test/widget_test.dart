@@ -1,6 +1,7 @@
 // Smoke test de infraestructura: confirma que la app arranca con
 // ProviderScope (Riverpod), el tema oficial y el AuthGate de HU-01 sin
-// errores, mostrando login cuando no hay sesión guardada.
+// errores — onboarding primero, login después de "Comenzar", cuando no
+// hay sesión guardada.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,13 +19,20 @@ void main() {
     FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform({});
   });
 
-  testWidgets('Sin sesión guardada, la app arranca en la pantalla de login', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const ProviderScope(child: MediRutaApp()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Sin sesión guardada, la app arranca en onboarding y pasa a login al tocar Comenzar',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const ProviderScope(child: MediRutaApp()));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Iniciar sesión'), findsWidgets);
-    expect(find.byType(Scaffold), findsOneWidget);
-  });
+      expect(find.text('Comenzar'), findsOneWidget);
+      expect(find.text('Iniciar sesión'), findsNothing);
+
+      await tester.tap(find.text('Comenzar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Iniciar sesión'), findsWidgets);
+      expect(find.byType(Scaffold), findsOneWidget);
+    },
+  );
 }

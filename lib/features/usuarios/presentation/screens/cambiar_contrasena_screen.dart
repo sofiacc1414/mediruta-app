@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/utils/politica_contrasena.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
+import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../providers/usuario_providers.dart';
@@ -79,21 +80,25 @@ class _CambiarContrasenaScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const Center(child: AppIconBadge(icono: Icons.lock_reset_outlined)),
+                const SizedBox(height: 20),
                 if (_error != null) ...[
                   AppErrorBanner(mensaje: _error!),
                   const SizedBox(height: 12),
                 ],
                 AppTextField(
                   label: 'Contraseña actual',
+                  icono: Icons.lock_outline,
+                  esPassword: true,
                   controller: _passwordActualController,
-                  obscureText: true,
                   enabled: !_cargando,
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
                   label: 'Nueva contraseña',
+                  icono: Icons.lock_outline,
+                  esPassword: true,
                   controller: _nuevaPasswordController,
-                  obscureText: true,
                   autofillHints: const [AutofillHints.newPassword],
                   enabled: !_cargando,
                   errorText: _errorPassword,
