@@ -636,16 +636,34 @@ String _normalizar(String texto) {
 /// no restringe — el texto tipeado/pegado se guarda tal cual aunque no
 /// esté en la lista. `RawAutocomplete` con `textEditingController`
 /// propio evita tener que sincronizar dos controllers a mano.
-class _CampoFormaFarmaceutica extends StatelessWidget {
+///
+/// `RawAutocomplete` exige que si le pasás un `textEditingController`
+/// externo también le pases un `focusNode` externo (uno de los dos solo
+/// no alcanza — falla una assertion). Por eso StatefulWidget: necesita
+/// dueño con dispose() propio, no puede crearse suelto dentro de build().
+class _CampoFormaFarmaceutica extends StatefulWidget {
   const _CampoFormaFarmaceutica({required this.controller});
 
   final TextEditingController controller;
 
   @override
+  State<_CampoFormaFarmaceutica> createState() => _CampoFormaFarmaceuticaState();
+}
+
+class _CampoFormaFarmaceuticaState extends State<_CampoFormaFarmaceutica> {
+  final _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return RawAutocomplete<String>(
-      textEditingController: controller,
-      focusNode: FocusNode(),
+      textEditingController: widget.controller,
+      focusNode: _focusNode,
       optionsBuilder: (textEditingValue) {
         final filtro = _normalizar(textEditingValue.text.trim());
         if (filtro.isEmpty) return _formasFarmaceuticasSugeridas;
@@ -654,10 +672,16 @@ class _CampoFormaFarmaceutica extends StatelessWidget {
         );
       },
       fieldViewBuilder: (context, fieldController, focusNode, onFieldSubmitted) {
+        // El FocusNode hay que pasarlo explícito a AppTextField — sin
+        // esto, AppTextField arma el suyo propio puertas adentro y
+        // RawAutocomplete nunca se entera de que el campo tiene foco
+        // (mira este FocusNode, no el interno), así que las opciones no
+        // se mostraban nunca aunque el campo se viera enfocado.
         return AppTextField(
           label: 'Forma farmacéutica',
           icono: Icons.category_outlined,
           controller: fieldController,
+          focusNode: focusNode,
         );
       },
       optionsViewBuilder: (context, onSelected, options) {

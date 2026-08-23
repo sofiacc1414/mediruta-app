@@ -18,6 +18,7 @@ class AppTextField extends StatefulWidget {
     this.autofillHints,
     this.enabled = true,
     this.onChanged,
+    this.focusNode,
   });
 
   final String label;
@@ -30,6 +31,14 @@ class AppTextField extends StatefulWidget {
   final bool enabled;
   final ValueChanged<String>? onChanged;
 
+  /// Opcional — sin esto, el campo se maneja con un FocusNode propio e
+  /// interno (comportamiento normal). Hace falta pasarlo explícitamente
+  /// cuando algo externo necesita saber si ESTE campo tiene foco (p.ej.
+  /// `RawAutocomplete.fieldViewBuilder`, que decide si mostrar sus
+  /// opciones mirando el FocusNode que le pasaste, no el que el campo
+  /// use puertas adentro).
+  final FocusNode? focusNode;
+
   @override
   State<AppTextField> createState() => _AppTextFieldState();
 }
@@ -41,6 +50,7 @@ class _AppTextFieldState extends State<AppTextField> {
   Widget build(BuildContext context) {
     return TextField(
       controller: widget.controller,
+      focusNode: widget.focusNode,
       obscureText: _ocultarTexto,
       keyboardType: widget.keyboardType,
       autofillHints: widget.autofillHints,
