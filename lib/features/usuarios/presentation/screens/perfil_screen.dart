@@ -82,6 +82,15 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     super.dispose();
   }
 
+  /// Carga completa: pisa TODOS los controllers con lo que devuelve la
+  /// API. Solo es seguro usarla cuando no hay riesgo de perder algo que
+  /// la persona esté tipeando sin guardar todavía — el primer arranque
+  /// (nada tipeado aún) y el pull-to-refresh explícito (la persona pidió
+  /// recargar a propósito, mismo criterio que cualquier otra pantalla
+  /// con `RefreshIndicator`). Para refrescos disparados por OTRA acción
+  /// (subir avatar/documento, pedir un rol) usar `_recargarSoloPerfil`
+  /// o `_onRolAgregado` — NUNCA esta, o se pierde texto sin guardar
+  /// (bug real: pasó justo así con la foto de perfil).
   Future<void> _cargarPerfil() async {
     setState(() {
       _cargandoPerfil = true;
@@ -108,6 +117,56 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       setState(() => _errorCarga = error.toString());
     } finally {
       if (mounted) setState(() => _cargandoPerfil = false);
+    }
+  }
+
+  /// Refresco "silencioso": solo actualiza `_perfil` (para que se vea
+  /// la URL nueva de un avatar/documento recién subido) — nunca toca un
+  /// controller de texto ni el spinner de pantalla completa. Es lo que
+  /// corresponde después de subir el avatar o un documento: son
+  /// acciones aparte de "Guardar cambios", no deberían poder pisar lo
+  /// que la persona esté tipeando en otro campo de la misma pantalla.
+  Future<void> _recargarSoloPerfil() async {
+    try {
+      final perfil = await ref.read(obtenerPerfilUseCaseProvider).execute();
+      if (!mounted) return;
+      setState(() => _perfil = perfil);
+    } on ApiException catch (error) {
+      setState(() => _errorCarga = error.message);
+    } on ApiSinConexionException catch (error) {
+      setState(() => _errorCarga = error.toString());
+    }
+  }
+
+  /// Tras "Solicitar ser Paciente/Domiciliario", la API puede devolver
+  /// dirección/cédula ya copiadas del otro perfil (ver
+  /// `20260823110000_solicitar_rol_reusa_datos.sql`) — hay que
+  /// mostrarlas sin esperar un pull-to-refresh manual. Pero a
+  /// diferencia de `_cargarPerfil`, solo toca los controllers del rol
+  /// recién otorgado (antes vacíos, nadie pudo haber tipeado nada ahí
+  /// todavía) — nunca los de Datos básicos ni los del otro rol, que sí
+  /// podrían tener texto sin guardar.
+  Future<void> _onRolAgregado(String rolNuevo) async {
+    try {
+      final perfil = await ref.read(obtenerPerfilUseCaseProvider).execute();
+      if (!mounted) return;
+      setState(() {
+        _perfil = perfil;
+        if (rolNuevo == 'PACIENTE') {
+          _pacienteDireccionController.text = perfil.paciente?.direccion ?? '';
+          final fechaNacimiento = perfil.paciente?.fechaNacimiento;
+          _pacienteFechaNacimiento =
+              fechaNacimiento != null ? DateTime.tryParse(fechaNacimiento) : null;
+        } else if (rolNuevo == 'DOMICILIARIO') {
+          _domiciliarioDireccionController.text = perfil.domiciliario?.direccion ?? '';
+          _vehiculoTipoController.text = perfil.domiciliario?.vehiculoTipo ?? '';
+          _vehiculoPlacaController.text = perfil.domiciliario?.vehiculoPlaca ?? '';
+        }
+      });
+    } on ApiException catch (error) {
+      setState(() => _errorCarga = error.message);
+    } on ApiSinConexionException catch (error) {
+      setState(() => _errorCarga = error.toString());
     }
   }
 
@@ -228,7 +287,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                         Center(
                           child: _AvatarPerfil(
                             fotoPerfilUrl: _perfil?.fotoPerfilUrl,
-                            onCambio: _cargarPerfil,
+                            onCambio: _recargarSoloPerfil,
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -250,7 +309,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                             fechaNacimiento: _pacienteFechaNacimiento,
                             onElegirFecha: _elegirFechaNacimiento,
                             enabled: !_guardandoCambios,
-                            onCambio: _cargarPerfil,
+                            onCambio: _recargarSoloPerfil,
                           ),
                         ],
                         if (esDomiciliario) ...[
@@ -262,7 +321,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                             vehiculoTipoController: _vehiculoTipoController,
                             vehiculoPlacaController: _vehiculoPlacaController,
                             enabled: !_guardandoCambios,
-                            onCambio: _cargarPerfil,
+                            onCambio: _recargarSoloPerfil,
                           ),
                         ],
                         const SizedBox(height: 24),
@@ -283,7 +342,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                           _SeccionAgregarRol(
                             ofrecerPaciente: !tienePaciente,
                             ofrecerDomiciliario: !tieneDomiciliario,
-                            onAgregado: _cargarPerfil,
+                            onAgregado: _onRolAgregado,
                           ),
                         ],
                         const SizedBox(height: 32),
@@ -679,6 +738,13 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
     try {
       final mensaje =
           await ref.read(enviarSolicitudDomiciliarioUseCaseProvider).execute();
+      // El estado del rol pasa de borrador a pendiente_validacion — no
+      // viaja en el JWT ni en GET /perfil, vive en la sesión
+      // (authSessionProvider). Sin refrescarla acá, "estadoRol" seguía
+      // mostrando "borrador" (y el botón "Enviar solicitud" seguía
+      // habilitado) hasta cerrar y volver a entrar a la pantalla.
+      final usuarioActualizado = await ref.read(obtenerSesionActualUseCaseProvider).execute();
+      ref.read(authSessionProvider.notifier).sesionIniciada(usuarioActualizado);
       await widget.onCambio();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
@@ -799,8 +865,11 @@ class _SeccionAgregarRol extends ConsumerStatefulWidget {
 
   /// Recarga el perfil del padre — el rol nuevo puede llegar con
   /// dirección/foto de cédula ya copiadas del otro perfil (API), y sin
-  /// esto no se verían hasta un pull-to-refresh manual.
-  final Future<void> Function() onAgregado;
+  /// esto no se verían hasta un pull-to-refresh manual. Recibe qué rol se
+  /// acaba de otorgar para que el padre actualice solo los controllers de
+  /// ESE rol (recién otorgado, nadie pudo haber tipeado nada ahí todavía)
+  /// y no pise datos sin guardar de Datos básicos ni del otro rol.
+  final Future<void> Function(String rolNuevo) onAgregado;
 
   @override
   ConsumerState<_SeccionAgregarRol> createState() => _SeccionAgregarRolState();
@@ -825,7 +894,7 @@ class _SeccionAgregarRolState extends ConsumerState<_SeccionAgregarRol> {
       // tendría que ir a Inicio y cambiar de modo a mano para encontrar
       // el formulario que acaba de pedir.
       ref.read(modoActivoProvider.notifier).state = rolNuevo;
-      await widget.onAgregado();
+      await widget.onAgregado(rolNuevo);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
     } on ApiException catch (error) {
