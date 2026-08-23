@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'features/solicitudes/presentation/screens/mis_solicitudes_screen.dart';
+import 'features/solicitudes/presentation/screens/nueva_solicitud_screen.dart';
+import 'features/solicitudes/presentation/screens/solicitud_detalle_screen.dart';
 import 'features/usuarios/presentation/providers/auth_session_provider.dart';
 import 'features/usuarios/presentation/screens/cambiar_contrasena_screen.dart';
 import 'features/usuarios/presentation/screens/home_screen.dart';
@@ -10,10 +14,18 @@ import 'features/usuarios/presentation/screens/perfil_screen.dart';
 import 'features/usuarios/presentation/screens/recuperar_contrasena_screen.dart';
 import 'features/usuarios/presentation/screens/registro_screen.dart';
 import 'features/usuarios/presentation/screens/restablecer_contrasena_screen.dart';
+import 'shared/core/storage/shared_preferences_provider.dart';
 import 'shared/core/theme/app_theme.dart';
 
-void main() {
-  runApp(const ProviderScope(child: MediRutaApp()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  runApp(
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const MediRutaApp(),
+    ),
+  );
 }
 
 class MediRutaApp extends StatelessWidget {
@@ -33,12 +45,20 @@ class MediRutaApp extends StatelessWidget {
         CambiarContrasenaScreen.routeName: (_) => const CambiarContrasenaScreen(),
         PerfilScreen.routeName: (_) => const PerfilScreen(),
         HomeScreen.routeName: (_) => const HomeScreen(),
+        MisSolicitudesScreen.routeName: (_) => const MisSolicitudesScreen(),
+        NuevaSolicitudScreen.routeName: (_) => const NuevaSolicitudScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == RestablecerContrasenaScreen.routeName) {
           final correo = settings.arguments as String;
           return MaterialPageRoute(
             builder: (_) => RestablecerContrasenaScreen(correo: correo),
+          );
+        }
+        if (settings.name == SolicitudDetalleScreen.routeName) {
+          final solicitudId = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (_) => SolicitudDetalleScreen(solicitudId: solicitudId),
           );
         }
         return null;

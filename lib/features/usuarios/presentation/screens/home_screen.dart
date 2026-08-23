@@ -5,6 +5,7 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_selection_card.dart';
+import '../../../solicitudes/presentation/screens/mis_solicitudes_screen.dart';
 import '../../domain/entities/rol_asignado.dart';
 import '../providers/auth_session_provider.dart';
 
@@ -89,6 +90,14 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ],
                 const SizedBox(height: 28),
+                if (modo == 'PACIENTE') ...[
+                  AppButton(
+                    label: 'Mis solicitudes',
+                    onPressed: () =>
+                        Navigator.of(context).pushNamed(MisSolicitudesScreen.routeName),
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 AppButton(
                   label: 'Mi perfil',
                   onPressed: () => Navigator.of(context).pushNamed('/perfil'),

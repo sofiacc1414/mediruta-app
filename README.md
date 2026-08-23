@@ -44,7 +44,10 @@ flutter test
 |---|---|---|
 | **HU-01** — Gestión de acceso (onboarding, registro, login, cambio/recuperación de contraseña, logout) | ✅ Completa | Incluye selector de "Modo" post-login para cuentas con los dos roles (Paciente + Domiciliario) — la elección de rol nunca ocurre en el login, es una decisión de presentación después de autenticarse. |
 | **HU-02** — Administración del perfil de usuario | ✅ Completa | Pantalla "Mi perfil", accesible desde Inicio. Ver detalle abajo. |
-| **HU-08** — Validación de domiciliarios (pantalla de revisión para el Administrador) | 🔜 Próxima | Es de Web (rol Administrador), no de App. |
+| **HU-08** — Validación de domiciliarios | — | Es de Web (rol Administrador), no de App — completa en `mediruta-web`. |
+| **HU-03** — Creación y gestión de solicitudes médicas | ✅ Completa | "Mis solicitudes", accesible desde Inicio (solo modo Paciente). Ver detalle abajo. |
+| **HU-04** — OCR de fórmula médica | 🔜 Próxima | — |
+| **HU-05** — Gestión de documentos de la solicitud | 🔜 Próxima | — |
 
 ### HU-02 — qué incluye
 
@@ -54,9 +57,19 @@ flutter test
 - Subida de documentos con 3 orígenes: cámara, galería o **elegir PDF** del dispositivo (para SOAT/tecnomecánica que ya existen como PDF, sin forzar a fotografiarlos).
 - Desactivación de cuenta con confirmación, cierra la sesión localmente.
 
-33/33 tests pasando.
+### HU-03 — qué incluye
+
+- **"Nueva solicitud"**: mientras el paciente completa el formulario (medicamento + receta médica + dirección de entrega), **nada viaja a la API** — se guarda solo en el dispositivo (`shared_preferences`) en cada cambio, para que sobreviva aunque cierren la app de golpe. Recién se crea en la API cuando completa todo y envía, o cuando intenta salir y confirma "guardar para continuar después" (si dice que no, se descarta sin haber tocado el backend).
+- Misma pantalla sirve para **editar** una solicitud ya creada en Borrador (`solicitudId` no nulo) — ahí sí habla con la API directo, sin el paso de borrador local (ya existe del lado del servidor).
+- Campos de medicamento y receta médica definidos investigando qué exige una fórmula válida en Colombia — la foto/escaneo de la receta es HU-05, el OCR es HU-04, acá los datos se tipean.
+- Dirección de entrega precargada del perfil (HU-02), editable por solicitud.
+- "Mis solicitudes" (lista) → detalle con historial de estados → Editar/Enviar/Cancelar según el estado actual.
+- "Enviar solicitud" se deshabilita solo si falta algún campo obligatorio, mostrando cuáles — mismo cálculo que hace la API (`app.enviar_solicitud`), para no depender de chocar con el error para avisar.
+
+52/52 tests pasando.
 
 ### Notas técnicas para quien retome esto
 
 - El "Modo" activo (Paciente/Domiciliario) vive en `modoActivoProvider` (`auth_session_provider.dart`), compartido entre pantallas — si agregás una pantalla nueva que dependa del rol activo, léelo de ahí, no reinventes estado local como se hacía antes en `home_screen.dart`.
+- `SharedPreferences` se resuelve una sola vez en `main()` (es async) y se inyecta vía `sharedPreferencesProvider.overrideWithValue(...)` — cualquier provider que lo necesite lo lee de ahí, nunca llama `SharedPreferences.getInstance()` por su cuenta.
 - `ApiClient.onSesionExpirada` (renovación automática de sesión ante un 401) se conecta desde `apiClientRefreshWiringProvider`, un provider intermedio — **no** lo muevas de vuelta a `apiClientProvider` directamente, causa un `CircularDependencyError` real de Riverpod (el comentario en `usuario_providers.dart` explica por qué).
