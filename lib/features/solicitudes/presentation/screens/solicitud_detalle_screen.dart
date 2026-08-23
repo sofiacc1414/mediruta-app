@@ -6,6 +6,7 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_icon_badge.dart';
+import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../domain/entities/solicitud.dart';
 import '../providers/solicitud_providers.dart';
@@ -165,7 +166,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                         const SizedBox(height: 16),
                         _Tarjeta(
                           titulo: 'Receta médica',
-                          filas: {'Fecha de expedición': solicitud.recetaFechaExpedicion},
+                          filas: {'Fecha de vencimiento': solicitud.recetaFechaVencimiento},
                           miniatura: solicitud.recetaUrl,
                           miniaturaEtiqueta: 'Foto de la receta',
                         ),
@@ -227,11 +228,12 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
   }
 }
 
-/// G05 — mismos 4 requisitos que valida `app.enviar_solicitud` en la
-/// API (la cédula no se revisa acá, ya se exigió al crear). Se calcula
-/// sobre el `Solicitud` ya cargado del detalle, a diferencia del
-/// formulario de creación/edición que lo calcula sobre `DatosSolicitud`
-/// en progreso — mismo criterio, distinta fuente de datos.
+/// G05 — mismos requisitos que valida `app.enviar_solicitud` en la API
+/// (la cédula no se revisa acá, ya se exigió al crear), incluyendo el
+/// chequeo de receta vencida. Se calcula sobre el `Solicitud` ya cargado
+/// del detalle, a diferencia del formulario de creación/edición que lo
+/// calcula sobre `DatosSolicitud` en progreso — mismo criterio, distinta
+/// fuente de datos.
 List<String> _calcularFaltantes(Solicitud solicitud) {
   final medicamentosNoVacios = solicitud.medicamentos.where((m) => !m.estaVacio).toList();
   final faltantes = <String>[];
@@ -244,8 +246,16 @@ List<String> _calcularFaltantes(Solicitud solicitud) {
   if (solicitud.recetaUrl == null) {
     faltantes.add('Foto de la receta');
   }
-  if (solicitud.recetaFechaExpedicion == null) {
-    faltantes.add('Fecha de expedición de la receta');
+  final fechaVencimiento = solicitud.recetaFechaVencimiento;
+  if (fechaVencimiento == null || fechaVencimiento.trim().isEmpty) {
+    faltantes.add('Fecha de vencimiento de la receta');
+  } else {
+    final parseada = DateTime.tryParse(fechaVencimiento);
+    final hoy = DateTime.now();
+    final hoySinHora = DateTime(hoy.year, hoy.month, hoy.day);
+    if (parseada != null && parseada.isBefore(hoySinHora)) {
+      faltantes.add('La receta está vencida — sube una foto de una receta vigente');
+    }
   }
   if (solicitud.direccionEntrega == null || solicitud.direccionEntrega!.trim().isEmpty) {
     faltantes.add('Dirección de entrega');
@@ -290,7 +300,11 @@ class _Tarjeta extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    miniatura != null ? miniaturaEtiqueta! : '$miniaturaEtiqueta — no subida',
+                    miniatura == null
+                        ? '$miniaturaEtiqueta — no subida'
+                        : (miniatura!.split('?').first.toLowerCase().endsWith('.pdf')
+                              ? miniaturaEtiqueta!
+                              : '$miniaturaEtiqueta — toca para verla'),
                     style: const TextStyle(color: AppColors.navy),
                   ),
                 ),
@@ -324,7 +338,9 @@ class _Tarjeta extends StatelessWidget {
 
 /// Miniatura 44x44 de un documento: imagen real si es jpg/png, ícono de
 /// PDF si corresponde, círculo vacío si todavía no hay nada subido.
-/// Mismo patrón que `_Miniatura` de `perfil_screen.dart` (HU-02).
+/// Mismo patrón que `_Miniatura` de `perfil_screen.dart` (HU-02). Si es
+/// una imagen (no PDF, no vacía), tocarla la abre en pantalla completa
+/// con zoom — una miniatura de 44px no alcanza para leer una receta.
 class _Miniatura extends StatelessWidget {
   const _Miniatura({required this.url});
 
@@ -344,30 +360,33 @@ class _Miniatura extends StatelessWidget {
       );
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: tamano,
-        height: tamano,
-        color: AppColors.beige,
-        child: _esPdf
-            ? const Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 22)
-            : Image.network(
-                url!,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return const Center(
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) =>
-                    const Icon(Icons.image_not_supported_outlined, color: AppColors.navy, size: 20),
-              ),
+    return GestureDetector(
+      onTap: _esPdf ? null : () => mostrarImagenCompleta(context, url: url),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: tamano,
+          height: tamano,
+          color: AppColors.beige,
+          child: _esPdf
+              ? const Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 22)
+              : Image.network(
+                  url!,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return const Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.image_not_supported_outlined, color: AppColors.navy, size: 20),
+                ),
+        ),
       ),
     );
   }

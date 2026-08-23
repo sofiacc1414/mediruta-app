@@ -10,6 +10,12 @@ const _medicamentoCompleto = Medicamento(
   posologia: 'Cada 8 horas por 7 días',
 );
 
+// Fecha bien futura a propósito — una fecha de vencimiento válida no
+// puede quedar vieja con el paso del tiempo como pasaría con una fecha
+// fija cercana (ya nos pasó con '2026-08-01' al reemplazar expedición
+// por vencimiento: dejó de estar "vacío").
+const _vencimientoVigente = '2099-08-01';
+
 void main() {
   group('DatosSolicitud.calcularFaltantes', () {
     test('G05 — lista los 4 requisitos si todo está vacío', () {
@@ -18,15 +24,15 @@ void main() {
       expect(datos.calcularFaltantes(tieneRecetaSubida: false), [
         'Al menos un medicamento',
         'Foto de la receta',
-        'Fecha de expedición de la receta',
+        'Fecha de vencimiento de la receta',
         'Dirección de entrega',
       ]);
     });
 
-    test('vacío si hay al menos un medicamento completo, receta, fecha y dirección', () {
+    test('vacío si hay al menos un medicamento completo, receta, fecha vigente y dirección', () {
       const datos = DatosSolicitud(
         medicamentos: [_medicamentoCompleto],
-        recetaFechaExpedicion: '2026-08-01',
+        recetaFechaVencimiento: _vencimientoVigente,
         direccionEntrega: 'Calle 1 #2-3',
       );
 
@@ -39,7 +45,7 @@ void main() {
           _medicamentoCompleto,
           Medicamento(nombre: 'Ibuprofeno'),
         ],
-        recetaFechaExpedicion: '2026-08-01',
+        recetaFechaVencimiento: _vencimientoVigente,
         direccionEntrega: 'Calle 1 #2-3',
       );
 
@@ -52,7 +58,7 @@ void main() {
     test('líneas de medicamento totalmente vacías no cuentan como "al menos uno"', () {
       const datos = DatosSolicitud(
         medicamentos: [Medicamento()],
-        recetaFechaExpedicion: '2026-08-01',
+        recetaFechaVencimiento: _vencimientoVigente,
         direccionEntrega: 'Calle 1 #2-3',
       );
 
@@ -65,7 +71,7 @@ void main() {
     test('sin receta subida avisa "Foto de la receta"', () {
       const datos = DatosSolicitud(
         medicamentos: [_medicamentoCompleto],
-        recetaFechaExpedicion: '2026-08-01',
+        recetaFechaVencimiento: _vencimientoVigente,
         direccionEntrega: 'Calle 1 #2-3',
       );
 
@@ -73,6 +79,32 @@ void main() {
         datos.calcularFaltantes(tieneRecetaSubida: false),
         contains('Foto de la receta'),
       );
+    });
+
+    test('receta con fecha de vencimiento ya pasada avisa que está vencida', () {
+      const datos = DatosSolicitud(
+        medicamentos: [_medicamentoCompleto],
+        recetaFechaVencimiento: '2020-01-01',
+        direccionEntrega: 'Calle 1 #2-3',
+      );
+
+      expect(
+        datos.calcularFaltantes(tieneRecetaSubida: true),
+        contains('La receta está vencida — sube una foto de una receta vigente'),
+      );
+    });
+
+    test('receta que vence justo hoy no cuenta como vencida', () {
+      final hoy = DateTime.now();
+      final hoyIso =
+          '${hoy.year.toString().padLeft(4, '0')}-${hoy.month.toString().padLeft(2, '0')}-${hoy.day.toString().padLeft(2, '0')}';
+      final datos = DatosSolicitud(
+        medicamentos: const [_medicamentoCompleto],
+        recetaFechaVencimiento: hoyIso,
+        direccionEntrega: 'Calle 1 #2-3',
+      );
+
+      expect(datos.calcularFaltantes(tieneRecetaSubida: true), isEmpty);
     });
   });
 }

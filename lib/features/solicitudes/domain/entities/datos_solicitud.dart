@@ -2,23 +2,26 @@ import 'medicamento.dart';
 
 /// Los campos editables de una solicitud: la lista de medicamentos +
 /// receta (foto, sube aparte con `SubirRecetaUseCase`; acá solo viaja
-/// `recetaFechaExpedicion`) + dirección de entrega. Comunes a crear
+/// `recetaFechaVencimiento`) + dirección de entrega. Comunes a crear
 /// (G01), editar (G04) y al borrador local en progreso.
 class DatosSolicitud {
   const DatosSolicitud({
     this.medicamentos = const [],
-    this.recetaFechaExpedicion,
+    this.recetaFechaVencimiento,
     this.direccionEntrega,
   });
 
   final List<Medicamento> medicamentos;
-  final String? recetaFechaExpedicion;
+
+  /// Fecha hasta la que la receta es válida (NO la de expedición) — es
+  /// lo que permite detectar una receta vencida sin abrir la foto.
+  final String? recetaFechaVencimiento;
   final String? direccionEntrega;
 
-  /// G05 — mismos 4 requisitos que valida `app.enviar_solicitud` en la
-  /// API (la cédula NO se revisa acá: ya se exige antes de poder crear
-  /// la solicitud, HU-02). Se usa para deshabilitar "Enviar solicitud"
-  /// preventivamente en la UI.
+  /// G05 — mismos requisitos que valida `app.enviar_solicitud` en la API
+  /// (la cédula NO se revisa acá: ya se exige antes de poder crear la
+  /// solicitud, HU-02). Se usa para deshabilitar "Enviar solicitud"
+  /// preventivamente en la UI, incluyendo el chequeo de receta vencida.
   List<String> calcularFaltantes({required bool tieneRecetaSubida}) {
     final medicamentosNoVacios = medicamentos.where((m) => !m.estaVacio).toList();
     final faltantes = <String>[];
@@ -31,8 +34,16 @@ class DatosSolicitud {
     if (!tieneRecetaSubida) {
       faltantes.add('Foto de la receta');
     }
-    if (recetaFechaExpedicion == null || recetaFechaExpedicion!.trim().isEmpty) {
-      faltantes.add('Fecha de expedición de la receta');
+    final fechaVencimiento = recetaFechaVencimiento;
+    if (fechaVencimiento == null || fechaVencimiento.trim().isEmpty) {
+      faltantes.add('Fecha de vencimiento de la receta');
+    } else {
+      final parseada = DateTime.tryParse(fechaVencimiento);
+      final hoy = DateTime.now();
+      final hoySinHora = DateTime(hoy.year, hoy.month, hoy.day);
+      if (parseada != null && parseada.isBefore(hoySinHora)) {
+        faltantes.add('La receta está vencida — sube una foto de una receta vigente');
+      }
     }
     if (direccionEntrega == null || direccionEntrega!.trim().isEmpty) {
       faltantes.add('Dirección de entrega');
@@ -43,7 +54,7 @@ class DatosSolicitud {
   Map<String, dynamic> toJson() {
     return {
       'medicamentos': medicamentos.map((m) => m.toJson()).toList(),
-      'recetaFechaExpedicion': recetaFechaExpedicion,
+      'recetaFechaVencimiento': recetaFechaVencimiento,
       'direccionEntrega': direccionEntrega,
     };
   }
@@ -54,7 +65,7 @@ class DatosSolicitud {
       medicamentos: medicamentosJson
           .map((e) => Medicamento.fromJson(e as Map<String, dynamic>))
           .toList(),
-      recetaFechaExpedicion: json['recetaFechaExpedicion'] as String?,
+      recetaFechaVencimiento: json['recetaFechaVencimiento'] as String?,
       direccionEntrega: json['direccionEntrega'] as String?,
     );
   }

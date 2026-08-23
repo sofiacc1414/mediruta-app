@@ -8,7 +8,7 @@ class Solicitud {
     required this.id,
     required this.estado,
     required this.recetaUrl,
-    required this.recetaFechaExpedicion,
+    required this.recetaFechaVencimiento,
     required this.direccionEntrega,
     required this.creadoEn,
     required this.enviadoEn,
@@ -21,7 +21,7 @@ class Solicitud {
   final String id;
   final String estado; // 'borrador' | 'pendiente_revision' | 'cancelada'
   final String? recetaUrl;
-  final String? recetaFechaExpedicion;
+  final String? recetaFechaVencimiento;
   final String? direccionEntrega;
   final String creadoEn;
   final String? enviadoEn;
@@ -40,7 +40,7 @@ class Solicitud {
       id: json['id'] as String,
       estado: json['estado'] as String,
       recetaUrl: json['recetaUrl'] as String?,
-      recetaFechaExpedicion: json['recetaFechaExpedicion'] as String?,
+      recetaFechaVencimiento: json['recetaFechaVencimiento'] as String?,
       direccionEntrega: json['direccionEntrega'] as String?,
       creadoEn: json['creadoEn'] as String,
       enviadoEn: json['enviadoEn'] as String?,

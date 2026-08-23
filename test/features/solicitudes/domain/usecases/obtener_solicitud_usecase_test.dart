@@ -13,7 +13,7 @@ void main() {
         id: 'solicitud-uuid',
         estado: 'borrador',
         recetaUrl: 'https://firmada.test/receta.jpg',
-        recetaFechaExpedicion: '2026-08-01',
+        recetaFechaVencimiento: '2026-08-01',
         direccionEntrega: 'Calle 1 #2-3',
         creadoEn: '2026-08-20T10:00:00.000Z',
         enviadoEn: null,

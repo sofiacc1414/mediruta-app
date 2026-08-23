@@ -10,6 +10,7 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_icon_badge.dart';
+import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../usuarios/presentation/providers/perfil_providers.dart';
@@ -86,7 +87,7 @@ String? _vacioComoNulo(String texto) => texto.trim().isEmpty ? null : texto.trim
 class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
   final List<_LineaMedicamento> _lineas = [];
   final _direccionEntrega = TextEditingController();
-  DateTime? _recetaFechaExpedicion;
+  DateTime? _recetaFechaVencimiento;
 
   String? _recetaUrlServidor;
   List<int>? _recetaBytesPendiente;
@@ -126,7 +127,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
             .execute(widget.solicitudId!);
         final datos = DatosSolicitud(
           medicamentos: solicitud.medicamentos,
-          recetaFechaExpedicion: solicitud.recetaFechaExpedicion,
+          recetaFechaVencimiento: solicitud.recetaFechaVencimiento,
           direccionEntrega: solicitud.direccionEntrega,
         );
         _rellenar(datos);
@@ -164,8 +165,8 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       _agregarLinea(inicial: medicamento, notificar: false);
     }
     _direccionEntrega.text = datos.direccionEntrega ?? '';
-    if (datos.recetaFechaExpedicion != null) {
-      _recetaFechaExpedicion = DateTime.tryParse(datos.recetaFechaExpedicion!);
+    if (datos.recetaFechaVencimiento != null) {
+      _recetaFechaVencimiento = DateTime.tryParse(datos.recetaFechaVencimiento!);
     }
   }
 
@@ -188,7 +189,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
   DatosSolicitud _datosActuales() {
     return DatosSolicitud(
       medicamentos: _lineas.map((l) => l.aMedicamento()).toList(),
-      recetaFechaExpedicion: _recetaFechaExpedicion != null ? _isoFecha(_recetaFechaExpedicion!) : null,
+      recetaFechaVencimiento: _recetaFechaVencimiento != null ? _isoFecha(_recetaFechaVencimiento!) : null,
       direccionEntrega: _vacioComoNulo(_direccionEntrega.text),
     );
   }
@@ -208,7 +209,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       final hayMedicamento = datos.medicamentos.any((m) => !m.estaVacio);
       return hayMedicamento ||
           hayRecetaPendiente ||
-          datos.recetaFechaExpedicion != null ||
+          datos.recetaFechaVencimiento != null ||
           datos.direccionEntrega != null;
     }
     final actuales = _datosActuales();
@@ -347,16 +348,21 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     return true;
   }
 
+  /// A diferencia de una fecha de expedición (siempre pasada), la de
+  /// vencimiento normalmente es futura — pero también tiene que poder
+  /// elegirse una ya pasada: es justamente el caso que
+  /// `calcularFaltantes`/`app.enviar_solicitud` necesitan poder detectar
+  /// ("receta vencida"), no algo que el selector deba impedir de entrada.
   Future<void> _elegirFechaReceta() async {
     final ahora = DateTime.now();
     final seleccionada = await showDatePicker(
       context: context,
-      initialDate: _recetaFechaExpedicion ?? ahora,
+      initialDate: _recetaFechaVencimiento ?? ahora,
       firstDate: DateTime(ahora.year - 2),
-      lastDate: ahora,
+      lastDate: DateTime(ahora.year + 5),
     );
     if (seleccionada != null) {
-      setState(() => _recetaFechaExpedicion = seleccionada);
+      setState(() => _recetaFechaVencimiento = seleccionada);
       _onCambioCampo();
     }
   }
@@ -489,8 +495,8 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                         ),
                         const SizedBox(height: 12),
                         _CampoFecha(
-                          label: 'Fecha de expedición de la receta',
-                          fecha: _recetaFechaExpedicion,
+                          label: 'Fecha de vencimiento de la receta',
+                          fecha: _recetaFechaVencimiento,
                           onTap: _guardando ? null : _elegirFechaReceta,
                         ),
                         const SizedBox(height: 24),
@@ -655,23 +661,36 @@ class _FilaFotoReceta extends StatelessWidget {
   bool get _urlEsPdf =>
       urlServidor != null && urlServidor!.split('?').first.toLowerCase().endsWith('.pdf');
 
+  bool get _esImagenVisible => !esPdfLocal && !_urlEsPdf && (bytesLocal != null || urlServidor != null);
+
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            width: 44,
-            height: 44,
-            color: AppColors.beige,
-            child: _miniatura(),
+        GestureDetector(
+          onTap: _esImagenVisible
+              ? () => mostrarImagenCompleta(
+                  context,
+                  bytes: bytesLocal != null ? Uint8List.fromList(bytesLocal!) : null,
+                  url: bytesLocal == null ? urlServidor : null,
+                )
+              : null,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 44,
+              height: 44,
+              color: AppColors.beige,
+              child: _miniatura(),
+            ),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
-            tieneArchivo ? 'Foto de la receta' : 'Foto de la receta — no subida',
+            tieneArchivo
+                ? (_esImagenVisible ? 'Foto de la receta — toca para verla' : 'Foto de la receta')
+                : 'Foto de la receta — no subida',
             style: const TextStyle(color: AppColors.navy),
           ),
         ),
