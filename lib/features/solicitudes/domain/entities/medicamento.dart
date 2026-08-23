@@ -23,12 +23,14 @@ class Medicamento {
       (cantidad == null || cantidad!.trim().isEmpty) &&
       (posologia == null || posologia!.trim().isEmpty);
 
+  // Posología queda afuera a propósito — es el único campo opcional de
+  // la línea (no toda indicación de uso cabe en un campo corto, y
+  // muchas veces ya está en la propia foto de la receta).
   bool get estaCompleto =>
       (nombre?.trim().isNotEmpty ?? false) &&
       (concentracion?.trim().isNotEmpty ?? false) &&
       (formaFarmaceutica?.trim().isNotEmpty ?? false) &&
-      (cantidad?.trim().isNotEmpty ?? false) &&
-      (posologia?.trim().isNotEmpty ?? false);
+      (cantidad?.trim().isNotEmpty ?? false);
 
   Medicamento copyWith({
     String? nombre,

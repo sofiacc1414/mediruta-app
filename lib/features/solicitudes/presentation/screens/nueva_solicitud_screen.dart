@@ -789,7 +789,7 @@ class _DialogoMedicamentoState extends State<_DialogoMedicamento> {
               ),
               const SizedBox(height: 12),
               AppTextField(
-                label: 'Posología / indicaciones de uso',
+                label: 'Posología / indicaciones de uso (opcional)',
                 icono: Icons.schedule_outlined,
                 controller: _posologia,
               ),
