@@ -43,49 +43,16 @@ class NuevaSolicitudScreen extends ConsumerStatefulWidget {
   ConsumerState<NuevaSolicitudScreen> createState() => _NuevaSolicitudScreenState();
 }
 
-class _LineaMedicamento {
-  _LineaMedicamento({Medicamento? inicial})
-    : nombre = TextEditingController(text: inicial?.nombre ?? ''),
-      concentracion = TextEditingController(text: inicial?.concentracion ?? ''),
-      formaFarmaceutica = TextEditingController(text: inicial?.formaFarmaceutica ?? ''),
-      cantidad = TextEditingController(text: inicial?.cantidad ?? ''),
-      posologia = TextEditingController(text: inicial?.posologia ?? '');
-
-  final TextEditingController nombre;
-  final TextEditingController concentracion;
-  final TextEditingController formaFarmaceutica;
-  final TextEditingController cantidad;
-  final TextEditingController posologia;
-
-  List<TextEditingController> get controllers => [
-    nombre,
-    concentracion,
-    formaFarmaceutica,
-    cantidad,
-    posologia,
-  ];
-
-  Medicamento aMedicamento() {
-    return Medicamento(
-      nombre: _vacioComoNulo(nombre.text),
-      concentracion: _vacioComoNulo(concentracion.text),
-      formaFarmaceutica: _vacioComoNulo(formaFarmaceutica.text),
-      cantidad: _vacioComoNulo(cantidad.text),
-      posologia: _vacioComoNulo(posologia.text),
-    );
-  }
-
-  void dispose() {
-    for (final c in controllers) {
-      c.dispose();
-    }
-  }
-}
-
 String? _vacioComoNulo(String texto) => texto.trim().isEmpty ? null : texto.trim();
 
 class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
-  final List<_LineaMedicamento> _lineas = [];
+  /// Cada medicamento se agrega/edita en un diálogo aparte (ver
+  /// `_DialogoMedicamento`) — antes se mostraban 5 campos editables en
+  /// línea todo el tiempo, junto al botón "Agregar medicamento", y era
+  /// confuso cuál de los dos hacía falta usar. Acá solo se guarda el
+  /// valor ya confirmado (`Medicamento`, no controllers) — la lista se
+  /// muestra como filas resumen, tocar una la vuelve a abrir para editar.
+  final List<Medicamento> _medicamentos = [];
   final _direccionEntrega = TextEditingController();
   final _direccionFarmacia = TextEditingController();
   DateTime? _recetaFechaVencimiento;
@@ -116,9 +83,6 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
   void dispose() {
     _direccionEntrega.dispose();
     _direccionFarmacia.dispose();
-    for (final linea in _lineas) {
-      linea.dispose();
-    }
     super.dispose();
   }
 
@@ -158,16 +122,11 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       }
     }
 
-    if (_lineas.isEmpty) {
-      _agregarLinea(notificar: false);
-    }
     if (mounted) setState(() => _cargandoInicial = false);
   }
 
   void _rellenar(DatosSolicitud datos) {
-    for (final medicamento in datos.medicamentos) {
-      _agregarLinea(inicial: medicamento, notificar: false);
-    }
+    _medicamentos.addAll(datos.medicamentos);
     _direccionEntrega.text = datos.direccionEntrega ?? '';
     _direccionFarmacia.text = datos.direccionFarmacia ?? '';
     if (datos.recetaFechaVencimiento != null) {
@@ -175,25 +134,35 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     }
   }
 
-  void _agregarLinea({Medicamento? inicial, bool notificar = true}) {
-    final linea = _LineaMedicamento(inicial: inicial);
-    for (final c in linea.controllers) {
-      c.addListener(_onCambioCampo);
-    }
-    setState(() => _lineas.add(linea));
-    if (notificar) _onCambioCampo();
+  /// Abre el diálogo de agregar (`indice == null`) o editar (`indice`
+  /// apunta a la línea existente) un medicamento. `null` en el resultado
+  /// significa que se canceló — no toca la lista.
+  Future<void> _abrirDialogoMedicamento({int? indice}) async {
+    final resultado = await showDialog<Medicamento>(
+      context: context,
+      builder: (context) => _DialogoMedicamento(
+        inicial: indice != null ? _medicamentos[indice] : null,
+      ),
+    );
+    if (resultado == null) return;
+    setState(() {
+      if (indice != null) {
+        _medicamentos[indice] = resultado;
+      } else {
+        _medicamentos.add(resultado);
+      }
+    });
+    _onCambioCampo();
   }
 
-  void _quitarLinea(int indice) {
-    final linea = _lineas.removeAt(indice);
-    linea.dispose();
-    setState(() {});
+  void _quitarMedicamento(int indice) {
+    setState(() => _medicamentos.removeAt(indice));
     _onCambioCampo();
   }
 
   DatosSolicitud _datosActuales() {
     return DatosSolicitud(
-      medicamentos: _lineas.map((l) => l.aMedicamento()).toList(),
+      medicamentos: List<Medicamento>.from(_medicamentos),
       recetaFechaVencimiento: _recetaFechaVencimiento != null ? _isoFecha(_recetaFechaVencimiento!) : null,
       direccionEntrega: _vacioComoNulo(_direccionEntrega.text),
       direccionFarmacia: _vacioComoNulo(_direccionFarmacia.text),
@@ -508,20 +477,27 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                           'Una fórmula puede traer más de uno — agregá una línea por cada uno.',
                           style: TextStyle(color: AppColors.teal, fontSize: 13),
                         ),
-                        for (var i = 0; i < _lineas.length; i++) ...[
+                        if (_medicamentos.isEmpty) ...[
                           const SizedBox(height: 12),
-                          _TarjetaMedicamento(
-                            indice: i,
-                            linea: _lineas[i],
+                          const Text(
+                            'Todavía no agregaste ningún medicamento.',
+                            style: TextStyle(color: AppColors.teal, fontSize: 13),
+                          ),
+                        ],
+                        for (var i = 0; i < _medicamentos.length; i++) ...[
+                          const SizedBox(height: 12),
+                          _FilaResumenMedicamento(
+                            medicamento: _medicamentos[i],
                             enabled: !_guardando,
-                            onQuitar: _lineas.length > 1 ? () => _quitarLinea(i) : null,
+                            onEditar: () => _abrirDialogoMedicamento(indice: i),
+                            onQuitar: () => _quitarMedicamento(i),
                           ),
                         ],
                         const SizedBox(height: 12),
                         AppButton(
                           variante: AppButtonVariante.secondary,
                           label: 'Agregar medicamento',
-                          onPressed: _guardando ? null : () => _agregarLinea(),
+                          onPressed: _guardando ? null : () => _abrirDialogoMedicamento(),
                         ),
                         const SizedBox(height: 24),
                         const _TituloSeccion('Receta médica'),
@@ -608,85 +584,278 @@ class _TituloSeccion extends StatelessWidget {
   }
 }
 
-/// Una línea de medicamento editable, con botón de quitar (deshabilitado
-/// si es la única que queda — siempre tiene que haber al menos una).
-class _TarjetaMedicamento extends StatelessWidget {
-  const _TarjetaMedicamento({
-    required this.indice,
-    required this.linea,
-    required this.enabled,
-    required this.onQuitar,
-  });
+/// Presentaciones más comunes en fórmulas médicas colombianas — sugeridas
+/// en `_CampoFormaFarmaceutica`, no una lista cerrada (una fórmula real a
+/// veces trae una presentación fuera de esta lista, por eso el campo
+/// sigue aceptando cualquier texto tipeado/pegado).
+const List<String> _formasFarmaceuticasSugeridas = [
+  'Tableta',
+  'Tableta recubierta',
+  'Cápsula',
+  'Cápsula blanda',
+  'Jarabe',
+  'Suspensión oral',
+  'Solución oral',
+  'Gotas orales',
+  'Gotas oftálmicas',
+  'Gotas óticas',
+  'Solución inyectable',
+  'Ampolla',
+  'Vial',
+  'Crema',
+  'Ungüento',
+  'Pomada',
+  'Gel',
+  'Loción',
+  'Champú',
+  'Parche transdérmico',
+  'Supositorio',
+  'Óvulo vaginal',
+  'Inhalador',
+  'Spray nasal',
+  'Polvo para reconstituir',
+  'Sobre',
+  'Frasco',
+];
 
-  final int indice;
-  final _LineaMedicamento linea;
-  final bool enabled;
-  final VoidCallback? onQuitar;
+/// Compara sin distinguir mayúsculas/acentos — para que "capsula" (sin
+/// tilde, como muchas personas tipean en el celular) igual encuentre
+/// "Cápsula" al filtrar.
+String _normalizar(String texto) {
+  const conAcento = 'áéíóúÁÉÍÓÚñÑ';
+  const sinAcento = 'aeiouAEIOUnN';
+  var resultado = texto.toLowerCase();
+  for (var i = 0; i < conAcento.length; i++) {
+    resultado = resultado.replaceAll(conAcento[i].toLowerCase(), sinAcento[i].toLowerCase());
+  }
+  return resultado;
+}
+
+/// Campo de forma farmacéutica: sugiere presentaciones comunes y filtra
+/// a medida que se escribe (más fluido que un desplegable rígido), pero
+/// no restringe — el texto tipeado/pegado se guarda tal cual aunque no
+/// esté en la lista. `RawAutocomplete` con `textEditingController`
+/// propio evita tener que sincronizar dos controllers a mano.
+class _CampoFormaFarmaceutica extends StatelessWidget {
+  const _CampoFormaFarmaceutica({required this.controller});
+
+  final TextEditingController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.skyBlue),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Medicamento ${indice + 1}',
-                  style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
-                ),
+    return RawAutocomplete<String>(
+      textEditingController: controller,
+      focusNode: FocusNode(),
+      optionsBuilder: (textEditingValue) {
+        final filtro = _normalizar(textEditingValue.text.trim());
+        if (filtro.isEmpty) return _formasFarmaceuticasSugeridas;
+        return _formasFarmaceuticasSugeridas.where(
+          (opcion) => _normalizar(opcion).contains(filtro),
+        );
+      },
+      fieldViewBuilder: (context, fieldController, focusNode, onFieldSubmitted) {
+        return AppTextField(
+          label: 'Forma farmacéutica',
+          icono: Icons.category_outlined,
+          controller: fieldController,
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 320),
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: options.length,
+                itemBuilder: (context, index) {
+                  final opcion = options.elementAt(index);
+                  return ListTile(
+                    title: Text(opcion),
+                    onTap: () => onSelected(opcion),
+                  );
+                },
               ),
-              if (onQuitar != null)
-                IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.teal),
-                  tooltip: 'Quitar',
-                  onPressed: onQuitar,
-                ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Diálogo para agregar o editar una línea de medicamento — antes se
+/// mostraban 5 campos editables en línea todo el tiempo junto al botón
+/// "Agregar medicamento", confuso cuál de los dos correspondía usar. Se
+/// completa acá y recién al aceptar aparece como fila resumen en la
+/// lista; tocar esa fila reabre este mismo diálogo con sus datos.
+class _DialogoMedicamento extends StatefulWidget {
+  const _DialogoMedicamento({this.inicial});
+
+  final Medicamento? inicial;
+
+  @override
+  State<_DialogoMedicamento> createState() => _DialogoMedicamentoState();
+}
+
+class _DialogoMedicamentoState extends State<_DialogoMedicamento> {
+  late final _nombre = TextEditingController(text: widget.inicial?.nombre ?? '');
+  late final _concentracion = TextEditingController(text: widget.inicial?.concentracion ?? '');
+  late final _formaFarmaceutica = TextEditingController(
+    text: widget.inicial?.formaFarmaceutica ?? '',
+  );
+  late final _cantidad = TextEditingController(text: widget.inicial?.cantidad ?? '');
+  late final _posologia = TextEditingController(text: widget.inicial?.posologia ?? '');
+
+  @override
+  void dispose() {
+    _nombre.dispose();
+    _concentracion.dispose();
+    _formaFarmaceutica.dispose();
+    _cantidad.dispose();
+    _posologia.dispose();
+    super.dispose();
+  }
+
+  void _aceptar() {
+    Navigator.of(context).pop(
+      Medicamento(
+        nombre: _vacioComoNulo(_nombre.text),
+        concentracion: _vacioComoNulo(_concentracion.text),
+        formaFarmaceutica: _vacioComoNulo(_formaFarmaceutica.text),
+        cantidad: _vacioComoNulo(_cantidad.text),
+        posologia: _vacioComoNulo(_posologia.text),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.inicial == null ? 'Agregar medicamento' : 'Editar medicamento'),
+      content: SizedBox(
+        width: 360,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppTextField(
+                label: 'Nombre del medicamento',
+                icono: Icons.medication_outlined,
+                controller: _nombre,
+              ),
+              const SizedBox(height: 12),
+              AppTextField(
+                label: 'Concentración/dosis',
+                icono: Icons.science_outlined,
+                controller: _concentracion,
+              ),
+              const SizedBox(height: 12),
+              _CampoFormaFarmaceutica(controller: _formaFarmaceutica),
+              const SizedBox(height: 12),
+              AppTextField(
+                label: 'Cantidad solicitada',
+                icono: Icons.numbers_outlined,
+                controller: _cantidad,
+              ),
+              const SizedBox(height: 12),
+              AppTextField(
+                label: 'Posología / indicaciones de uso',
+                icono: Icons.schedule_outlined,
+                controller: _posologia,
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          AppTextField(
-            label: 'Nombre del medicamento',
-            icono: Icons.medication_outlined,
-            controller: linea.nombre,
-            enabled: enabled,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        AnimatedBuilder(
+          animation: _nombre,
+          builder: (context, _) => TextButton(
+            onPressed: _nombre.text.trim().isEmpty ? null : _aceptar,
+            child: const Text('Aceptar'),
           ),
-          const SizedBox(height: 12),
-          AppTextField(
-            label: 'Concentración/dosis',
-            icono: Icons.science_outlined,
-            controller: linea.concentracion,
-            enabled: enabled,
-          ),
-          const SizedBox(height: 12),
-          AppTextField(
-            label: 'Forma farmacéutica',
-            icono: Icons.category_outlined,
-            controller: linea.formaFarmaceutica,
-            enabled: enabled,
-          ),
-          const SizedBox(height: 12),
-          AppTextField(
-            label: 'Cantidad solicitada',
-            icono: Icons.numbers_outlined,
-            controller: linea.cantidad,
-            enabled: enabled,
-          ),
-          const SizedBox(height: 12),
-          AppTextField(
-            label: 'Posología / indicaciones de uso',
-            icono: Icons.schedule_outlined,
-            controller: linea.posologia,
-            enabled: enabled,
-          ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Fila resumen de un medicamento ya agregado — tocarla abre el diálogo
+/// para editarlo. Reemplaza a la tarjeta con 5 campos siempre visibles.
+class _FilaResumenMedicamento extends StatelessWidget {
+  const _FilaResumenMedicamento({
+    required this.medicamento,
+    required this.enabled,
+    required this.onEditar,
+    required this.onQuitar,
+  });
+
+  final Medicamento medicamento;
+  final bool enabled;
+  final VoidCallback onEditar;
+  final VoidCallback onQuitar;
+
+  @override
+  Widget build(BuildContext context) {
+    final detalle = [
+      medicamento.concentracion,
+      medicamento.formaFarmaceutica,
+      medicamento.cantidad,
+    ].where((valor) => valor != null && valor.trim().isNotEmpty).join(' · ');
+
+    return InkWell(
+      onTap: enabled ? onEditar : null,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.skyBlue),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.medication_outlined, color: AppColors.teal),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    medicamento.nombre ?? 'Medicamento sin nombre',
+                    style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
+                  ),
+                  if (detalle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(detalle, style: const TextStyle(color: AppColors.teal, fontSize: 13)),
+                  ],
+                  if (!medicamento.estaCompleto) ...[
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Faltan datos — toca para completar',
+                      style: TextStyle(color: AppColors.teal, fontSize: 12, fontStyle: FontStyle.italic),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: AppColors.teal),
+              tooltip: 'Quitar',
+              onPressed: enabled ? onQuitar : null,
+            ),
+          ],
+        ),
       ),
     );
   }
