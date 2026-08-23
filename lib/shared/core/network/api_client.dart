@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'api_exception.dart';
 
@@ -71,6 +72,80 @@ class ApiClient {
     return _request('POST', path, body: body, autenticado: autenticado);
   }
 
+  /// PATCH a `path` con `body` como JSON. Si `autenticado` es true, adjunta
+  /// el access token guardado y reintenta una vez tras renovarlo ante 401.
+  Future<dynamic> patch(
+    String path, {
+    Map<String, dynamic>? body,
+    bool autenticado = false,
+  }) {
+    return _request('PATCH', path, body: body, autenticado: autenticado);
+  }
+
+  /// POST multipart a `path` con un único archivo (campo `archivo`, mismo
+  /// nombre que espera `FileInterceptor('archivo')` en la API) y campos de
+  /// texto adicionales opcionales (ej. `tipo` para documentos del
+  /// Domiciliario). Mismo reintento ante 401 que `_request`.
+  Future<dynamic> postMultipart(
+    String path, {
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+    Map<String, String>? campos,
+    bool autenticado = false,
+    bool esReintento = false,
+  }) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final request = http.MultipartRequest('POST', uri);
+
+    if (autenticado) {
+      final token = await accessToken;
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+    }
+
+    if (campos != null) {
+      request.fields.addAll(campos);
+    }
+
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'archivo',
+        bytes,
+        filename: nombreArchivo,
+        contentType: MediaType.parse(contentType),
+      ),
+    );
+
+    late final http.Response respuesta;
+    try {
+      respuesta = await http.Response.fromStream(await _http.send(request));
+    } on http.ClientException {
+      throw const ApiSinConexionException();
+    }
+
+    if (respuesta.statusCode == 401 &&
+        autenticado &&
+        !esReintento &&
+        onSesionExpirada != null) {
+      final renovada = await onSesionExpirada!();
+      if (renovada) {
+        return postMultipart(
+          path,
+          bytes: bytes,
+          nombreArchivo: nombreArchivo,
+          contentType: contentType,
+          campos: campos,
+          autenticado: autenticado,
+          esReintento: true,
+        );
+      }
+    }
+
+    return _decodificar(respuesta);
+  }
+
   Future<dynamic> _request(
     String metodo,
     String path, {
@@ -93,6 +168,11 @@ class ApiClient {
       respuesta = switch (metodo) {
         'GET' => await _http.get(uri, headers: headers),
         'POST' => await _http.post(
+          uri,
+          headers: headers,
+          body: body != null ? jsonEncode(body) : null,
+        ),
+        'PATCH' => await _http.patch(
           uri,
           headers: headers,
           body: body != null ? jsonEncode(body) : null,

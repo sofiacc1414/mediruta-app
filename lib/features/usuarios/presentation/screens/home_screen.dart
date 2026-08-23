@@ -97,6 +97,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
                 const SizedBox(height: 28),
                 AppButton(
+                  label: 'Mi perfil',
+                  onPressed: () => Navigator.of(context).pushNamed('/perfil'),
+                ),
+                const SizedBox(height: 8),
+                AppButton(
+                  variante: AppButtonVariante.secondary,
                   label: 'Cambiar contraseña',
                   onPressed: () => Navigator.of(context).pushNamed('/cambiar-contrasena'),
                 ),

@@ -26,6 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- HU-02: fotos de perfil/documentos (cédula, licencia, SOAT,
+	     tecnomecánica) vía image_picker. -->
+	<key>NSCameraUsageDescription</key>
+	<string>MediRuta necesita la cámara para tomar la foto de tus documentos de perfil.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>MediRuta necesita acceso a tus fotos para subir documentos de perfil.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

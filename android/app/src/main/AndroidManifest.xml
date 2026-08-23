@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- HU-02: fotos de perfil/documentos (cédula, licencia, SOAT,
+         tecnomecánica) vía image_picker. READ_MEDIA_IMAGES reemplaza a
+         READ_EXTERNAL_STORAGE en Android 13+ (API 33); ambos declarados
+         para compatibilidad con versiones anteriores. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
     <application
         android:label="mediruta_app"
         android:name="${applicationName}"

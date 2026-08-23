@@ -6,6 +6,7 @@ import 'features/usuarios/presentation/screens/cambiar_contrasena_screen.dart';
 import 'features/usuarios/presentation/screens/home_screen.dart';
 import 'features/usuarios/presentation/screens/login_screen.dart';
 import 'features/usuarios/presentation/screens/onboarding_screen.dart';
+import 'features/usuarios/presentation/screens/perfil_screen.dart';
 import 'features/usuarios/presentation/screens/recuperar_contrasena_screen.dart';
 import 'features/usuarios/presentation/screens/registro_screen.dart';
 import 'features/usuarios/presentation/screens/restablecer_contrasena_screen.dart';
@@ -30,6 +31,7 @@ class MediRutaApp extends StatelessWidget {
         RegistroScreen.routeName: (_) => const RegistroScreen(),
         RecuperarContrasenaScreen.routeName: (_) => const RecuperarContrasenaScreen(),
         CambiarContrasenaScreen.routeName: (_) => const CambiarContrasenaScreen(),
+        PerfilScreen.routeName: (_) => const PerfilScreen(),
         HomeScreen.routeName: (_) => const HomeScreen(),
       },
       onGenerateRoute: (settings) {

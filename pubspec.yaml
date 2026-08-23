@@ -38,6 +38,8 @@ dependencies:
   flutter_secure_storage: ^11.0.0
   google_fonts: ^8.2.1
   http: ^1.2.2
+  http_parser: ^4.0.2
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
