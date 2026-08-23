@@ -103,4 +103,12 @@ class UsuarioRemoteDatasource {
     );
     return respuesta as Map<String, dynamic>;
   }
+
+  Future<Map<String, dynamic>> enviarSolicitudDomiciliario() async {
+    final respuesta = await _apiClient.post(
+      '/perfil/domiciliario/enviar-solicitud',
+      autenticado: true,
+    );
+    return respuesta as Map<String, dynamic>;
+  }
 }

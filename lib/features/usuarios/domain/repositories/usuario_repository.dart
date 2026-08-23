@@ -54,8 +54,12 @@ abstract class UsuarioRepository {
   /// tiene (idempotente). Devuelve el mensaje de la API.
   Future<String> solicitarRolPaciente();
 
-  /// Agrega el rol DOMICILIARIO (pendiente_validacion) a la cuenta
-  /// autenticada, si todavía no lo tiene (idempotente). Devuelve el
-  /// mensaje de la API.
+  /// Agrega el rol DOMICILIARIO (`borrador`) a la cuenta autenticada, si
+  /// todavía no lo tiene (idempotente). Devuelve el mensaje de la API.
   Future<String> solicitarRolDomiciliario();
+
+  /// Envía la solicitud de validación de Domiciliario: `borrador` ->
+  /// `pendiente_validacion`. Exige perfil/documentos completos — la API
+  /// responde 422 (con `faltantes` en el mensaje) si falta algo.
+  Future<String> enviarSolicitudDomiciliario();
 }

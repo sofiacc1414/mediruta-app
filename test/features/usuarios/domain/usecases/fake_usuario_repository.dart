@@ -14,6 +14,7 @@ class FakeUsuarioRepository implements UsuarioRepository {
   String solicitarRolPacienteResultado = 'Ahora también sos Paciente.';
   String solicitarRolDomiciliarioResultado =
       'Listo — completá tus datos de Domiciliario para que un administrador te valide.';
+  String enviarSolicitudDomiciliarioResultado = 'Tu solicitud fue enviada para validación.';
 
   Map<String, dynamic>? ultimaLlamada;
 
@@ -124,5 +125,12 @@ class FakeUsuarioRepository implements UsuarioRepository {
     _registrar('solicitarRolDomiciliario', {});
     _lanzarSiCorresponde();
     return solicitarRolDomiciliarioResultado;
+  }
+
+  @override
+  Future<String> enviarSolicitudDomiciliario() async {
+    _registrar('enviarSolicitudDomiciliario', {});
+    _lanzarSiCorresponde();
+    return enviarSolicitudDomiciliarioResultado;
   }
 }

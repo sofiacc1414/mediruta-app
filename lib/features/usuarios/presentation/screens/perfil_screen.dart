@@ -76,6 +76,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     // cuando de verdad falta.
     final tienePaciente = roles.any((r) => r.codigo == 'PACIENTE');
     final tieneDomiciliario = roles.any((r) => r.codigo == 'DOMICILIARIO');
+    final rolesDomiciliario = roles.where((r) => r.codigo == 'DOMICILIARIO');
+    final estadoRolDomiciliario = rolesDomiciliario.isEmpty ? null : rolesDomiciliario.first.estado;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mi perfil')),
@@ -115,6 +117,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                           const SizedBox(height: 24),
                           _SeccionDomiciliario(
                             perfil: _perfil?.domiciliario,
+                            estadoRol: estadoRolDomiciliario,
                             onCambio: _cargarPerfil,
                           ),
                         ],
@@ -558,9 +561,20 @@ class _SeccionPacienteState extends ConsumerState<_SeccionPaciente> {
 
 /// G01/G03/G04 — dirección, vehículo y documentos de validación.
 class _SeccionDomiciliario extends ConsumerStatefulWidget {
-  const _SeccionDomiciliario({required this.perfil, required this.onCambio});
+  const _SeccionDomiciliario({
+    required this.perfil,
+    required this.estadoRol,
+    required this.onCambio,
+  });
 
   final dynamic perfil;
+
+  /// Estado de `usuario_roles` para DOMICILIARIO — a diferencia de
+  /// `perfil` (los datos en sí), esto dice en qué parte del flujo de
+  /// validación está la cuenta: `borrador` (recién ahora se completa,
+  /// todavía no se envió), `pendiente_validacion` (ya enviada, un admin
+  /// la está revisando), `habilitado` (aprobada) o `rechazado`.
+  final String? estadoRol;
   final Future<void> Function() onCambio;
 
   @override
@@ -578,6 +592,7 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
     text: widget.perfil?.vehiculoPlaca as String? ?? '',
   );
   bool _guardando = false;
+  bool _enviando = false;
   String? _error;
 
   @override
@@ -638,11 +653,63 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
     await widget.onCambio();
   }
 
+  /// Mismos 7 campos obligatorios que ya exige `app.enviar_solicitud_
+  /// domiciliario`/`app.aprobar_domiciliario` — se deshabilita "Enviar
+  /// solicitud" preventivamente en vez de depender de chocar con el 422.
+  List<String> _calcularFaltantes() {
+    final p = widget.perfil;
+    final faltantes = <String>[];
+    if ((p?.direccion as String?)?.trim().isNotEmpty != true) {
+      faltantes.add('Dirección de residencia');
+    }
+    if ((p?.vehiculoTipo as String?)?.trim().isNotEmpty != true) {
+      faltantes.add('Tipo de vehículo');
+    }
+    if ((p?.vehiculoPlaca as String?)?.trim().isNotEmpty != true) {
+      faltantes.add('Placa');
+    }
+    if (p?.cedulaUrl == null) faltantes.add('Cédula');
+    if (p?.licenciaUrl == null) faltantes.add('Licencia de conducción');
+    if (p?.soatUrl == null) faltantes.add('SOAT');
+    if (p?.tecnicomecanicaUrl == null) faltantes.add('Tecnomecánica');
+    return faltantes;
+  }
+
+  Future<void> _enviarSolicitud() async {
+    setState(() {
+      _enviando = true;
+      _error = null;
+    });
+    try {
+      final mensaje =
+          await ref.read(enviarSolicitudDomiciliarioUseCaseProvider).execute();
+      await widget.onCambio();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
+    } on ApiException catch (error) {
+      setState(() => _error = error.message);
+    } on ApiSinConexionException catch (error) {
+      setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return _Tarjeta(
       children: [
         const _TituloSeccion('Perfil de Domiciliario'),
+        const SizedBox(height: 4),
+        Text(
+          switch (widget.estadoRol) {
+            'pendiente_validacion' => 'Tu solicitud está en revisión por un administrador.',
+            'habilitado' => 'Ya estás validado como Domiciliario.',
+            'rechazado' => 'Tu solicitud fue rechazada.',
+            _ => 'Completá tus datos y enviá la solicitud para que un administrador te valide.',
+          },
+          style: const TextStyle(color: AppColors.teal, fontSize: 13),
+        ),
         const SizedBox(height: 12),
         if (_error != null) ...[
           AppErrorBanner(mensaje: _error!),
@@ -704,6 +771,21 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
           onArchivoElegido: (b, n, c) =>
               _subirDocumento(TipoDocumentoDomiciliario.tecnicomecanica, b, n, c),
         ),
+        if (widget.estadoRol == 'borrador') ...[
+          const SizedBox(height: 16),
+          AppLoadingButton(
+            label: 'Enviar solicitud',
+            cargando: _enviando,
+            onPressed: _calcularFaltantes().isEmpty ? _enviarSolicitud : null,
+          ),
+          if (_calcularFaltantes().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Para enviar falta: ${_calcularFaltantes().join(', ')}.',
+              style: const TextStyle(color: AppColors.teal, fontSize: 13),
+            ),
+          ],
+        ],
       ],
     );
   }
@@ -740,7 +822,7 @@ class _SeccionAgregarRolState extends ConsumerState<_SeccionAgregarRol> {
   bool _procesando = false;
   String? _error;
 
-  Future<void> _solicitar(Future<String> Function() ejecutar) async {
+  Future<void> _solicitar(String rolNuevo, Future<String> Function() ejecutar) async {
     setState(() {
       _procesando = true;
       _error = null;
@@ -749,6 +831,12 @@ class _SeccionAgregarRolState extends ConsumerState<_SeccionAgregarRol> {
       final mensaje = await ejecutar();
       final usuarioActualizado = await ref.read(obtenerSesionActualUseCaseProvider).execute();
       ref.read(authSessionProvider.notifier).sesionIniciada(usuarioActualizado);
+      // Cambia el "Modo" al rol recién otorgado para que la persona vea
+      // de una la pantalla que le corresponde (Perfil de Paciente/
+      // Domiciliario) — sin esto, con más de un rol ahora en la cuenta,
+      // tendría que ir a Inicio y cambiar de modo a mano para encontrar
+      // el formulario que acaba de pedir.
+      ref.read(modoActivoProvider.notifier).state = rolNuevo;
       await widget.onAgregado();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
@@ -781,8 +869,10 @@ class _SeccionAgregarRolState extends ConsumerState<_SeccionAgregarRol> {
             variante: AppButtonVariante.secondary,
             label: 'Solicitar ser Paciente',
             cargando: _procesando,
-            onPressed: () =>
-                _solicitar(() => ref.read(solicitarRolPacienteUseCaseProvider).execute()),
+            onPressed: () => _solicitar(
+              'PACIENTE',
+              () => ref.read(solicitarRolPacienteUseCaseProvider).execute(),
+            ),
           ),
           if (widget.ofrecerDomiciliario) const SizedBox(height: 8),
         ],
@@ -791,8 +881,10 @@ class _SeccionAgregarRolState extends ConsumerState<_SeccionAgregarRol> {
             variante: AppButtonVariante.secondary,
             label: 'Solicitar ser Domiciliario',
             cargando: _procesando,
-            onPressed: () =>
-                _solicitar(() => ref.read(solicitarRolDomiciliarioUseCaseProvider).execute()),
+            onPressed: () => _solicitar(
+              'DOMICILIARIO',
+              () => ref.read(solicitarRolDomiciliarioUseCaseProvider).execute(),
+            ),
           ),
       ],
     );

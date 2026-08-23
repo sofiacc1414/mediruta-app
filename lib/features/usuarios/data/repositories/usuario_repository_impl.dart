@@ -136,4 +136,10 @@ class UsuarioRepositoryImpl implements UsuarioRepository {
     final respuesta = await _datasource.solicitarRolDomiciliario();
     return respuesta['message'] as String;
   }
+
+  @override
+  Future<String> enviarSolicitudDomiciliario() async {
+    final respuesta = await _datasource.enviarSolicitudDomiciliario();
+    return respuesta['message'] as String;
+  }
 }
