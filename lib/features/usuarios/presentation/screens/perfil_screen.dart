@@ -123,6 +123,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                           _SeccionAgregarRol(
                             ofrecerPaciente: !tienePaciente,
                             ofrecerDomiciliario: !tieneDomiciliario,
+                            onAgregado: _cargarPerfil,
                           ),
                         ],
                         const SizedBox(height: 32),
@@ -720,10 +721,16 @@ class _SeccionAgregarRol extends ConsumerStatefulWidget {
   const _SeccionAgregarRol({
     required this.ofrecerPaciente,
     required this.ofrecerDomiciliario,
+    required this.onAgregado,
   });
 
   final bool ofrecerPaciente;
   final bool ofrecerDomiciliario;
+
+  /// Recarga el perfil del padre — el rol nuevo puede llegar con
+  /// dirección/foto de cédula ya copiadas del otro perfil (API), y sin
+  /// esto no se verían hasta un pull-to-refresh manual.
+  final Future<void> Function() onAgregado;
 
   @override
   ConsumerState<_SeccionAgregarRol> createState() => _SeccionAgregarRolState();
@@ -742,6 +749,7 @@ class _SeccionAgregarRolState extends ConsumerState<_SeccionAgregarRol> {
       final mensaje = await ejecutar();
       final usuarioActualizado = await ref.read(obtenerSesionActualUseCaseProvider).execute();
       ref.read(authSessionProvider.notifier).sesionIniciada(usuarioActualizado);
+      await widget.onAgregado();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
     } on ApiException catch (error) {
