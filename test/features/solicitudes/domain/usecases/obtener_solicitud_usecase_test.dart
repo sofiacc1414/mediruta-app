@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mediruta_app/features/solicitudes/domain/entities/datos_solicitud.dart';
+import 'package:mediruta_app/features/solicitudes/domain/entities/medicamento.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/solicitud.dart';
 import 'package:mediruta_app/features/solicitudes/domain/usecases/obtener_solicitud_usecase.dart';
 import 'package:mediruta_app/shared/core/network/api_exception.dart';
@@ -12,10 +12,14 @@ void main() {
       const solicitud = Solicitud(
         id: 'solicitud-uuid',
         estado: 'borrador',
-        datos: DatosSolicitud(medicamentoNombre: 'Acetaminofén'),
+        recetaUrl: 'https://firmada.test/receta.jpg',
+        recetaFechaExpedicion: '2026-08-01',
+        direccionEntrega: 'Calle 1 #2-3',
         creadoEn: '2026-08-20T10:00:00.000Z',
         enviadoEn: null,
         canceladoEn: null,
+        cedulaUrl: 'https://firmada.test/cedula.jpg',
+        medicamentos: [Medicamento(nombre: 'Acetaminofén')],
         historial: [],
       );
       final repo = FakeSolicitudRepository()..solicitudARetornar = solicitud;

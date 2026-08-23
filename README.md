@@ -59,14 +59,19 @@ flutter test
 
 ### HU-03 — qué incluye
 
-- **"Nueva solicitud"**: mientras el paciente completa el formulario (medicamento + receta médica + dirección de entrega), **nada viaja a la API** — se guarda solo en el dispositivo (`shared_preferences`) en cada cambio, para que sobreviva aunque cierren la app de golpe. Recién se crea en la API cuando completa todo y envía, o cuando intenta salir y confirma "guardar para continuar después" (si dice que no, se descarta sin haber tocado el backend).
-- Misma pantalla sirve para **editar** una solicitud ya creada en Borrador (`solicitudId` no nulo) — ahí sí habla con la API directo, sin el paso de borrador local (ya existe del lado del servidor).
-- Campos de medicamento y receta médica definidos investigando qué exige una fórmula válida en Colombia — la foto/escaneo de la receta es HU-05, el OCR es HU-04, acá los datos se tipean.
-- Dirección de entrega precargada del perfil (HU-02), editable por solicitud.
-- "Mis solicitudes" (lista) → detalle con historial de estados → Editar/Enviar/Cancelar según el estado actual.
-- "Enviar solicitud" se deshabilita solo si falta algún campo obligatorio, mostrando cuáles — mismo cálculo que hace la API (`app.enviar_solicitud`), para no depender de chocar con el error para avisar.
+Reworkeada tras revisión en vivo de la primera versión (una fórmula real trae varios
+medicamentos, y la receta se sube como foto, no se tipea):
 
-52/52 tests pasando.
+- **"Nueva solicitud"**: mientras el paciente completa el formulario, **nada viaja a la API** — se guarda solo en el dispositivo (`shared_preferences`) en cada cambio, para que sobreviva aunque cierren la app de golpe. Recién se crea en la API cuando completa todo y envía, o cuando intenta salir y confirma "guardar para continuar después" (si dice que no, se descarta sin haber tocado el backend). La foto de receta elegida NO se guarda en ese borrador local (evita codificar imágenes en base64 en `shared_preferences`) — se sube recién cuando la solicitud se persiste de verdad.
+- Misma pantalla sirve para **editar** una solicitud ya creada en Borrador (`solicitudId` no nulo) — ahí sí habla con la API directo, sin el paso de borrador local (ya existe del lado del servidor).
+- **Varios medicamentos por solicitud**: sección repetible, "Agregar medicamento" suma una línea, cada una con botón "Quitar" (deshabilitado si es la única).
+- **Receta = foto**, no texto — mismo selector cámara/galería/PDF que los documentos de HU-02, más el campo de fecha de expedición (el único dato tipeado que queda).
+- **Antes de poder crear una solicitud**, si el perfil del paciente no tiene foto de cédula cargada (HU-02), un diálogo lo manda directo a "Mi perfil" — ni siquiera entra al formulario. La cédula del pedido en sí es una referencia viva al perfil, nunca una subida aparte.
+- Dirección de entrega precargada del perfil (HU-02), editable por solicitud.
+- "Mis solicitudes" (lista) → detalle con los medicamentos, miniatura de receta, miniatura de cédula (de solo lectura) e historial de estados → Editar/Enviar/Cancelar según el estado actual.
+- "Enviar solicitud" se deshabilita solo si falta algún requisito, mostrando cuáles — mismo cálculo que hace la API (`app.enviar_solicitud`), para no depender de chocar con el error para avisar.
+
+56/56 tests pasando.
 
 ### Notas técnicas para quien retome esto
 

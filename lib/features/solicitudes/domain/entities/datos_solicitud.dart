@@ -1,79 +1,59 @@
-/// Los 10 campos editables de una solicitud (medicamento + receta +
-/// dirección de entrega) — comunes a crear (G01), editar (G04) y al
-/// borrador local en progreso. Todos opcionales a propósito: un Borrador
-/// puede estar incompleto, se completa de a poco.
+import 'medicamento.dart';
+
+/// Los campos editables de una solicitud: la lista de medicamentos +
+/// receta (foto, sube aparte con `SubirRecetaUseCase`; acá solo viaja
+/// `recetaFechaExpedicion`) + dirección de entrega. Comunes a crear
+/// (G01), editar (G04) y al borrador local en progreso.
 class DatosSolicitud {
   const DatosSolicitud({
-    this.medicamentoNombre,
-    this.medicamentoConcentracion,
-    this.medicamentoFormaFarmaceutica,
-    this.medicamentoCantidad,
-    this.medicamentoPosologia,
-    this.recetaMedicoNombre,
-    this.recetaMedicoRegistro,
-    this.recetaIps,
+    this.medicamentos = const [],
     this.recetaFechaExpedicion,
     this.direccionEntrega,
   });
 
-  final String? medicamentoNombre;
-  final String? medicamentoConcentracion;
-  final String? medicamentoFormaFarmaceutica;
-  final String? medicamentoCantidad;
-  final String? medicamentoPosologia;
-  final String? recetaMedicoNombre;
-  final String? recetaMedicoRegistro;
-  final String? recetaIps;
+  final List<Medicamento> medicamentos;
   final String? recetaFechaExpedicion;
   final String? direccionEntrega;
 
-  /// G05 — mismos 10 requisitos que valida `app.enviar_solicitud` en la
-  /// API, en el mismo orden y con las mismas etiquetas — se usa para
-  /// deshabilitar "Enviar solicitud" preventivamente en la UI.
-  List<String> calcularFaltantes() {
-    final requisitos = <String, String?>{
-      'Nombre del medicamento': medicamentoNombre,
-      'Concentración/dosis': medicamentoConcentracion,
-      'Forma farmacéutica': medicamentoFormaFarmaceutica,
-      'Cantidad solicitada': medicamentoCantidad,
-      'Posología': medicamentoPosologia,
-      'Nombre del médico': recetaMedicoNombre,
-      'Registro médico': recetaMedicoRegistro,
-      'IPS': recetaIps,
-      'Fecha de expedición de la receta': recetaFechaExpedicion,
-      'Dirección de entrega': direccionEntrega,
-    };
-    return [
-      for (final entrada in requisitos.entries)
-        if (entrada.value == null || entrada.value!.trim().isEmpty) entrada.key,
-    ];
+  /// G05 — mismos 4 requisitos que valida `app.enviar_solicitud` en la
+  /// API (la cédula NO se revisa acá: ya se exige antes de poder crear
+  /// la solicitud, HU-02). Se usa para deshabilitar "Enviar solicitud"
+  /// preventivamente en la UI.
+  List<String> calcularFaltantes({required bool tieneRecetaSubida}) {
+    final medicamentosNoVacios = medicamentos.where((m) => !m.estaVacio).toList();
+    final faltantes = <String>[];
+
+    if (medicamentosNoVacios.isEmpty) {
+      faltantes.add('Al menos un medicamento');
+    } else if (medicamentosNoVacios.any((m) => !m.estaCompleto)) {
+      faltantes.add('Completar todos los campos de cada medicamento');
+    }
+    if (!tieneRecetaSubida) {
+      faltantes.add('Foto de la receta');
+    }
+    if (recetaFechaExpedicion == null || recetaFechaExpedicion!.trim().isEmpty) {
+      faltantes.add('Fecha de expedición de la receta');
+    }
+    if (direccionEntrega == null || direccionEntrega!.trim().isEmpty) {
+      faltantes.add('Dirección de entrega');
+    }
+    return faltantes;
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'medicamentoNombre': medicamentoNombre,
-      'medicamentoConcentracion': medicamentoConcentracion,
-      'medicamentoFormaFarmaceutica': medicamentoFormaFarmaceutica,
-      'medicamentoCantidad': medicamentoCantidad,
-      'medicamentoPosologia': medicamentoPosologia,
-      'recetaMedicoNombre': recetaMedicoNombre,
-      'recetaMedicoRegistro': recetaMedicoRegistro,
-      'recetaIps': recetaIps,
+      'medicamentos': medicamentos.map((m) => m.toJson()).toList(),
       'recetaFechaExpedicion': recetaFechaExpedicion,
       'direccionEntrega': direccionEntrega,
     };
   }
 
   factory DatosSolicitud.fromJson(Map<String, dynamic> json) {
+    final medicamentosJson = json['medicamentos'] as List<dynamic>? ?? [];
     return DatosSolicitud(
-      medicamentoNombre: json['medicamentoNombre'] as String?,
-      medicamentoConcentracion: json['medicamentoConcentracion'] as String?,
-      medicamentoFormaFarmaceutica: json['medicamentoFormaFarmaceutica'] as String?,
-      medicamentoCantidad: json['medicamentoCantidad'] as String?,
-      medicamentoPosologia: json['medicamentoPosologia'] as String?,
-      recetaMedicoNombre: json['recetaMedicoNombre'] as String?,
-      recetaMedicoRegistro: json['recetaMedicoRegistro'] as String?,
-      recetaIps: json['recetaIps'] as String?,
+      medicamentos: medicamentosJson
+          .map((e) => Medicamento.fromJson(e as Map<String, dynamic>))
+          .toList(),
       recetaFechaExpedicion: json['recetaFechaExpedicion'] as String?,
       direccionEntrega: json['direccionEntrega'] as String?,
     );

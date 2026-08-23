@@ -35,6 +35,21 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   }
 
   @override
+  Future<void> subirReceta({
+    required String solicitudId,
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  }) {
+    return _datasource.subirReceta(
+      solicitudId: solicitudId,
+      bytes: bytes,
+      nombreArchivo: nombreArchivo,
+      contentType: contentType,
+    );
+  }
+
+  @override
   Future<void> enviar(String solicitudId) {
     return _datasource.enviar(solicitudId);
   }

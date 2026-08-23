@@ -14,6 +14,7 @@ import '../../domain/usecases/crear_solicitud_usecase.dart';
 import '../../domain/usecases/enviar_solicitud_usecase.dart';
 import '../../domain/usecases/listar_solicitudes_usecase.dart';
 import '../../domain/usecases/obtener_solicitud_usecase.dart';
+import '../../domain/usecases/subir_receta_usecase.dart';
 
 /// Cableado de dependencias de solicitudes (HU-03) — mismo espíritu que
 /// `perfil_providers.dart`. Reutiliza `apiClientProvider` ya existente.
@@ -39,6 +40,10 @@ final obtenerSolicitudUseCaseProvider = Provider(
 
 final actualizarSolicitudUseCaseProvider = Provider(
   (ref) => ActualizarSolicitudUseCase(ref.watch(solicitudRepositoryProvider)),
+);
+
+final subirRecetaUseCaseProvider = Provider(
+  (ref) => SubirRecetaUseCase(ref.watch(solicitudRepositoryProvider)),
 );
 
 final enviarSolicitudUseCaseProvider = Provider(

@@ -35,6 +35,21 @@ class SolicitudRemoteDatasource {
     );
   }
 
+  Future<void> subirReceta({
+    required String solicitudId,
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  }) {
+    return _apiClient.postMultipart(
+      '/solicitudes/$solicitudId/receta',
+      bytes: bytes,
+      nombreArchivo: nombreArchivo,
+      contentType: contentType,
+      autenticado: true,
+    );
+  }
+
   Future<void> enviar(String solicitudId) {
     return _apiClient.post('/solicitudes/$solicitudId/enviar', autenticado: true);
   }

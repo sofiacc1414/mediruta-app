@@ -11,7 +11,6 @@ void main() {
       final lista = [
         const SolicitudResumen(
           id: 'solicitud-uuid',
-          medicamentoNombre: 'Acetaminofén',
           estado: 'borrador',
           creadoEn: '2026-08-20T10:00:00.000Z',
         ),

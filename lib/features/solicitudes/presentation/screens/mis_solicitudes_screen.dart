@@ -6,6 +6,8 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_icon_badge.dart';
+import '../../../usuarios/presentation/providers/perfil_providers.dart';
+import '../../../usuarios/presentation/screens/perfil_screen.dart';
 import '../../domain/entities/solicitud_resumen.dart';
 import '../providers/solicitud_providers.dart';
 import 'nueva_solicitud_screen.dart';
@@ -35,6 +37,59 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
   @override
   void initState() {
     super.initState();
+    _cargar();
+  }
+
+  /// G01 — no se puede ni empezar una solicitud nueva si el perfil
+  /// todavía no tiene foto de cédula cargada (HU-02); la API igual lo
+  /// bloquea (403), pero se evita el viaje mandando directo a completar
+  /// el perfil.
+  Future<void> _onNuevaSolicitud() async {
+    String? errorPerfil;
+    bool tieneCedula = false;
+    try {
+      final perfil = await ref.read(obtenerPerfilUseCaseProvider).execute();
+      tieneCedula = perfil.paciente?.fotoCedulaUrl != null;
+    } on ApiException catch (error) {
+      errorPerfil = error.message;
+    } on ApiSinConexionException catch (error) {
+      errorPerfil = error.toString();
+    }
+
+    if (!mounted) return;
+
+    if (errorPerfil != null) {
+      setState(() => _error = errorPerfil);
+      return;
+    }
+
+    if (!tieneCedula) {
+      final ir = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Completa tu perfil'),
+          content: const Text(
+            'Necesitás una foto de tu cédula en tu perfil antes de crear una solicitud.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Ahora no'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Ir a Mi perfil'),
+            ),
+          ],
+        ),
+      );
+      if (ir == true && mounted) {
+        await Navigator.of(context).pushNamed(PerfilScreen.routeName);
+      }
+      return;
+    }
+
+    await Navigator.of(context).pushNamed(NuevaSolicitudScreen.routeName);
     _cargar();
   }
 
@@ -106,12 +161,7 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                         const SizedBox(height: 12),
                         AppButton(
                           label: 'Nueva solicitud',
-                          onPressed: () async {
-                            await Navigator.of(
-                              context,
-                            ).pushNamed(NuevaSolicitudScreen.routeName);
-                            _cargar();
-                          },
+                          onPressed: _onNuevaSolicitud,
                         ),
                       ],
                     ),
@@ -148,7 +198,7 @@ class _FilaSolicitud extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    solicitud.medicamentoNombre ?? 'Sin nombre de medicamento',
+                    'Solicitud del ${_formatearFecha(solicitud.creadoEn)}',
                     style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
@@ -165,4 +215,15 @@ class _FilaSolicitud extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatearFecha(String iso) {
+  final fecha = DateTime.tryParse(iso);
+  if (fecha == null) return iso;
+  final dia = fecha.day.toString().padLeft(2, '0');
+  const meses = [
+    'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+    'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+  ];
+  return '$dia ${meses[fecha.month - 1]} ${fecha.year}';
 }

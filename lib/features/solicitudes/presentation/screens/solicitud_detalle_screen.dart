@@ -145,31 +145,36 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                           textAlign: TextAlign.center,
                           style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
                         ),
-                        const SizedBox(height: 16),
-                        _Tarjeta(
-                          titulo: 'Medicamento',
-                          filas: {
-                            'Nombre': solicitud.datos.medicamentoNombre,
-                            'Concentración/dosis': solicitud.datos.medicamentoConcentracion,
-                            'Forma farmacéutica': solicitud.datos.medicamentoFormaFarmaceutica,
-                            'Cantidad': solicitud.datos.medicamentoCantidad,
-                            'Posología': solicitud.datos.medicamentoPosologia,
-                          },
-                        ),
+                        for (var i = 0; i < solicitud.medicamentos.length; i++) ...[
+                          const SizedBox(height: 16),
+                          _Tarjeta(
+                            titulo: 'Medicamento ${i + 1}',
+                            filas: {
+                              'Nombre': solicitud.medicamentos[i].nombre,
+                              'Concentración/dosis': solicitud.medicamentos[i].concentracion,
+                              'Forma farmacéutica': solicitud.medicamentos[i].formaFarmaceutica,
+                              'Cantidad': solicitud.medicamentos[i].cantidad,
+                              'Posología': solicitud.medicamentos[i].posologia,
+                            },
+                          ),
+                        ],
+                        if (solicitud.medicamentos.isEmpty) ...[
+                          const SizedBox(height: 16),
+                          const _Tarjeta(titulo: 'Medicamentos', filas: {'Ninguno cargado': null}),
+                        ],
                         const SizedBox(height: 16),
                         _Tarjeta(
                           titulo: 'Receta médica',
-                          filas: {
-                            'Médico': solicitud.datos.recetaMedicoNombre,
-                            'Registro médico': solicitud.datos.recetaMedicoRegistro,
-                            'IPS': solicitud.datos.recetaIps,
-                            'Fecha de expedición': solicitud.datos.recetaFechaExpedicion,
-                          },
+                          filas: {'Fecha de expedición': solicitud.recetaFechaExpedicion},
+                          miniatura: solicitud.recetaUrl,
+                          miniaturaEtiqueta: 'Foto de la receta',
                         ),
                         const SizedBox(height: 16),
                         _Tarjeta(
-                          titulo: 'Entrega',
-                          filas: {'Dirección': solicitud.datos.direccionEntrega},
+                          titulo: 'Identidad y entrega',
+                          filas: {'Dirección de entrega': solicitud.direccionEntrega},
+                          miniatura: solicitud.cedulaUrl,
+                          miniaturaEtiqueta: 'Cédula (de tu perfil)',
                         ),
                         const SizedBox(height: 16),
                         _Tarjeta(
@@ -201,7 +206,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                           AppLoadingButton(
                             label: 'Enviar a revisión',
                             cargando: _procesando,
-                            onPressed: solicitud.datos.calcularFaltantes().isEmpty ? _enviar : null,
+                            onPressed: _calcularFaltantes(solicitud).isEmpty ? _enviar : null,
                           ),
                           const SizedBox(height: 8),
                         ],
@@ -222,11 +227,44 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
   }
 }
 
+/// G05 — mismos 4 requisitos que valida `app.enviar_solicitud` en la
+/// API (la cédula no se revisa acá, ya se exigió al crear). Se calcula
+/// sobre el `Solicitud` ya cargado del detalle, a diferencia del
+/// formulario de creación/edición que lo calcula sobre `DatosSolicitud`
+/// en progreso — mismo criterio, distinta fuente de datos.
+List<String> _calcularFaltantes(Solicitud solicitud) {
+  final medicamentosNoVacios = solicitud.medicamentos.where((m) => !m.estaVacio).toList();
+  final faltantes = <String>[];
+
+  if (medicamentosNoVacios.isEmpty) {
+    faltantes.add('Al menos un medicamento');
+  } else if (medicamentosNoVacios.any((m) => !m.estaCompleto)) {
+    faltantes.add('Completar todos los campos de cada medicamento');
+  }
+  if (solicitud.recetaUrl == null) {
+    faltantes.add('Foto de la receta');
+  }
+  if (solicitud.recetaFechaExpedicion == null) {
+    faltantes.add('Fecha de expedición de la receta');
+  }
+  if (solicitud.direccionEntrega == null || solicitud.direccionEntrega!.trim().isEmpty) {
+    faltantes.add('Dirección de entrega');
+  }
+  return faltantes;
+}
+
 class _Tarjeta extends StatelessWidget {
-  const _Tarjeta({required this.titulo, required this.filas});
+  const _Tarjeta({
+    required this.titulo,
+    required this.filas,
+    this.miniatura,
+    this.miniaturaEtiqueta,
+  });
 
   final String titulo;
   final Map<String, String?> filas;
+  final String? miniatura;
+  final String? miniaturaEtiqueta;
 
   @override
   Widget build(BuildContext context) {
@@ -244,6 +282,21 @@ class _Tarjeta extends StatelessWidget {
             titulo,
             style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 16),
           ),
+          if (miniaturaEtiqueta != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _Miniatura(url: miniatura),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    miniatura != null ? miniaturaEtiqueta! : '$miniaturaEtiqueta — no subida',
+                    style: const TextStyle(color: AppColors.navy),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 8),
           for (final entrada in filas.entries)
             Padding(
@@ -264,6 +317,57 @@ class _Tarjeta extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Miniatura 44x44 de un documento: imagen real si es jpg/png, ícono de
+/// PDF si corresponde, círculo vacío si todavía no hay nada subido.
+/// Mismo patrón que `_Miniatura` de `perfil_screen.dart` (HU-02).
+class _Miniatura extends StatelessWidget {
+  const _Miniatura({required this.url});
+
+  final String? url;
+
+  bool get _esPdf => url != null && url!.split('?').first.toLowerCase().endsWith('.pdf');
+
+  @override
+  Widget build(BuildContext context) {
+    const tamano = 44.0;
+
+    if (url == null) {
+      return Container(
+        width: tamano,
+        height: tamano,
+        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.teal)),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: tamano,
+        height: tamano,
+        color: AppColors.beige,
+        child: _esPdf
+            ? const Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 22)
+            : Image.network(
+                url!,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return const Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.image_not_supported_outlined, color: AppColors.navy, size: 20),
+              ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/datos_solicitud.dart';
+import 'package:mediruta_app/features/solicitudes/domain/entities/medicamento.dart';
 import 'package:mediruta_app/features/solicitudes/domain/usecases/actualizar_solicitud_usecase.dart';
 import 'package:mediruta_app/shared/core/network/api_exception.dart';
 
@@ -10,7 +11,9 @@ void main() {
     test('G04 — delega el id y los datos en el repositorio', () async {
       final repo = FakeSolicitudRepository();
       final useCase = ActualizarSolicitudUseCase(repo);
-      const datos = DatosSolicitud(medicamentoNombre: 'Acetaminofén');
+      const datos = DatosSolicitud(
+        medicamentos: [Medicamento(nombre: 'Acetaminofén')],
+      );
 
       await useCase.execute('solicitud-uuid', datos);
 

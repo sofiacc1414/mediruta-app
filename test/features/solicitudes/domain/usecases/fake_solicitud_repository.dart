@@ -52,6 +52,22 @@ class FakeSolicitudRepository implements SolicitudRepository {
   }
 
   @override
+  Future<void> subirReceta({
+    required String solicitudId,
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  }) async {
+    _registrar('subirReceta', {
+      'solicitudId': solicitudId,
+      'bytes': bytes,
+      'nombreArchivo': nombreArchivo,
+      'contentType': contentType,
+    });
+    _lanzarSiCorresponde();
+  }
+
+  @override
   Future<void> enviar(String solicitudId) async {
     _registrar('enviar', {'solicitudId': solicitudId});
     _lanzarSiCorresponde();
