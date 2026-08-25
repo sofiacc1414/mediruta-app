@@ -100,4 +100,10 @@ class SolicitudRemoteDatasource {
       autenticado: true,
     );
   }
+
+  /// `null` en el cuerpo (200 sin JSON) si no tiene ningún pedido activo.
+  Future<Map<String, dynamic>?> obtenerPedidoActivo() async {
+    final respuesta = await _apiClient.get('/pedidos/mi-activo', autenticado: true);
+    return respuesta as Map<String, dynamic>?;
+  }
 }

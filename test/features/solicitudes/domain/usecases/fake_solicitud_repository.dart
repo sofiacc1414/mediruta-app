@@ -1,4 +1,5 @@
 import 'package:mediruta_app/features/solicitudes/domain/entities/datos_solicitud.dart';
+import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_activo.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_disponible.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/solicitud.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/solicitud_resumen.dart';
@@ -13,6 +14,7 @@ class FakeSolicitudRepository implements SolicitudRepository {
   List<SolicitudResumen> listaARetornar = const [];
   Solicitud? solicitudARetornar;
   List<PedidoDisponible> pedidosDisponiblesARetornar = const [];
+  PedidoActivo? pedidoActivoARetornar;
 
   Map<String, dynamic>? ultimaLlamada;
 
@@ -124,5 +126,12 @@ class FakeSolicitudRepository implements SolicitudRepository {
   Future<void> reportarNovedad(String solicitudId, String detalle) async {
     _registrar('reportarNovedad', {'solicitudId': solicitudId, 'detalle': detalle});
     _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<PedidoActivo?> obtenerPedidoActivo() async {
+    _registrar('obtenerPedidoActivo', {});
+    _lanzarSiCorresponde();
+    return pedidoActivoARetornar;
   }
 }

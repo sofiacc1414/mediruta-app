@@ -1,4 +1,5 @@
 import '../entities/datos_solicitud.dart';
+import '../entities/pedido_activo.dart';
 import '../entities/pedido_disponible.dart';
 import '../entities/solicitud.dart';
 import '../entities/solicitud_resumen.dart';
@@ -59,4 +60,9 @@ abstract class SolicitudRepository {
   Future<void> entregarPedido(String solicitudId, String codigo);
 
   Future<void> reportarNovedad(String solicitudId, String detalle);
+
+  /// El pedido que el Domiciliario tiene en curso ahora mismo, o `null`
+  /// si no tiene ninguno — sobrevive un cierre/reapertura de la app (el
+  /// pool deja de incluirlo apenas se acepta).
+  Future<PedidoActivo?> obtenerPedidoActivo();
 }

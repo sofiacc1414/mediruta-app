@@ -1,4 +1,5 @@
 import '../../domain/entities/datos_solicitud.dart';
+import '../../domain/entities/pedido_activo.dart';
 import '../../domain/entities/pedido_disponible.dart';
 import '../../domain/entities/solicitud.dart';
 import '../../domain/entities/solicitud_resumen.dart';
@@ -97,5 +98,11 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   @override
   Future<void> reportarNovedad(String solicitudId, String detalle) {
     return _datasource.reportarNovedad(solicitudId, detalle);
+  }
+
+  @override
+  Future<PedidoActivo?> obtenerPedidoActivo() async {
+    final respuesta = await _datasource.obtenerPedidoActivo();
+    return respuesta != null ? PedidoActivo.fromJson(respuesta) : null;
   }
 }
