@@ -74,8 +74,11 @@ class AppTrackingTimeline extends StatelessWidget {
   }
 }
 
+/// La API manda los timestamps en UTC (`timestamptz`) — sin `.toLocal()`
+/// se mostraba la hora UTC tal cual (ej. 06:47 cuando en Colombia eran
+/// las 01:50), un bug real reportado en vivo.
 String _formatearFechaHora(String iso) {
-  final fecha = DateTime.tryParse(iso);
+  final fecha = DateTime.tryParse(iso)?.toLocal();
   if (fecha == null) return iso;
   final dia = fecha.day.toString().padLeft(2, '0');
   const meses = [

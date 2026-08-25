@@ -186,7 +186,7 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
 }
 
 String _formatearFecha(String iso) {
-  final fecha = DateTime.tryParse(iso);
+  final fecha = DateTime.tryParse(iso)?.toLocal();
   if (fecha == null) return iso;
   final dia = fecha.day.toString().padLeft(2, '0');
   const meses = [

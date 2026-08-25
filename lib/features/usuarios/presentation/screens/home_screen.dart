@@ -95,7 +95,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             .length;
         _entregadosMes = solicitudes.where((s) {
           if (s.estado != 'entregado') return false;
-          final fecha = DateTime.tryParse(s.creadoEn);
+          final fecha = DateTime.tryParse(s.creadoEn)?.toLocal();
           return fecha != null && fecha.year == ahora.year && fecha.month == ahora.month;
         }).length;
       });
