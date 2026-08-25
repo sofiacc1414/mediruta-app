@@ -27,10 +27,17 @@ class PerfilRemoteDatasource {
   Future<void> actualizarPerfilPaciente({
     required String direccion,
     required String fechaNacimiento,
+    required String departamento,
+    required String ciudad,
   }) {
     return _apiClient.patch(
       '/perfil/paciente',
-      body: {'direccion': direccion, 'fechaNacimiento': fechaNacimiento},
+      body: {
+        'direccion': direccion,
+        'fechaNacimiento': fechaNacimiento,
+        'departamento': departamento,
+        'ciudad': ciudad,
+      },
       autenticado: true,
     );
   }
@@ -97,5 +104,17 @@ class PerfilRemoteDatasource {
 
   Future<void> desactivarCuenta() {
     return _apiClient.post('/perfil/desactivar', autenticado: true);
+  }
+
+  Future<void> actualizarDisponibilidadDomiciliario({
+    required bool disponible,
+    double? lat,
+    double? lng,
+  }) {
+    return _apiClient.post(
+      '/perfil/domiciliario/disponibilidad',
+      body: {'disponible': disponible, if (lat != null) 'lat': lat, if (lng != null) 'lng': lng},
+      autenticado: true,
+    );
   }
 }

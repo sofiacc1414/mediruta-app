@@ -1,4 +1,5 @@
 import '../../domain/entities/datos_solicitud.dart';
+import '../../domain/entities/pedido_disponible.dart';
 import '../../domain/entities/solicitud.dart';
 import '../../domain/entities/solicitud_resumen.dart';
 import '../../domain/repositories/solicitud_repository.dart';
@@ -58,5 +59,43 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   @override
   Future<void> cancelar(String solicitudId) {
     return _datasource.cancelar(solicitudId);
+  }
+
+  @override
+  Future<List<PedidoDisponible>> listarPedidosDisponibles() async {
+    final respuesta = await _datasource.listarPedidosDisponibles();
+    return respuesta
+        .map((e) => PedidoDisponible.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<void> aceptarPedido(String solicitudId) {
+    return _datasource.aceptarPedido(solicitudId);
+  }
+
+  @override
+  Future<void> marcarMedicamentosRecogidos(String solicitudId) {
+    return _datasource.marcarMedicamentosRecogidos(solicitudId);
+  }
+
+  @override
+  Future<void> iniciarEntrega(String solicitudId) {
+    return _datasource.iniciarEntrega(solicitudId);
+  }
+
+  @override
+  Future<void> marcarEnSitio(String solicitudId) {
+    return _datasource.marcarEnSitio(solicitudId);
+  }
+
+  @override
+  Future<void> entregarPedido(String solicitudId, String codigo) {
+    return _datasource.entregarPedido(solicitudId, codigo);
+  }
+
+  @override
+  Future<void> reportarNovedad(String solicitudId, String detalle) {
+    return _datasource.reportarNovedad(solicitudId, detalle);
   }
 }

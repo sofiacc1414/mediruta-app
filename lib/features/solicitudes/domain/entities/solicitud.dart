@@ -1,5 +1,6 @@
 import 'evento_historial.dart';
 import 'medicamento.dart';
+import 'novedad_del_paciente.dart';
 
 /// Detalle completo de una solicitud (G03): medicamentos, receta y
 /// cédula del paciente (URLs firmadas) + historial de estados.
@@ -18,6 +19,8 @@ class Solicitud {
     required this.cedulaUrl,
     required this.medicamentos,
     required this.historial,
+    required this.codigoEntrega,
+    required this.novedadAbierta,
   });
 
   final String id;
@@ -25,7 +28,11 @@ class Solicitud {
   /// Solo existe una vez enviada (G05) — nulo mientras está en
   /// Borrador, todavía no es un "pedido".
   final String? codigoPedido;
-  final String estado; // 'borrador' | 'pendiente_revision' | 'cancelada'
+
+  /// 'borrador' | 'pendiente_revision' | 'en_asignacion' |
+  /// 'asignado_en_camino_farmacia' | 'medicamentos_recogidos' |
+  /// 'en_camino_entrega' | 'en_sitio' | 'entregado' | 'cancelada'.
+  final String estado;
   final String? recetaUrl;
   final String? recetaFechaVencimiento;
   final String? direccionEntrega;
@@ -42,6 +49,14 @@ class Solicitud {
   final String? cedulaUrl;
   final List<Medicamento> medicamentos;
   final List<EventoHistorial> historial;
+
+  /// HU-09 — existe desde que se envía, igual que `codigoPedido`. Se lo
+  /// dicta al Domiciliario al recibir el pedido.
+  final String? codigoEntrega;
+
+  /// HU-07 — si hay una novedad abierta sobre este pedido, se muestra
+  /// acá; no reemplaza `estado`.
+  final NovedadDelPaciente? novedadAbierta;
 
   bool get esBorrador => estado == 'borrador';
 
@@ -64,6 +79,10 @@ class Solicitud {
       historial: (json['historial'] as List<dynamic>)
           .map((e) => EventoHistorial.fromJson(e as Map<String, dynamic>))
           .toList(),
+      codigoEntrega: json['codigoEntrega'] as String?,
+      novedadAbierta: json['novedadAbierta'] != null
+          ? NovedadDelPaciente.fromJson(json['novedadAbierta'] as Map<String, dynamic>)
+          : null,
     );
   }
 }

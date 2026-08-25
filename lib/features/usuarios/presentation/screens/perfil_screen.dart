@@ -49,6 +49,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   final _telefonoController = TextEditingController();
 
   final _pacienteDireccionController = TextEditingController();
+  final _pacienteDepartamentoController = TextEditingController();
+  final _pacienteCiudadController = TextEditingController();
   DateTime? _pacienteFechaNacimiento;
 
   final _domiciliarioDireccionController = TextEditingController();
@@ -76,6 +78,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     _nombreController.dispose();
     _telefonoController.dispose();
     _pacienteDireccionController.dispose();
+    _pacienteDepartamentoController.dispose();
+    _pacienteCiudadController.dispose();
     _domiciliarioDireccionController.dispose();
     _vehiculoTipoController.dispose();
     _vehiculoPlacaController.dispose();
@@ -104,6 +108,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
         _nombreController.text = perfil.nombreCompleto ?? '';
         _telefonoController.text = perfil.telefono ?? '';
         _pacienteDireccionController.text = perfil.paciente?.direccion ?? '';
+        _pacienteDepartamentoController.text = perfil.paciente?.departamento ?? '';
+        _pacienteCiudadController.text = perfil.paciente?.ciudad ?? '';
         final fechaNacimiento = perfil.paciente?.fechaNacimiento;
         _pacienteFechaNacimiento =
             fechaNacimiento != null ? DateTime.tryParse(fechaNacimiento) : null;
@@ -154,6 +160,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
         _perfil = perfil;
         if (rolNuevo == 'PACIENTE') {
           _pacienteDireccionController.text = perfil.paciente?.direccion ?? '';
+          _pacienteDepartamentoController.text = perfil.paciente?.departamento ?? '';
+          _pacienteCiudadController.text = perfil.paciente?.ciudad ?? '';
           final fechaNacimiento = perfil.paciente?.fechaNacimiento;
           _pacienteFechaNacimiento =
               fechaNacimiento != null ? DateTime.tryParse(fechaNacimiento) : null;
@@ -193,8 +201,10 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     }
     if (esPaciente &&
         (_pacienteDireccionController.text.trim().isEmpty ||
+            _pacienteDepartamentoController.text.trim().isEmpty ||
+            _pacienteCiudadController.text.trim().isEmpty ||
             _pacienteFechaNacimiento == null)) {
-      faltantes.add('dirección y fecha de nacimiento de Paciente');
+      faltantes.add('dirección, departamento, ciudad y fecha de nacimiento de Paciente');
     }
     if (esDomiciliario &&
         (_domiciliarioDireccionController.text.trim().isEmpty ||
@@ -224,6 +234,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             .execute(
               direccion: _pacienteDireccionController.text.trim(),
               fechaNacimiento: _isoFecha(_pacienteFechaNacimiento!),
+              departamento: _pacienteDepartamentoController.text.trim(),
+              ciudad: _pacienteCiudadController.text.trim(),
             );
       }
       if (esDomiciliario) {
@@ -306,6 +318,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                           _SeccionPaciente(
                             perfil: _perfil?.paciente,
                             direccionController: _pacienteDireccionController,
+                            departamentoController: _pacienteDepartamentoController,
+                            ciudadController: _pacienteCiudadController,
                             fechaNacimiento: _pacienteFechaNacimiento,
                             onElegirFecha: _elegirFechaNacimiento,
                             enabled: !_guardandoCambios,
@@ -600,6 +614,8 @@ class _SeccionPaciente extends ConsumerWidget {
   const _SeccionPaciente({
     required this.perfil,
     required this.direccionController,
+    required this.departamentoController,
+    required this.ciudadController,
     required this.fechaNacimiento,
     required this.onElegirFecha,
     required this.enabled,
@@ -608,6 +624,8 @@ class _SeccionPaciente extends ConsumerWidget {
 
   final dynamic perfil;
   final TextEditingController direccionController;
+  final TextEditingController departamentoController;
+  final TextEditingController ciudadController;
   final DateTime? fechaNacimiento;
   final VoidCallback onElegirFecha;
   final bool enabled;
@@ -623,6 +641,23 @@ class _SeccionPaciente extends ConsumerWidget {
           label: 'Dirección de entrega',
           icono: Icons.home_outlined,
           controller: direccionController,
+          enabled: enabled,
+        ),
+        const SizedBox(height: 12),
+        // HU-09: departamento/ciudad se usan para geolocalizar la
+        // dirección al crear un pedido (asignación por cercanía) — sin
+        // esto la API no puede calcular la distancia al domiciliario.
+        AppTextField(
+          label: 'Departamento',
+          icono: Icons.map_outlined,
+          controller: departamentoController,
+          enabled: enabled,
+        ),
+        const SizedBox(height: 12),
+        AppTextField(
+          label: 'Ciudad',
+          icono: Icons.location_city_outlined,
+          controller: ciudadController,
           enabled: enabled,
         ),
         const SizedBox(height: 12),

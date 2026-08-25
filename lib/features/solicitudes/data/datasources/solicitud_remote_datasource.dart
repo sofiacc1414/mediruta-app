@@ -61,4 +61,43 @@ class SolicitudRemoteDatasource {
   Future<void> cancelar(String solicitudId) {
     return _apiClient.post('/solicitudes/$solicitudId/cancelar', autenticado: true);
   }
+
+  // --- Domiciliario (HU-09/HU-07) ---
+
+  Future<List<dynamic>> listarPedidosDisponibles() async {
+    final respuesta = await _apiClient.get('/pedidos/disponibles', autenticado: true);
+    return respuesta as List<dynamic>;
+  }
+
+  Future<void> aceptarPedido(String solicitudId) {
+    return _apiClient.post('/pedidos/$solicitudId/aceptar', autenticado: true);
+  }
+
+  Future<void> marcarMedicamentosRecogidos(String solicitudId) {
+    return _apiClient.post('/pedidos/$solicitudId/recogido', autenticado: true);
+  }
+
+  Future<void> iniciarEntrega(String solicitudId) {
+    return _apiClient.post('/pedidos/$solicitudId/iniciar-entrega', autenticado: true);
+  }
+
+  Future<void> marcarEnSitio(String solicitudId) {
+    return _apiClient.post('/pedidos/$solicitudId/en-sitio', autenticado: true);
+  }
+
+  Future<void> entregarPedido(String solicitudId, String codigo) {
+    return _apiClient.post(
+      '/pedidos/$solicitudId/entregar',
+      body: {'codigo': codigo},
+      autenticado: true,
+    );
+  }
+
+  Future<void> reportarNovedad(String solicitudId, String detalle) {
+    return _apiClient.post(
+      '/pedidos/$solicitudId/novedad',
+      body: {'detalle': detalle},
+      autenticado: true,
+    );
+  }
 }

@@ -13,12 +13,16 @@ void main() {
       await usecase.execute(
         direccion: 'Calle 123 #45-67',
         fechaNacimiento: '1990-05-10',
+        departamento: 'Cundinamarca',
+        ciudad: 'Bogotá',
       );
 
       expect(repo.ultimaLlamada, {
         'metodo': 'actualizarPerfilPaciente',
         'direccion': 'Calle 123 #45-67',
         'fechaNacimiento': '1990-05-10',
+        'departamento': 'Cundinamarca',
+        'ciudad': 'Bogotá',
       });
     });
 
@@ -28,7 +32,12 @@ void main() {
       final usecase = ActualizarPerfilPacienteUseCase(repo);
 
       expect(
-        () => usecase.execute(direccion: 'Calle 123', fechaNacimiento: '1990-05-10'),
+        () => usecase.execute(
+          direccion: 'Calle 123',
+          fechaNacimiento: '1990-05-10',
+          departamento: 'Cundinamarca',
+          ciudad: 'Bogotá',
+        ),
         throwsA(isA<ApiException>()),
       );
     });

@@ -1,4 +1,5 @@
 import 'package:mediruta_app/features/solicitudes/domain/entities/datos_solicitud.dart';
+import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_disponible.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/solicitud.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/solicitud_resumen.dart';
 import 'package:mediruta_app/features/solicitudes/domain/repositories/solicitud_repository.dart';
@@ -11,6 +12,7 @@ class FakeSolicitudRepository implements SolicitudRepository {
   String codigoPedidoARetornar = 'MR-000123';
   List<SolicitudResumen> listaARetornar = const [];
   Solicitud? solicitudARetornar;
+  List<PedidoDisponible> pedidosDisponiblesARetornar = const [];
 
   Map<String, dynamic>? ultimaLlamada;
 
@@ -78,6 +80,49 @@ class FakeSolicitudRepository implements SolicitudRepository {
   @override
   Future<void> cancelar(String solicitudId) async {
     _registrar('cancelar', {'solicitudId': solicitudId});
+    _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<List<PedidoDisponible>> listarPedidosDisponibles() async {
+    _registrar('listarPedidosDisponibles', {});
+    _lanzarSiCorresponde();
+    return pedidosDisponiblesARetornar;
+  }
+
+  @override
+  Future<void> aceptarPedido(String solicitudId) async {
+    _registrar('aceptarPedido', {'solicitudId': solicitudId});
+    _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<void> marcarMedicamentosRecogidos(String solicitudId) async {
+    _registrar('marcarMedicamentosRecogidos', {'solicitudId': solicitudId});
+    _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<void> iniciarEntrega(String solicitudId) async {
+    _registrar('iniciarEntrega', {'solicitudId': solicitudId});
+    _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<void> marcarEnSitio(String solicitudId) async {
+    _registrar('marcarEnSitio', {'solicitudId': solicitudId});
+    _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<void> entregarPedido(String solicitudId, String codigo) async {
+    _registrar('entregarPedido', {'solicitudId': solicitudId, 'codigo': codigo});
+    _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<void> reportarNovedad(String solicitudId, String detalle) async {
+    _registrar('reportarNovedad', {'solicitudId': solicitudId, 'detalle': detalle});
     _lanzarSiCorresponde();
   }
 }

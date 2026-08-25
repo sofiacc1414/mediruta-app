@@ -29,10 +29,14 @@ class PerfilRepositoryImpl implements PerfilRepository {
   Future<void> actualizarPerfilPaciente({
     required String direccion,
     required String fechaNacimiento,
+    required String departamento,
+    required String ciudad,
   }) {
     return _datasource.actualizarPerfilPaciente(
       direccion: direccion,
       fechaNacimiento: fechaNacimiento,
+      departamento: departamento,
+      ciudad: ciudad,
     );
   }
 
@@ -93,5 +97,18 @@ class PerfilRepositoryImpl implements PerfilRepository {
   @override
   Future<void> desactivarCuenta() {
     return _datasource.desactivarCuenta();
+  }
+
+  @override
+  Future<void> actualizarDisponibilidadDomiciliario({
+    required bool disponible,
+    double? lat,
+    double? lng,
+  }) {
+    return _datasource.actualizarDisponibilidadDomiciliario(
+      disponible: disponible,
+      lat: lat,
+      lng: lng,
+    );
   }
 }

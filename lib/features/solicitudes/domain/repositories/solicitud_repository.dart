@@ -1,4 +1,5 @@
 import '../entities/datos_solicitud.dart';
+import '../entities/pedido_disponible.dart';
 import '../entities/solicitud.dart';
 import '../entities/solicitud_resumen.dart';
 
@@ -34,4 +35,28 @@ abstract class SolicitudRepository {
 
   /// G06.
   Future<void> cancelar(String solicitudId);
+
+  // --- Domiciliario (HU-09/HU-07) ---
+
+  /// Pool de pedidos disponibles, ya ordenado por distancia real a la
+  /// farmacia. Vacío si no está disponible, no tiene ubicación todavía,
+  /// o ya tiene un pedido activo.
+  Future<List<PedidoDisponible>> listarPedidosDisponibles();
+
+  /// Puede fallar con `409` (`ya lo aceptó otro` o `ya tenés un pedido
+  /// activo`) — se propaga como `ApiException`, mismo manejo que
+  /// cualquier otro error de dominio.
+  Future<void> aceptarPedido(String solicitudId);
+
+  Future<void> marcarMedicamentosRecogidos(String solicitudId);
+
+  Future<void> iniciarEntrega(String solicitudId);
+
+  Future<void> marcarEnSitio(String solicitudId);
+
+  /// El código de 6 lo valida la API (case-insensitive); si no coincide
+  /// responde `400`, propagado como `ApiException`.
+  Future<void> entregarPedido(String solicitudId, String codigo);
+
+  Future<void> reportarNovedad(String solicitudId, String detalle);
 }

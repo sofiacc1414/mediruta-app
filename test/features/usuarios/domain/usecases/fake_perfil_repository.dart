@@ -16,6 +16,8 @@ class FakePerfilRepository implements PerfilRepository {
       direccion: null,
       fechaNacimiento: null,
       fotoCedulaUrl: null,
+      departamento: null,
+      ciudad: null,
     ),
     domiciliario: PerfilDomiciliario(
       direccion: null,
@@ -64,10 +66,14 @@ class FakePerfilRepository implements PerfilRepository {
   Future<void> actualizarPerfilPaciente({
     required String direccion,
     required String fechaNacimiento,
+    required String departamento,
+    required String ciudad,
   }) async {
     _registrar('actualizarPerfilPaciente', {
       'direccion': direccion,
       'fechaNacimiento': fechaNacimiento,
+      'departamento': departamento,
+      'ciudad': ciudad,
     });
     _lanzarSiCorresponde();
   }
@@ -133,6 +139,20 @@ class FakePerfilRepository implements PerfilRepository {
   @override
   Future<void> desactivarCuenta() async {
     _registrar('desactivarCuenta', {});
+    _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<void> actualizarDisponibilidadDomiciliario({
+    required bool disponible,
+    double? lat,
+    double? lng,
+  }) async {
+    _registrar('actualizarDisponibilidadDomiciliario', {
+      'disponible': disponible,
+      'lat': lat,
+      'lng': lng,
+    });
     _lanzarSiCorresponde();
   }
 }

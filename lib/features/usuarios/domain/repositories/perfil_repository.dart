@@ -14,9 +14,13 @@ abstract class PerfilRepository {
   });
 
   /// G01/G03 — dirección + fecha de nacimiento del Paciente.
+  /// `departamento`/`ciudad` son obligatorios desde HU-09 (contexto de
+  /// geocodificación de sus pedidos).
   Future<void> actualizarPerfilPaciente({
     required String direccion,
     required String fechaNacimiento,
+    required String departamento,
+    required String ciudad,
   });
 
   /// G01/G03 — foto de cédula del Paciente.
@@ -50,4 +54,12 @@ abstract class PerfilRepository {
 
   /// G05 — desactiva la cuenta y cierra la sesión.
   Future<void> desactivarCuenta();
+
+  /// HU-09 — prende/apaga "Disponible para recibir pedidos". `lat`/`lng`
+  /// (la manda el celular) son obligatorios solo al activar.
+  Future<void> actualizarDisponibilidadDomiciliario({
+    required bool disponible,
+    double? lat,
+    double? lng,
+  });
 }

@@ -23,6 +23,8 @@ void main() {
         cedulaUrl: 'https://firmada.test/cedula.jpg',
         medicamentos: [Medicamento(nombre: 'Acetaminofén')],
         historial: [],
+        codigoEntrega: 'AB23CD',
+        novedadAbierta: null,
       );
       final repo = FakeSolicitudRepository()..solicitudARetornar = solicitud;
       final useCase = ObtenerSolicitudUseCase(repo);
