@@ -6,7 +6,13 @@ plugins {
 
 android {
     namespace = "com.mediruta.mediruta_app"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_secure_storage exige compileSdk >= 37 (falla el build si se
+    // deja en 36). Pero en este entorno el SDK Manager instaló la
+    // plataforma 37 con el nombre "android-37.0" (no "android-37" plano),
+    // así que `compileSdk = 37` no la encuentra ("Failed to find target
+    // with hash string 'android-37'"). Se usa el setter que acepta el hash
+    // de plataforma tal cual, en vez del entero.
+    compileSdkVersion("android-37.0")
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

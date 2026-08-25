@@ -3,6 +3,12 @@
          tecnomecánica) vía image_picker. READ_MEDIA_IMAGES reemplaza a
          READ_EXTERNAL_STORAGE en Android 13+ (API 33); ambos declarados
          para compatibilidad con versiones anteriores. -->
+    <!-- Sin este permiso Android bloquea toda conexión de red de la app a
+         nivel de sistema operativo — nunca se notó durante la sesión
+         porque siempre se probó vía `flutter run -d chrome` (el target
+         web no pasa por el manifest de Android). Recién se detectó al
+         instalar el primer APK real en un dispositivo. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission
