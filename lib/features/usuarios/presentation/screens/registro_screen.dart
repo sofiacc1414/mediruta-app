@@ -77,6 +77,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.beige,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -109,65 +110,84 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                   style: TextStyle(color: AppColors.teal),
                 ),
                 const SizedBox(height: 24),
-                if (_error != null) ...[
-                  AppErrorBanner(mensaje: _error!),
-                  const SizedBox(height: 12),
-                ],
-                AppTextField(
-                  label: 'Correo electrónico',
-                  icono: Icons.mail_outline,
-                  controller: _correoController,
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.email],
-                  enabled: !_cargando,
-                ),
-                const SizedBox(height: 12),
-                AppTextField(
-                  label: 'Contraseña',
-                  icono: Icons.lock_outline,
-                  esPassword: true,
-                  controller: _passwordController,
-                  autofillHints: const [AutofillHints.newPassword],
-                  enabled: !_cargando,
-                  errorText: _errorPassword,
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo.',
-                  style: TextStyle(fontSize: 12, color: AppColors.teal),
-                ),
-                const SizedBox(height: 16),
-                const Text('Selecciona tu rol', style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                SelectorRol(
-                  tipoRegistroSeleccionado: _tipoRegistro,
-                  onChanged: (valor) => setState(() => _tipoRegistro = valor),
-                ),
-                if (_tipoRegistro == 'DOMICILIARIO') ...[
-                  const SizedBox(height: 8),
-                  AppCheckboxRow(
-                    valor: _altaPaciente,
-                    onChanged: (v) => setState(() => _altaPaciente = v),
-                    label: const Text(
-                      'También quiero registrarme como Paciente',
-                      style: TextStyle(color: AppColors.navy),
-                    ),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.navy.withValues(alpha: 0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                ],
-                const SizedBox(height: 8),
-                AppCheckboxRow(
-                  valor: _aceptaTerminos,
-                  onChanged: (v) => setState(() => _aceptaTerminos = v),
-                  label: const Text(
-                    'Acepto los Términos y Condiciones',
-                    style: TextStyle(color: AppColors.navy),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_error != null) ...[
+                        AppErrorBanner(mensaje: _error!),
+                        const SizedBox(height: 12),
+                      ],
+                      AppTextField(
+                        label: 'Correo electrónico',
+                        icono: Icons.mail_outline,
+                        controller: _correoController,
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
+                        enabled: !_cargando,
+                      ),
+                      const SizedBox(height: 12),
+                      AppTextField(
+                        label: 'Contraseña',
+                        icono: Icons.lock_outline,
+                        esPassword: true,
+                        controller: _passwordController,
+                        autofillHints: const [AutofillHints.newPassword],
+                        enabled: !_cargando,
+                        errorText: _errorPassword,
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo.',
+                        style: TextStyle(fontSize: 12, color: AppColors.teal),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('Selecciona tu rol', style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 8),
+                      SelectorRol(
+                        tipoRegistroSeleccionado: _tipoRegistro,
+                        onChanged: (valor) => setState(() => _tipoRegistro = valor),
+                      ),
+                      if (_tipoRegistro == 'DOMICILIARIO') ...[
+                        const SizedBox(height: 8),
+                        AppCheckboxRow(
+                          valor: _altaPaciente,
+                          onChanged: (v) => setState(() => _altaPaciente = v),
+                          label: const Text(
+                            'También quiero registrarme como Paciente',
+                            style: TextStyle(color: AppColors.navy),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      AppCheckboxRow(
+                        valor: _aceptaTerminos,
+                        onChanged: (v) => setState(() => _aceptaTerminos = v),
+                        label: const Text(
+                          'Acepto los Términos y Condiciones',
+                          style: TextStyle(color: AppColors.navy),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      AppLoadingButton(
+                        label: 'Registrarme',
+                        cargando: _cargando,
+                        onPressed: _aceptaTerminos ? _registrar : null,
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 12),
-                AppLoadingButton(
-                  label: 'Registrarme',
-                  cargando: _cargando,
-                  onPressed: _aceptaTerminos ? _registrar : null,
                 ),
               ],
             ),

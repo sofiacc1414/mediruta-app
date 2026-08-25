@@ -8,6 +8,10 @@ import '../../../../shared/widgets/app_icon_badge.dart';
 /// acercarse al mockup del equipo. Es una sola pantalla estática (el
 /// mockup sugiere un carrusel de varios slides con puntos de paginación,
 /// pero solo se compartió el contenido del primero).
+///
+/// Hero navy arriba + sheet blanca redondeada abajo — mismo lenguaje
+/// "bloque de color + card" del resto del rediseño (mockups tipo
+/// CargoFlow), en vez del fondo plano beige de antes.
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key, required this.onComenzar});
 
@@ -16,44 +20,62 @@ class OnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.beige,
+      backgroundColor: AppColors.navy,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const AppIconBadge(
-                    icono: Icons.local_shipping_outlined,
-                    tamano: 140,
-                    colorFondo: AppColors.skyBlue,
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'MediRuta',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      color: AppColors.navy,
+            child: Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const AppIconBadge(
+                          icono: Icons.local_shipping_outlined,
+                          tamano: 140,
+                          colorFondo: AppColors.skyBlue,
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'MediRuta',
+                          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Tus medicamentos, contigo y a tiempo',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.navy),
+                ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(32, 40, 32, 40),
+                  decoration: const BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Entregas seguras, rápidas y confiables. Cuidamos de ti en cada paso.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.teal),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Tus medicamentos, contigo y a tiempo',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.navy),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Entregas seguras, rápidas y confiables. Cuidamos de ti en cada paso.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.teal),
+                      ),
+                      const SizedBox(height: 32),
+                      AppButton(label: 'Comenzar', onPressed: onComenzar),
+                    ],
                   ),
-                  const SizedBox(height: 40),
-                  AppButton(label: 'Comenzar', onPressed: onComenzar),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

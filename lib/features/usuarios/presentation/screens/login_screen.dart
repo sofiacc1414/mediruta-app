@@ -63,6 +63,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.beige,
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
@@ -85,37 +86,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: TextStyle(color: AppColors.teal),
                 ),
                 const SizedBox(height: 24),
-                if (_error != null) ...[
-                  AppErrorBanner(mensaje: _error!),
-                  const SizedBox(height: 12),
-                ],
-                AppTextField(
-                  label: 'Correo electrónico',
-                  icono: Icons.mail_outline,
-                  controller: _correoController,
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.email],
-                  enabled: !_cargando,
-                ),
-                const SizedBox(height: 12),
-                AppTextField(
-                  label: 'Contraseña',
-                  icono: Icons.lock_outline,
-                  esPassword: true,
-                  controller: _passwordController,
-                  autofillHints: const [AutofillHints.password],
-                  enabled: !_cargando,
-                ),
-                AppCheckboxRow(
-                  valor: _recordarme,
-                  onChanged: (v) => setState(() => _recordarme = v),
-                  label: const Text('Recordarme', style: TextStyle(color: AppColors.navy)),
-                ),
-                const SizedBox(height: 8),
-                AppLoadingButton(
-                  label: 'Entrar',
-                  cargando: _cargando,
-                  onPressed: _iniciarSesion,
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.navy.withValues(alpha: 0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_error != null) ...[
+                        AppErrorBanner(mensaje: _error!),
+                        const SizedBox(height: 12),
+                      ],
+                      AppTextField(
+                        label: 'Correo electrónico',
+                        icono: Icons.mail_outline,
+                        controller: _correoController,
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
+                        enabled: !_cargando,
+                      ),
+                      const SizedBox(height: 12),
+                      AppTextField(
+                        label: 'Contraseña',
+                        icono: Icons.lock_outline,
+                        esPassword: true,
+                        controller: _passwordController,
+                        autofillHints: const [AutofillHints.password],
+                        enabled: !_cargando,
+                      ),
+                      AppCheckboxRow(
+                        valor: _recordarme,
+                        onChanged: (v) => setState(() => _recordarme = v),
+                        label: const Text('Recordarme', style: TextStyle(color: AppColors.navy)),
+                      ),
+                      const SizedBox(height: 8),
+                      AppLoadingButton(
+                        label: 'Entrar',
+                        cargando: _cargando,
+                        onPressed: _iniciarSesion,
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Center(
