@@ -1,25 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
-import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
+import '../../../../shared/widgets/app_status_pill.dart';
 import '../../domain/entities/solicitud.dart';
 import '../providers/solicitud_providers.dart';
+import '../widgets/app_tracking_timeline.dart';
 import 'nueva_solicitud_screen.dart';
 
-const _etiquetasEstado = {
-  'borrador': 'Borrador',
-  'pendiente_revision': 'Pendiente de revisión',
-  'cancelada': 'Cancelada',
-};
-
-/// G03/G05/G06 — HU-03. Detalle, historial de estados y acciones según
-/// el estado actual.
+/// G03/G05/G06 — HU-03, con el tracking de HU-07/HU-09: resumen +
+/// código de entrega destacado + `AppTrackingTimeline` + acciones según
+/// el estado actual. Medicamentos/receta/cédula mantienen la misma
+/// lógica de siempre, solo cambia cómo se pintan.
 class SolicitudDetalleScreen extends ConsumerStatefulWidget {
   const SolicitudDetalleScreen({super.key, required this.solicitudId});
 
@@ -123,6 +121,14 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     }
   }
 
+  Future<void> _copiarCodigoEntrega(String codigo) async {
+    await Clipboard.setData(ClipboardData(text: codigo));
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Código copiado.')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final solicitud = _solicitud;
@@ -135,36 +141,116 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Center(
-                        child: AppIconBadge(icono: Icons.medication_outlined),
-                      ),
-                      const SizedBox(height: 20),
                       if (_error != null) ...[
                         AppErrorBanner(mensaje: _error!),
                         const SizedBox(height: 16),
                       ],
                       if (solicitud != null) ...[
-                        if (solicitud.codigoPedido != null) ...[
-                          Text(
-                            solicitud.codigoPedido!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: AppColors.navy,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 20,
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.navy.withValues(alpha: 0.06),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  solicitud.codigoPedido ?? 'Borrador de solicitud',
+                                  style: const TextStyle(
+                                    color: AppColors.navy,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ),
+                              AppStatusPill(estado: solicitud.estado),
+                            ],
+                          ),
+                        ),
+                        if (solicitud.novedadAbierta != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.beige,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.info_outline, color: AppColors.navy),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Hay una novedad sobre tu pedido: '
+                                    '${solicitud.novedadAbierta!.detalle}',
+                                    style: const TextStyle(color: AppColors.navy),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 4),
                         ],
-                        Text(
-                          _etiquetasEstado[solicitud.estado] ?? solicitud.estado,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
-                        ),
+                        if (solicitud.codigoEntrega != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.navy,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Código de entrega — dáselo al domiciliario',
+                                  style: TextStyle(color: AppColors.skyBlue, fontSize: 12),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        solicitud.codigoEntrega!,
+                                        style: const TextStyle(
+                                          color: AppColors.white,
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 4,
+                                        ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.copy_outlined, color: AppColors.white),
+                                      onPressed: () => _copiarCodigoEntrega(solicitud.codigoEntrega!),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        if (solicitud.codigoPedido != null && solicitud.estado != 'cancelada') ...[
+                          const SizedBox(height: 24),
+                          AppTrackingTimeline(
+                            estadoActual: solicitud.estado,
+                            historial: solicitud.historial,
+                          ),
+                        ],
                         for (var i = 0; i < solicitud.medicamentos.length; i++) ...[
                           const SizedBox(height: 16),
                           _Tarjeta(
@@ -200,14 +286,6 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                           filas: {'Dirección de entrega': solicitud.direccionEntrega},
                           miniatura: solicitud.cedulaUrl,
                           miniaturaEtiqueta: 'Cédula (de tu perfil)',
-                        ),
-                        const SizedBox(height: 16),
-                        _Tarjeta(
-                          titulo: 'Historial',
-                          filas: {
-                            for (final evento in solicitud.historial)
-                              (_etiquetasEstado[evento.estado] ?? evento.estado): evento.creadoEn,
-                          },
                         ),
                         const SizedBox(height: 24),
                         if (solicitud.estado == 'borrador') ...[
@@ -309,8 +387,14 @@ class _Tarjeta extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.skyBlue),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.navy.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

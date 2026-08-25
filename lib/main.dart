@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'features/solicitudes/presentation/screens/mi_pedido_activo_screen.dart';
 import 'features/solicitudes/presentation/screens/mis_solicitudes_screen.dart';
 import 'features/solicitudes/presentation/screens/nueva_solicitud_screen.dart';
+import 'features/solicitudes/presentation/screens/pedidos_disponibles_screen.dart';
 import 'features/solicitudes/presentation/screens/solicitud_detalle_screen.dart';
 import 'features/usuarios/presentation/providers/auth_session_provider.dart';
 import 'features/usuarios/presentation/screens/cambiar_contrasena_screen.dart';
@@ -47,6 +49,8 @@ class MediRutaApp extends StatelessWidget {
         HomeScreen.routeName: (_) => const HomeScreen(),
         MisSolicitudesScreen.routeName: (_) => const MisSolicitudesScreen(),
         NuevaSolicitudScreen.routeName: (_) => const NuevaSolicitudScreen(),
+        PedidosDisponiblesScreen.routeName: (_) => const PedidosDisponiblesScreen(),
+        MiPedidoActivoScreen.routeName: (_) => const MiPedidoActivoScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == RestablecerContrasenaScreen.routeName) {

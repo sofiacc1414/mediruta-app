@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
-import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
-import '../../../../shared/widgets/app_icon_badge.dart';
+import '../../../../shared/widgets/app_order_card.dart';
+import '../../../../shared/widgets/app_segmented_tabs.dart';
 import '../../../usuarios/presentation/providers/perfil_providers.dart';
 import '../../../usuarios/presentation/screens/perfil_screen.dart';
 import '../../domain/entities/solicitud_resumen.dart';
@@ -13,13 +13,10 @@ import '../providers/solicitud_providers.dart';
 import 'nueva_solicitud_screen.dart';
 import 'solicitud_detalle_screen.dart';
 
-const _etiquetasEstado = {
-  'borrador': 'Borrador',
-  'pendiente_revision': 'Pendiente de revisión',
-  'cancelada': 'Cancelada',
-};
-
-/// G02 — HU-03. "Mis solicitudes".
+/// G02 — HU-03. "Mis solicitudes", con `AppOrderCard`/`AppStatusPill`
+/// (mismo lenguaje visual que el resto del rediseño) y un filtro
+/// Activas/Historial: Historial son las que ya no van a cambiar de
+/// estado (`entregado`/`cancelada`), Activas todo lo demás.
 class MisSolicitudesScreen extends ConsumerStatefulWidget {
   const MisSolicitudesScreen({super.key});
 
@@ -30,9 +27,12 @@ class MisSolicitudesScreen extends ConsumerStatefulWidget {
 }
 
 class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
+  static const _estadosHistorial = {'entregado', 'cancelada'};
+
   bool _cargando = true;
   List<SolicitudResumen>? _solicitudes;
   String? _error;
+  int _tab = 0;
 
   @override
   void initState() {
@@ -113,8 +113,19 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final todas = _solicitudes ?? const <SolicitudResumen>[];
+    final esHistorial = _tab == 1;
+    final visibles = todas
+        .where((s) => _estadosHistorial.contains(s.estado) == esHistorial)
+        .toList();
+
     return Scaffold(
       appBar: AppBar(title: const Text('Mis solicitudes')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _onNuevaSolicitud,
+        icon: const Icon(Icons.add),
+        label: const Text('Nueva solicitud'),
+      ),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
           : Center(
@@ -122,99 +133,54 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: RefreshIndicator(
                   onRefresh: _cargar,
-                  child: SingleChildScrollView(
+                  child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Center(
-                          child: AppIconBadge(icono: Icons.medication_outlined),
-                        ),
-                        const SizedBox(height: 20),
-                        if (_error != null) ...[
-                          AppErrorBanner(mensaje: _error!),
-                          const SizedBox(height: 16),
-                        ],
-                        if ((_solicitudes?.isEmpty ?? false) && _error == null)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 32),
-                            child: Text(
-                              'Todavía no tenés solicitudes. Creá la primera con el botón de abajo.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.teal),
-                            ),
-                          ),
-                        for (final solicitud in _solicitudes ?? []) ...[
-                          _FilaSolicitud(
-                            solicitud: solicitud,
-                            onTap: () async {
-                              await Navigator.of(context).pushNamed(
-                                SolicitudDetalleScreen.routeName,
-                                arguments: solicitud.id,
-                              );
-                              _cargar();
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        const SizedBox(height: 12),
-                        AppButton(
-                          label: 'Nueva solicitud',
-                          onPressed: _onNuevaSolicitud,
-                        ),
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+                    children: [
+                      if (_error != null) ...[
+                        AppErrorBanner(mensaje: _error!),
+                        const SizedBox(height: 16),
                       ],
-                    ),
+                      AppSegmentedTabs(
+                        opciones: const ['Activas', 'Historial'],
+                        seleccionado: _tab,
+                        onSeleccionar: (i) => setState(() => _tab = i),
+                      ),
+                      const SizedBox(height: 16),
+                      if (visibles.isEmpty && _error == null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          child: Text(
+                            _tab == 0
+                                ? 'No tenés solicitudes activas. Creá una con el botón de abajo.'
+                                : 'Todavía no hay solicitudes en tu historial.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppColors.teal),
+                          ),
+                        ),
+                      for (final solicitud in visibles) ...[
+                        AppOrderCard(
+                          titulo: solicitud.codigoPedido ??
+                              'Solicitud del ${_formatearFecha(solicitud.creadoEn)}',
+                          subtitulo: solicitud.codigoPedido == null
+                              ? 'Sin enviar todavía'
+                              : _formatearFecha(solicitud.creadoEn),
+                          estado: solicitud.estado,
+                          onTap: () async {
+                            await Navigator.of(context).pushNamed(
+                              SolicitudDetalleScreen.routeName,
+                              arguments: solicitud.id,
+                            );
+                            _cargar();
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    ],
                   ),
                 ),
               ),
             ),
-    );
-  }
-}
-
-class _FilaSolicitud extends StatelessWidget {
-  const _FilaSolicitud({required this.solicitud, required this.onTap});
-
-  final SolicitudResumen solicitud;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.skyBlue),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    solicitud.codigoPedido ?? 'Solicitud del ${_formatearFecha(solicitud.creadoEn)}',
-                    style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    solicitud.codigoPedido == null
-                        ? (_etiquetasEstado[solicitud.estado] ?? solicitud.estado)
-                        : '${_etiquetasEstado[solicitud.estado] ?? solicitud.estado} · ${_formatearFecha(solicitud.creadoEn)}',
-                    style: const TextStyle(color: AppColors.teal, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: AppColors.navy),
-          ],
-        ),
-      ),
     );
   }
 }
