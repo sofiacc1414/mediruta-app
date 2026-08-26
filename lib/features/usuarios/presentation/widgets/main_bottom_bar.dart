@@ -12,7 +12,6 @@ import '../screens/perfil_screen.dart';
 import 'app_bottom_bar.dart';
 
 const _iconosRol = {'PACIENTE': Icons.medication_outlined, 'DOMICILIARIO': Icons.moped_outlined};
-const _etiquetasRol = {'PACIENTE': 'Paciente', 'DOMICILIARIO': 'Domiciliario'};
 
 /// La navegación de toda la app — no solo de Home. Cada pantalla
 /// principal la agrega como su `bottomNavigationBar`, así que siempre
@@ -46,8 +45,13 @@ class MainBottomBar extends ConsumerWidget {
       items: [
         if (roles.length > 1)
           AppBottomNavAction(
+            // El ícono sigue mostrando el modo ACTUAL (referencia
+            // visual rápida); la etiqueta nombra la acción del botón
+            // en sí ("Cambiar modo"), no el estado — mostrar el
+            // nombre del rol activo ahí se leía como un indicador,
+            // no como algo tocable.
             icono: _iconosRol[modo] ?? Icons.swap_horiz,
-            etiqueta: _etiquetasRol[modo] ?? 'Modo',
+            etiqueta: 'Cambiar modo',
             onTap: () {
               final otroRol = roles.firstWhere((r) => r.codigo != modo, orElse: () => roles.first);
               ref.read(modoActivoProvider.notifier).state = otroRol.codigo;

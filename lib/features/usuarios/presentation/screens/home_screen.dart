@@ -186,6 +186,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     saludo: _saludoDelMomento(),
                     nombre: _perfil?.nombreCompleto ?? usuario?.correo,
                     fotoUrl: _perfil?.fotoPerfilUrl,
+                    modoEtiqueta: esDomiciliario
+                        ? 'Estás en modo Domiciliario'
+                        : (esPaciente ? 'Estás en modo Paciente' : null),
                     onTap: () => Navigator.of(context).pushNamed('/perfil'),
                   ),
                   const SizedBox(height: 24),
@@ -324,12 +327,17 @@ class _Encabezado extends StatelessWidget {
     required this.saludo,
     required this.nombre,
     required this.fotoUrl,
+    required this.modoEtiqueta,
     required this.onTap,
   });
 
   final String saludo;
   final String? nombre;
   final String? fotoUrl;
+  // "Estás en modo Paciente/Domiciliario" — declara arriba de todo qué
+  // rol está activo ahora mismo, no solo en el botón de la barra que
+  // lo cambia.
+  final String? modoEtiqueta;
   final VoidCallback onTap;
 
   @override
@@ -356,6 +364,17 @@ class _Encabezado extends StatelessWidget {
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (modoEtiqueta != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      modoEtiqueta!,
+                      style: const TextStyle(
+                        color: AppColors.teal,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

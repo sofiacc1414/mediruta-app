@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Caché incremental de Kotlin (queda en /android tras compilar, sea local
+# o dentro del contenedor Docker de build de APK)
+/android/.kotlin/
