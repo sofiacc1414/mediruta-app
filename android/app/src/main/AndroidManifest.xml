@@ -9,6 +9,15 @@
          web no pasa por el manifest de Android). Recién se detectó al
          instalar el primer APK real en un dispositivo. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- HU-09: el Domiciliario activa "Disponible" con su ubicación en
+         vivo (paquete geolocator) — sin estos permisos, Android nunca
+         le pide permiso a la persona y el toggle falla siempre con
+         "Necesitamos permiso de ubicación", incluso si la persona
+         quisiera aceptarlo. FINE = GPS preciso; COARSE queda como
+         fallback si el dispositivo/usuario solo permite ubicación
+         aproximada. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission
