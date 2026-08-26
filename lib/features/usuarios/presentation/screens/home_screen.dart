@@ -6,7 +6,6 @@ import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_promo_banner.dart';
-import '../../../../shared/widgets/app_segmented_tabs.dart';
 import '../../../../shared/widgets/app_stat_tile.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
 import '../../../solicitudes/domain/entities/pedido_activo.dart';
@@ -20,6 +19,8 @@ import '../../domain/entities/perfil.dart';
 import '../../domain/entities/rol_asignado.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/perfil_providers.dart';
+import '../widgets/app_bottom_bar.dart';
+import '../widgets/app_menu_sheet.dart';
 
 /// HU-03/HU-09/HU-07 — pantalla de inicio del rol activo.
 ///
@@ -43,8 +44,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  static const _etiquetasRol = {'PACIENTE': 'Paciente', 'DOMICILIARIO': 'Domiciliario'};
-
   Perfil? _perfil;
 
   bool _cargandoPaciente = false;
@@ -233,6 +232,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     return Scaffold(
+      bottomNavigationBar: AppBottomNavBar(
+        onMenuTap: () => _abrirMenu(context),
+        onHomeTap: _cargarTodo,
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _cargarTodo,
@@ -250,33 +253,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     onTap: () => Navigator.of(context).pushNamed('/perfil'),
                   ),
                   const SizedBox(height: 24),
-                  if (roles.length > 1) ...[
-                    AppSegmentedTabs(
-                      opciones: [for (final rol in roles) _etiquetasRol[rol.codigo] ?? rol.codigo],
-                      seleccionado: roles.indexWhere((r) => r.codigo == modo).clamp(0, roles.length - 1),
-                      onSeleccionar: (i) =>
-                          ref.read(modoActivoProvider.notifier).state = roles[i].codigo,
-                    ),
-                    const SizedBox(height: 24),
-                  ],
                   if (esPaciente) ..._contenidoPaciente(context),
                   if (esDomiciliario) ..._contenidoDomiciliario(context),
-                  const SizedBox(height: 24),
-                  Center(
-                    child: TextButton(
-                      onPressed: () async {
-                        await ref.read(authSessionProvider.notifier).cerrarSesion();
-                        ref.invalidate(modoActivoProvider);
-                        if (context.mounted) {
-                          Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-                        }
-                      },
-                      child: const Text(
-                        'Cerrar sesión',
-                        style: TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -284,6 +262,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
+  }
+
+  /// Todo lo que antes vivía suelto en el cuerpo de Home (cambio de
+  /// modo, ir a perfil/mis pedidos, cerrar sesión) ahora se agrupa acá
+  /// — la barra inferior es la navegación de la app, no un tab
+  /// switcher; este menú es "todo lo demás" aparte de "qué está
+  /// pasando ahora" (que sigue siendo el cuerpo de Home).
+  Future<void> _abrirMenu(BuildContext context) async {
+    final estado = ref.read(authSessionProvider);
+    final usuario = estado is AuthAutenticado ? estado.usuario : null;
+    final roles = usuario?.roles ?? const <RolAsignado>[];
+    final modo = ref.read(modoActivoProvider) ?? (roles.isNotEmpty ? roles.first.codigo : null);
+    final esDomiciliario = modo == 'DOMICILIARIO';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => AppMenuSheet(
+        nombre: _perfil?.nombreCompleto,
+        correo: usuario?.correo ?? '',
+        fotoUrl: _perfil?.fotoPerfilUrl,
+        roles: roles,
+        modo: modo,
+        etiquetaMisPedidos: esDomiciliario ? 'Mis pedidos' : 'Mis solicitudes',
+        onCambiarModo: (nuevoModo) => ref.read(modoActivoProvider.notifier).state = nuevoModo,
+        onIrPerfil: () => Navigator.of(context).pushNamed('/perfil'),
+        onIrMisPedidos: () => _irAMisPedidos(context, esDomiciliario: esDomiciliario),
+        onCerrarSesion: () => _cerrarSesion(context),
+      ),
+    );
+  }
+
+  void _irAMisPedidos(BuildContext context, {required bool esDomiciliario}) {
+    if (esDomiciliario) {
+      if (_pedidoActivo != null) {
+        Navigator.of(context)
+            .pushNamed(MiPedidoActivoScreen.routeName)
+            .then((_) => _cargarPedidoActivoDomiciliario());
+      } else {
+        Navigator.of(context).pushNamed(PedidosDisponiblesScreen.routeName);
+      }
+    } else {
+      Navigator.of(context)
+          .pushNamed(MisSolicitudesScreen.routeName)
+          .then((_) => _cargarStatsPaciente());
+    }
+  }
+
+  Future<void> _cerrarSesion(BuildContext context) async {
+    await ref.read(authSessionProvider.notifier).cerrarSesion();
+    ref.invalidate(modoActivoProvider);
+    if (context.mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+    }
   }
 
   List<Widget> _contenidoPaciente(BuildContext context) {
