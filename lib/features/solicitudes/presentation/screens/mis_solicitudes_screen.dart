@@ -8,6 +8,7 @@ import '../../../../shared/widgets/app_order_card.dart';
 import '../../../../shared/widgets/app_segmented_tabs.dart';
 import '../../../usuarios/presentation/providers/perfil_providers.dart';
 import '../../../usuarios/presentation/screens/perfil_screen.dart';
+import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/solicitud_resumen.dart';
 import '../providers/solicitud_providers.dart';
 import 'nueva_solicitud_screen.dart';
@@ -121,6 +122,7 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mis solicitudes')),
+      bottomNavigationBar: const MainBottomBar(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _onNuevaSolicitud,
         icon: const Icon(Icons.add),

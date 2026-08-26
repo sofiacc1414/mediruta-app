@@ -6,6 +6,7 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
+import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/pedido_activo.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
@@ -200,6 +201,7 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mi pedido activo')),
+      bottomNavigationBar: const MainBottomBar(),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
           : Center(

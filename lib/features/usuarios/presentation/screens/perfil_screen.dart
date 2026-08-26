@@ -15,6 +15,7 @@ import '../../domain/value-objects/tipo_documento_domiciliario.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/perfil_providers.dart';
 import '../providers/usuario_providers.dart';
+import '../widgets/main_bottom_bar.dart';
 import 'cambiar_contrasena_screen.dart';
 
 /// HU-02 — pantalla "Mi perfil". Secciones condicionales según los roles
@@ -294,6 +295,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mi perfil')),
+      bottomNavigationBar: const MainBottomBar(),
       body: _cargandoPerfil
           ? const Center(child: CircularProgressIndicator())
           : Center(

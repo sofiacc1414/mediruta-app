@@ -14,6 +14,7 @@ import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../usuarios/presentation/providers/perfil_providers.dart';
+import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/datos_solicitud.dart';
 import '../../domain/entities/medicamento.dart';
 import '../providers/solicitud_providers.dart';
@@ -453,6 +454,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
         appBar: AppBar(
           title: Text(_editandoExistente ? 'Editar solicitud' : 'Nueva solicitud'),
         ),
+        bottomNavigationBar: const MainBottomBar(),
         body: _cargandoInicial
             ? const Center(child: CircularProgressIndicator())
             : Center(

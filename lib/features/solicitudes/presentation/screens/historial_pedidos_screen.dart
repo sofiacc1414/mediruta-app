@@ -6,6 +6,7 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_order_card.dart';
 import '../../../../shared/widgets/app_segmented_tabs.dart';
+import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/pedido_historial.dart';
 import '../providers/solicitud_providers.dart';
 
@@ -64,6 +65,7 @@ class _HistorialPedidosScreenState extends ConsumerState<HistorialPedidosScreen>
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mis pedidos')),
+      bottomNavigationBar: const MainBottomBar(),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
           : Center(

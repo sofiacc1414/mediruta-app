@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_promo_banner.dart';
-import '../../../../shared/widgets/app_segmented_tabs.dart';
 import '../../../../shared/widgets/app_stat_tile.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
 import '../../../solicitudes/domain/entities/pedido_activo.dart';
 import '../../../solicitudes/domain/entities/solicitud_resumen.dart';
 import '../../../solicitudes/presentation/providers/solicitud_providers.dart';
-import '../../../solicitudes/presentation/screens/historial_pedidos_screen.dart';
 import '../../../solicitudes/presentation/screens/mi_pedido_activo_screen.dart';
 import '../../../solicitudes/presentation/screens/mis_solicitudes_screen.dart';
 import '../../../solicitudes/presentation/screens/pedidos_disponibles_screen.dart';
@@ -20,22 +17,21 @@ import '../../../solicitudes/presentation/screens/solicitud_detalle_screen.dart'
 import '../../domain/entities/perfil.dart';
 import '../../domain/entities/rol_asignado.dart';
 import '../providers/auth_session_provider.dart';
+import '../providers/disponibilidad_domiciliario_provider.dart';
 import '../providers/perfil_providers.dart';
-import '../widgets/app_bottom_bar.dart';
+import '../widgets/main_bottom_bar.dart';
 
 /// HU-03/HU-09/HU-07 — pantalla de inicio del rol activo.
 ///
-/// v4, a pedido explícito de corrección sobre v3: la barra inferior
-/// deja de esconder "Perfil" y "Mis pedidos" dentro de un menú
-/// ("Cuenta") — pasan a ser destinos directos de la barra. El cambio
-/// de modo (Paciente/Domiciliario) vuelve al cuerpo de Home como un
-/// `AppSegmentedTabs` propio: elegirlo no navega a ningún lado nuevo,
-/// ya estás en Home, así que "seleccionar el modo cambia la pantalla
-/// a Home" se cumple por construcción. "Pedidos disponibles" es un
-/// destino de la barra exclusivo del Domiciliario, y solo mientras
-/// está en línea — el Paciente nunca lo ve. Cerrar sesión se mudó a
-/// la pantalla de Perfil (ya no vive en Home). Paleta y tipografía
-/// oficiales sin cambios.
+/// v5, a pedido explícito de corrección sobre v4: la barra inferior
+/// (`MainBottomBar`) deja de vivir solo acá — es persistente en toda
+/// la app, cada pantalla principal la agrega. El selector de modo
+/// (Paciente/Domiciliario) también se mudó a la barra; acá solo queda
+/// el contenido específico del modo activo. "Disponible" pasó a ser
+/// estado compartido (`disponibilidadDomiciliarioProvider`) en vez de
+/// local de esta pantalla, porque la barra necesita saber si el
+/// Domiciliario está en línea sin importar en qué pantalla esté
+/// parado. Paleta y tipografía oficiales sin cambios.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -57,15 +53,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _cargandoDomiciliario = false;
   PedidoActivo? _pedidoActivo;
   String? _errorDomiciliario;
-
-  // "Disponible" arranca apagado en cada apertura de la app (mismo
-  // criterio que la mayoría de apps de repartidores: no asumir
-  // disponibilidad de una sesión anterior) — la API no expone todavía
-  // el valor guardado en un GET de perfil, así que no hay de dónde
-  // leer el estado real al abrir.
-  bool _disponible = false;
-  bool _actualizandoDisponibilidad = false;
-  String? _errorDisponibilidad;
 
   String? _modoCargado;
 
@@ -160,56 +147,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _cargarTodo() => Future.wait([_cargarPerfil(), _cargarSegunModo()]);
 
-  /// Al activar, pide permiso de ubicación y lee la posición actual —
-  /// obligatoria para entrar al pool (`app.listar_pedidos_disponibles`
-  /// filtra por `ubicacion`). Al desactivar no hace falta ubicación.
-  Future<void> _cambiarDisponibilidad(bool valor) async {
-    setState(() {
-      _actualizandoDisponibilidad = true;
-      _errorDisponibilidad = null;
-    });
-    try {
-      double? lat;
-      double? lng;
-      if (valor) {
-        final posicion = await _obtenerUbicacionActual();
-        if (posicion == null) {
-          setState(() {
-            _errorDisponibilidad =
-                'Necesitamos permiso de ubicación para activar "Disponible".';
-            _actualizandoDisponibilidad = false;
-          });
-          return;
-        }
-        lat = posicion.latitude;
-        lng = posicion.longitude;
-      }
-      await ref
-          .read(actualizarDisponibilidadDomiciliarioUseCaseProvider)
-          .execute(disponible: valor, lat: lat, lng: lng);
-      if (!mounted) return;
-      setState(() => _disponible = valor);
-    } on ApiException catch (error) {
-      setState(() => _errorDisponibilidad = error.message);
-    } on ApiSinConexionException catch (error) {
-      setState(() => _errorDisponibilidad = error.toString());
-    } finally {
-      if (mounted) setState(() => _actualizandoDisponibilidad = false);
-    }
-  }
-
-  Future<Position?> _obtenerUbicacionActual() async {
-    if (!await Geolocator.isLocationServiceEnabled()) return null;
-    var permiso = await Geolocator.checkPermission();
-    if (permiso == LocationPermission.denied) {
-      permiso = await Geolocator.requestPermission();
-    }
-    if (permiso == LocationPermission.denied || permiso == LocationPermission.deniedForever) {
-      return null;
-    }
-    return Geolocator.getCurrentPosition();
-  }
-
   String _saludoDelMomento() {
     final hora = DateTime.now().hour;
     if (hora < 12) return 'Buen día';
@@ -226,41 +163,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final esPaciente = modo == 'PACIENTE';
     final esDomiciliario = modo == 'DOMICILIARIO';
 
-    // El modo puede cambiar por el AppSegmentedTabs de acá abajo — se
+    // El modo puede cambiar desde el toggle de `MainBottomBar` — se
     // detecta en cada build y se dispara la carga correspondiente
     // después del frame (evita `setState` durante `build`).
     if (modo != _modoCargado) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _cargarSegunModo());
     }
 
-    final etiquetasRol = const {'PACIENTE': 'Paciente', 'DOMICILIARIO': 'Domiciliario'};
-
     return Scaffold(
-      bottomNavigationBar: AppBottomNavBar(
-        onHomeTap: _cargarTodo,
-        leftItems: [
-          AppBottomNavAction(
-            icono: Icons.person_outline,
-            etiqueta: 'Perfil',
-            onTap: () => Navigator.of(context).pushNamed('/perfil'),
-          ),
-        ],
-        rightItems: [
-          AppBottomNavAction(
-            icono: Icons.receipt_long_outlined,
-            etiqueta: esDomiciliario ? 'Mis pedidos' : 'Mis solicitudes',
-            onTap: () => _irAMisPedidos(context, esDomiciliario: esDomiciliario),
-          ),
-          // Solo el Domiciliario, y solo mientras está en línea — el
-          // Paciente nunca tiene este destino en su barra.
-          if (esDomiciliario && _disponible)
-            AppBottomNavAction(
-              icono: Icons.moped_outlined,
-              etiqueta: 'Disponibles',
-              onTap: () => Navigator.of(context).pushNamed(PedidosDisponiblesScreen.routeName),
-            ),
-        ],
-      ),
+      bottomNavigationBar: const MainBottomBar(),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _cargarTodo,
@@ -277,18 +188,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     fotoUrl: _perfil?.fotoPerfilUrl,
                     onTap: () => Navigator.of(context).pushNamed('/perfil'),
                   ),
-                  if (roles.length > 1) ...[
-                    const SizedBox(height: 20),
-                    AppSegmentedTabs(
-                      opciones: [for (final rol in roles) etiquetasRol[rol.codigo] ?? rol.codigo],
-                      seleccionado: roles.indexWhere((r) => r.codigo == modo).clamp(
-                        0,
-                        roles.length - 1,
-                      ),
-                      onSeleccionar: (i) =>
-                          ref.read(modoActivoProvider.notifier).state = roles[i].codigo,
-                    ),
-                  ],
                   const SizedBox(height: 24),
                   if (esPaciente) ..._contenidoPaciente(context),
                   if (esDomiciliario) ..._contenidoDomiciliario(context),
@@ -299,16 +198,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
-  }
-
-  void _irAMisPedidos(BuildContext context, {required bool esDomiciliario}) {
-    if (esDomiciliario) {
-      Navigator.of(context).pushNamed(HistorialPedidosScreen.routeName);
-    } else {
-      Navigator.of(context)
-          .pushNamed(MisSolicitudesScreen.routeName)
-          .then((_) => _cargarStatsPaciente());
-    }
   }
 
   List<Widget> _contenidoPaciente(BuildContext context) {
@@ -374,19 +263,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   List<Widget> _contenidoDomiciliario(BuildContext context) {
+    final disponibilidad = ref.watch(disponibilidadDomiciliarioProvider);
     return [
       // El switch "Disponible" es la decisión más importante de esta
       // pantalla para el Domiciliario — protagonista, con un estado
       // visual bien distinto entre apagado (calmo, outline) y
       // encendido (fill navy, "en línea").
       _TarjetaDisponibilidad(
-        disponible: _disponible,
-        actualizando: _actualizandoDisponibilidad,
-        onChanged: _cambiarDisponibilidad,
+        disponible: disponibilidad.disponible,
+        actualizando: disponibilidad.actualizando,
+        onChanged: (valor) => ref.read(disponibilidadDomiciliarioProvider.notifier).cambiar(valor),
       ),
-      if (_errorDisponibilidad != null) ...[
+      if (disponibilidad.error != null) ...[
         const SizedBox(height: 12),
-        AppErrorBanner(mensaje: _errorDisponibilidad!),
+        AppErrorBanner(mensaje: disponibilidad.error!),
       ],
       const SizedBox(height: 16),
       if (_errorDomiciliario != null) ...[
@@ -406,7 +296,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           trailing: AppStatusPill(estado: _pedidoActivo!.estado),
           accion: 'Continuar entrega',
         )
-      else if (_disponible)
+      else if (disponibilidad.disponible)
         AppPromoBanner(
           titulo: 'Buscá pedidos cerca tuyo',
           icono: Icons.moped_outlined,

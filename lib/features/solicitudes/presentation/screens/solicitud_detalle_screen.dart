@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
+import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/solicitud.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
@@ -135,6 +136,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
 
     return Scaffold(
       appBar: AppBar(title: const Text('Detalle de solicitud')),
+      bottomNavigationBar: const MainBottomBar(),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
           : Center(

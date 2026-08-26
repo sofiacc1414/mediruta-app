@@ -7,6 +7,7 @@ import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_order_card.dart';
+import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/pedido_disponible.dart';
 import '../providers/solicitud_providers.dart';
 import 'mi_pedido_activo_screen.dart';
@@ -125,6 +126,7 @@ class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScr
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Pedidos disponibles')),
+      bottomNavigationBar: const MainBottomBar(),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
           : Center(
