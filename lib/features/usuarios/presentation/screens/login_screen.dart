@@ -5,7 +5,6 @@ import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_checkbox_row.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
-import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../providers/auth_session_provider.dart';
@@ -72,7 +71,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(child: AppIconBadge(icono: Icons.lock_outline)),
+                Center(
+                  child: Image.asset('assets/images/logo_mediruta.png', height: 48),
+                ),
                 const SizedBox(height: 20),
                 Text(
                   'Iniciar sesión',

@@ -203,6 +203,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(20),
                 children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Image.asset('assets/images/logo_mediruta.png', height: 26),
+                  ),
+                  const SizedBox(height: 20),
                   Row(
                     children: [
                       Expanded(

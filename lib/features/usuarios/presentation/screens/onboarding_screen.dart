@@ -29,22 +29,10 @@ class OnboardingScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const AppIconBadge(
-                          icono: Icons.local_shipping_outlined,
-                          tamano: 140,
-                          colorFondo: AppColors.skyBlue,
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'MediRuta',
-                          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ],
+                    child: AppIconBadge(
+                      icono: Icons.local_shipping_outlined,
+                      tamano: 140,
+                      colorFondo: AppColors.skyBlue,
                     ),
                   ),
                 ),
@@ -59,6 +47,14 @@ class OnboardingScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // El logo real va acá (fondo blanco) y no en el hero
+                      // navy de arriba — el wordmark viene en navy, sobre
+                      // navy quedaría invisible.
+                      Image.asset(
+                        'assets/images/logo_mediruta.png',
+                        height: 40,
+                      ),
+                      const SizedBox(height: 20),
                       const Text(
                         'Tus medicamentos, contigo y a tiempo',
                         textAlign: TextAlign.center,
