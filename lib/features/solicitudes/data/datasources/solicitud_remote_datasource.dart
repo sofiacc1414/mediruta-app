@@ -106,4 +106,9 @@ class SolicitudRemoteDatasource {
     final respuesta = await _apiClient.get('/pedidos/mi-activo', autenticado: true);
     return respuesta as Map<String, dynamic>?;
   }
+
+  Future<List<dynamic>> listarHistorialPedidos() async {
+    final respuesta = await _apiClient.get('/pedidos/historial', autenticado: true);
+    return respuesta as List<dynamic>;
+  }
 }

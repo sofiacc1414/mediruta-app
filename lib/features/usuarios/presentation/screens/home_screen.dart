@@ -6,11 +6,13 @@ import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_promo_banner.dart';
+import '../../../../shared/widgets/app_segmented_tabs.dart';
 import '../../../../shared/widgets/app_stat_tile.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
 import '../../../solicitudes/domain/entities/pedido_activo.dart';
 import '../../../solicitudes/domain/entities/solicitud_resumen.dart';
 import '../../../solicitudes/presentation/providers/solicitud_providers.dart';
+import '../../../solicitudes/presentation/screens/historial_pedidos_screen.dart';
 import '../../../solicitudes/presentation/screens/mi_pedido_activo_screen.dart';
 import '../../../solicitudes/presentation/screens/mis_solicitudes_screen.dart';
 import '../../../solicitudes/presentation/screens/pedidos_disponibles_screen.dart';
@@ -20,20 +22,20 @@ import '../../domain/entities/rol_asignado.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/perfil_providers.dart';
 import '../widgets/app_bottom_bar.dart';
-import '../widgets/app_menu_sheet.dart';
 
 /// HU-03/HU-09/HU-07 — pantalla de inicio del rol activo.
 ///
-/// Redistribución experimental (v2) a pedido explícito, siguiendo los
-/// principios del skill `frontend-design`: un solo foco por pantalla
-/// en vez de varios bloques del mismo peso visual apilados. La
-/// identidad (avatar + nombre) pasa a ser un encabezado propio en vez
-/// de un dato de texto suelto; lo más urgente para el rol activo (el
-/// pedido en curso, o el switch "Disponible" del Domiciliario) se
-/// vuelve la tarjeta protagonista; los números de apoyo (activos/
-/// entregados) bajan de peso. Paleta y tipografía oficiales sin
-/// cambios — lo que se reinterpreta es la composición, no el sistema
-/// visual. Es un punto de partida para iterar, no la versión final.
+/// v4, a pedido explícito de corrección sobre v3: la barra inferior
+/// deja de esconder "Perfil" y "Mis pedidos" dentro de un menú
+/// ("Cuenta") — pasan a ser destinos directos de la barra. El cambio
+/// de modo (Paciente/Domiciliario) vuelve al cuerpo de Home como un
+/// `AppSegmentedTabs` propio: elegirlo no navega a ningún lado nuevo,
+/// ya estás en Home, así que "seleccionar el modo cambia la pantalla
+/// a Home" se cumple por construcción. "Pedidos disponibles" es un
+/// destino de la barra exclusivo del Domiciliario, y solo mientras
+/// está en línea — el Paciente nunca lo ve. Cerrar sesión se mudó a
+/// la pantalla de Perfil (ya no vive en Home). Paleta y tipografía
+/// oficiales sin cambios.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -231,10 +233,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _cargarSegunModo());
     }
 
+    final etiquetasRol = const {'PACIENTE': 'Paciente', 'DOMICILIARIO': 'Domiciliario'};
+
     return Scaffold(
       bottomNavigationBar: AppBottomNavBar(
-        onMenuTap: () => _abrirMenu(context),
         onHomeTap: _cargarTodo,
+        leftItems: [
+          AppBottomNavAction(
+            icono: Icons.person_outline,
+            etiqueta: 'Perfil',
+            onTap: () => Navigator.of(context).pushNamed('/perfil'),
+          ),
+        ],
+        rightItems: [
+          AppBottomNavAction(
+            icono: Icons.receipt_long_outlined,
+            etiqueta: esDomiciliario ? 'Mis pedidos' : 'Mis solicitudes',
+            onTap: () => _irAMisPedidos(context, esDomiciliario: esDomiciliario),
+          ),
+          // Solo el Domiciliario, y solo mientras está en línea — el
+          // Paciente nunca tiene este destino en su barra.
+          if (esDomiciliario && _disponible)
+            AppBottomNavAction(
+              icono: Icons.moped_outlined,
+              etiqueta: 'Disponibles',
+              onTap: () => Navigator.of(context).pushNamed(PedidosDisponiblesScreen.routeName),
+            ),
+        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -252,6 +277,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     fotoUrl: _perfil?.fotoPerfilUrl,
                     onTap: () => Navigator.of(context).pushNamed('/perfil'),
                   ),
+                  if (roles.length > 1) ...[
+                    const SizedBox(height: 20),
+                    AppSegmentedTabs(
+                      opciones: [for (final rol in roles) etiquetasRol[rol.codigo] ?? rol.codigo],
+                      seleccionado: roles.indexWhere((r) => r.codigo == modo).clamp(
+                        0,
+                        roles.length - 1,
+                      ),
+                      onSeleccionar: (i) =>
+                          ref.read(modoActivoProvider.notifier).state = roles[i].codigo,
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   if (esPaciente) ..._contenidoPaciente(context),
                   if (esDomiciliario) ..._contenidoDomiciliario(context),
@@ -264,60 +301,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Todo lo que antes vivía suelto en el cuerpo de Home (cambio de
-  /// modo, ir a perfil/mis pedidos, cerrar sesión) ahora se agrupa acá
-  /// — la barra inferior es la navegación de la app, no un tab
-  /// switcher; este menú es "todo lo demás" aparte de "qué está
-  /// pasando ahora" (que sigue siendo el cuerpo de Home).
-  Future<void> _abrirMenu(BuildContext context) async {
-    final estado = ref.read(authSessionProvider);
-    final usuario = estado is AuthAutenticado ? estado.usuario : null;
-    final roles = usuario?.roles ?? const <RolAsignado>[];
-    final modo = ref.read(modoActivoProvider) ?? (roles.isNotEmpty ? roles.first.codigo : null);
-    final esDomiciliario = modo == 'DOMICILIARIO';
-
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetContext) => AppMenuSheet(
-        nombre: _perfil?.nombreCompleto,
-        correo: usuario?.correo ?? '',
-        fotoUrl: _perfil?.fotoPerfilUrl,
-        roles: roles,
-        modo: modo,
-        etiquetaMisPedidos: esDomiciliario ? 'Mis pedidos' : 'Mis solicitudes',
-        onCambiarModo: (nuevoModo) => ref.read(modoActivoProvider.notifier).state = nuevoModo,
-        onIrPerfil: () => Navigator.of(context).pushNamed('/perfil'),
-        onIrMisPedidos: () => _irAMisPedidos(context, esDomiciliario: esDomiciliario),
-        onCerrarSesion: () => _cerrarSesion(context),
-      ),
-    );
-  }
-
   void _irAMisPedidos(BuildContext context, {required bool esDomiciliario}) {
     if (esDomiciliario) {
-      if (_pedidoActivo != null) {
-        Navigator.of(context)
-            .pushNamed(MiPedidoActivoScreen.routeName)
-            .then((_) => _cargarPedidoActivoDomiciliario());
-      } else {
-        Navigator.of(context).pushNamed(PedidosDisponiblesScreen.routeName);
-      }
+      Navigator.of(context).pushNamed(HistorialPedidosScreen.routeName);
     } else {
       Navigator.of(context)
           .pushNamed(MisSolicitudesScreen.routeName)
           .then((_) => _cargarStatsPaciente());
-    }
-  }
-
-  Future<void> _cerrarSesion(BuildContext context) async {
-    await ref.read(authSessionProvider.notifier).cerrarSesion();
-    ref.invalidate(modoActivoProvider);
-    if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
     }
   }
 

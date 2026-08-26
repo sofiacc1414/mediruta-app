@@ -1,6 +1,7 @@
 import '../entities/datos_solicitud.dart';
 import '../entities/pedido_activo.dart';
 import '../entities/pedido_disponible.dart';
+import '../entities/pedido_historial.dart';
 import '../entities/solicitud.dart';
 import '../entities/solicitud_resumen.dart';
 
@@ -65,4 +66,7 @@ abstract class SolicitudRepository {
   /// si no tiene ninguno — sobrevive un cierre/reapertura de la app (el
   /// pool deja de incluirlo apenas se acepta).
   Future<PedidoActivo?> obtenerPedidoActivo();
+
+  /// "Mis pedidos" del Domiciliario — todos los que aceptó alguna vez.
+  Future<List<PedidoHistorial>> listarHistorialPedidos();
 }

@@ -260,6 +260,17 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     }
   }
 
+  /// Mudado acá desde Home (v3 lo tenía en el menú "Cuenta") — Perfil
+  /// es ahora el destino directo de la barra inferior donde vive todo
+  /// lo relacionado a la cuenta, cerrar sesión incluido.
+  Future<void> _cerrarSesion(BuildContext context) async {
+    await ref.read(authSessionProvider.notifier).cerrarSesion();
+    ref.invalidate(modoActivoProvider);
+    if (context.mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final estado = ref.watch(authSessionProvider);
@@ -361,6 +372,17 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                         ],
                         const SizedBox(height: 32),
                         const _SeccionDesactivarCuenta(),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: () => _cerrarSesion(context),
+                            icon: const Icon(Icons.logout, color: AppColors.teal),
+                            label: const Text(
+                              'Cerrar sesión',
+                              style: TextStyle(color: AppColors.teal),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),

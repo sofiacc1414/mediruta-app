@@ -15,6 +15,7 @@ import '../../domain/usecases/crear_solicitud_usecase.dart';
 import '../../domain/usecases/entregar_pedido_usecase.dart';
 import '../../domain/usecases/enviar_solicitud_usecase.dart';
 import '../../domain/usecases/iniciar_entrega_usecase.dart';
+import '../../domain/usecases/listar_historial_pedidos_usecase.dart';
 import '../../domain/usecases/listar_pedidos_disponibles_usecase.dart';
 import '../../domain/usecases/listar_solicitudes_usecase.dart';
 import '../../domain/usecases/marcar_en_sitio_usecase.dart';
@@ -94,6 +95,10 @@ final reportarNovedadUseCaseProvider = Provider(
 
 final obtenerPedidoActivoUseCaseProvider = Provider(
   (ref) => ObtenerPedidoActivoUseCase(ref.watch(solicitudRepositoryProvider)),
+);
+
+final listarHistorialPedidosUseCaseProvider = Provider(
+  (ref) => ListarHistorialPedidosUseCase(ref.watch(solicitudRepositoryProvider)),
 );
 
 /// El borrador local no pasa por casos de uso propios (guardar/leer/
