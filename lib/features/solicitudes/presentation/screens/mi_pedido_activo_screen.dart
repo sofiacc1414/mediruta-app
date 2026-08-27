@@ -5,8 +5,10 @@ import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
+import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
+import '../../domain/entities/documentos_paciente_para_recoger.dart';
 import '../../domain/entities/pedido_activo.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
@@ -172,6 +174,42 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     );
   }
 
+  /// HU-07/HU-09 — la cédula del Paciente solo es visible acá, en el
+  /// único momento en que hay un motivo legítimo para verla: yendo a
+  /// reclamar el medicamento a su nombre. El botón que la abre solo
+  /// aparece en `asignado_en_camino_farmacia` (ver `build`); si por
+  /// timing el pedido ya avanzó de paso cuando se toca, la API la
+  /// niega igual (404) y acá se muestra ese error en vez de la cédula.
+  Future<void> _verDocumentosPaciente() async {
+    final pedido = _pedido;
+    if (pedido == null) return;
+
+    DocumentosPacienteParaRecoger? documentos;
+    String? error;
+    try {
+      documentos = await ref
+          .read(obtenerDocumentosPacienteParaRecogerUseCaseProvider)
+          .execute(pedido.id);
+    } on ApiException catch (e) {
+      error = e.message;
+    } on ApiSinConexionException catch (e) {
+      error = e.toString();
+    }
+    if (!mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => _HojaDocumentosPaciente(
+        documentos: documentos,
+        error: error,
+      ),
+    );
+  }
+
   Widget? _accionPara(String estado) {
     if (_procesando) {
       return const SizedBox(
@@ -289,6 +327,14 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
                             ),
                           ),
                         ],
+                        if (pedido.estado == 'asignado_en_camino_farmacia') ...[
+                          const SizedBox(height: 16),
+                          AppButton(
+                            variante: AppButtonVariante.secondary,
+                            label: 'Ver documentos del paciente',
+                            onPressed: _verDocumentosPaciente,
+                          ),
+                        ],
                         const SizedBox(height: 24),
                         AppTrackingTimeline(
                           estadoActual: pedido.estado,
@@ -329,6 +375,104 @@ class _FilaDireccion extends StatelessWidget {
           child: Text(
             texto ?? 'Sin dirección',
             style: const TextStyle(color: AppColors.teal, fontSize: 13),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Contenido del bottom sheet de "Ver documentos del paciente" — la
+/// cédula (ambos lados) para mostrarle al personal de la farmacia. Si
+/// la API la negó (fuera de la ventana permitida, o error de red) se
+/// muestra el error en vez de las imágenes.
+class _HojaDocumentosPaciente extends StatelessWidget {
+  const _HojaDocumentosPaciente({required this.documentos, required this.error});
+
+  final DocumentosPacienteParaRecoger? documentos;
+  final String? error;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.skyBlue,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Cédula del paciente',
+              style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 18),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Mostrala en la farmacia para retirar el medicamento a su nombre.',
+              style: TextStyle(color: AppColors.teal, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+            if (error != null)
+              AppErrorBanner(mensaje: error!)
+            else ...[
+              _FotoDocumento(label: 'Frente', url: documentos?.cedulaFrenteUrl),
+              const SizedBox(height: 16),
+              _FotoDocumento(label: 'Reverso', url: documentos?.cedulaReversoUrl),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FotoDocumento extends StatelessWidget {
+  const _FotoDocumento({required this.label, required this.url});
+
+  final String label;
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: url == null ? null : () => mostrarImagenCompleta(context, url: url),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: double.infinity,
+              height: 160,
+              color: AppColors.beige,
+              child: url == null
+                  ? const Center(
+                      child: Text('No disponible', style: TextStyle(color: AppColors.teal)),
+                    )
+                  : Image.network(
+                      url!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const Center(child: CircularProgressIndicator());
+                      },
+                      errorBuilder: (context, error, stackTrace) => const Center(
+                        child: Icon(Icons.image_not_supported_outlined, color: AppColors.navy),
+                      ),
+                    ),
+            ),
           ),
         ),
       ],

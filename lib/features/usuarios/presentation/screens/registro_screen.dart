@@ -9,13 +9,18 @@ import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../providers/auth_session_provider.dart';
 import '../providers/usuario_providers.dart';
 import '../widgets/selector_rol.dart';
 
 /// G01/G02 de HU-01 — registro público como Paciente o Domiciliario (el
 /// mockup original ofrecía también Administrador; se quita acá porque la
 /// API lo rechaza por diseño — DOCS/context.md, Parte B, sección 4.1). La
-/// API no crea sesión al registrar, así que el flujo termina en login.
+/// API no crea sesión al registrar (`RegistrarUsuarioUseCase` no
+/// devuelve tokens), así que el flujo encadena un login normal con las
+/// mismas credenciales apenas el registro confirma — la persona nunca ve
+/// una pantalla de login de por medio, y termina en Perfil para
+/// completar los datos que el registro no pide (dirección, documentos).
 class RegistroScreen extends ConsumerStatefulWidget {
   const RegistroScreen({super.key});
 
@@ -51,20 +56,30 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
     if (errorPassword != null) return;
 
     setState(() => _cargando = true);
+    final correo = _correoController.text;
+    final password = _passwordController.text;
     try {
       await ref
           .read(registrarUsuarioUseCaseProvider)
           .execute(
-            correo: _correoController.text,
-            password: _passwordController.text,
+            correo: correo,
+            password: password,
             tipoRegistro: _tipoRegistro,
             altaPaciente: _tipoRegistro == 'DOMICILIARIO' ? _altaPaciente : null,
           );
+      // La API no deja sesión abierta al registrar — se encadena un
+      // login normal con las mismas credenciales para que la persona
+      // arranque logueada de una, sin ver una pantalla de login de por
+      // medio entre el registro y completar su perfil.
+      final usuario = await ref
+          .read(iniciarSesionUseCaseProvider)
+          .execute(correo: correo, password: password);
       if (!mounted) return;
+      ref.read(authSessionProvider.notifier).sesionIniciada(usuario);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cuenta creada. Ya puedes iniciar sesión.')),
+        const SnackBar(content: Text('¡Registro exitoso! Completá tu perfil para empezar.')),
       );
-      Navigator.of(context).pop();
+      Navigator.of(context).pushNamedAndRemoveUntil('/perfil', (_) => false);
     } on ApiException catch (error) {
       setState(() => _error = error.message);
     } on ApiSinConexionException catch (error) {

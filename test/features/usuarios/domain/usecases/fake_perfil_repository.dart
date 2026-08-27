@@ -2,6 +2,7 @@ import 'package:mediruta_app/features/usuarios/domain/entities/perfil.dart';
 import 'package:mediruta_app/features/usuarios/domain/entities/perfil_domiciliario.dart';
 import 'package:mediruta_app/features/usuarios/domain/entities/perfil_paciente.dart';
 import 'package:mediruta_app/features/usuarios/domain/repositories/perfil_repository.dart';
+import 'package:mediruta_app/features/usuarios/domain/value-objects/lado_documento.dart';
 import 'package:mediruta_app/features/usuarios/domain/value-objects/tipo_documento_domiciliario.dart';
 
 /// Fake escrito a mano del puerto `PerfilRepository` — mismo espíritu que
@@ -15,7 +16,8 @@ class FakePerfilRepository implements PerfilRepository {
     paciente: PerfilPaciente(
       direccion: null,
       fechaNacimiento: null,
-      fotoCedulaUrl: null,
+      fotoCedulaFrenteUrl: null,
+      fotoCedulaReversoUrl: null,
       departamento: null,
       ciudad: null,
     ),
@@ -23,7 +25,8 @@ class FakePerfilRepository implements PerfilRepository {
       direccion: null,
       vehiculoTipo: null,
       vehiculoPlaca: null,
-      cedulaUrl: null,
+      cedulaFrenteUrl: null,
+      cedulaReversoUrl: null,
       licenciaUrl: null,
       soatUrl: null,
       tecnicomecanicaUrl: null,
@@ -80,11 +83,13 @@ class FakePerfilRepository implements PerfilRepository {
 
   @override
   Future<void> subirFotoCedulaPaciente({
+    required LadoDocumento lado,
     required List<int> bytes,
     required String nombreArchivo,
     required String contentType,
   }) async {
     _registrar('subirFotoCedulaPaciente', {
+      'lado': lado,
       'bytes': bytes,
       'nombreArchivo': nombreArchivo,
       'contentType': contentType,

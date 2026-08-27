@@ -11,6 +11,7 @@ import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../domain/entities/perfil.dart';
+import '../../domain/value-objects/lado_documento.dart';
 import '../../domain/value-objects/tipo_documento_domiciliario.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/perfil_providers.dart';
@@ -691,13 +692,34 @@ class _SeccionPaciente extends ConsumerWidget {
           onTap: enabled ? onElegirFecha : null,
         ),
         const SizedBox(height: 16),
+        // La cédula colombiana trae información necesaria en las dos
+        // caras — se piden y se muestran por separado, ambas
+        // obligatorias antes de poder enviar una solicitud
+        // (`app.crear_solicitud` las exige a las dos).
         _DocumentoUploadRow(
-          label: 'Foto de cédula',
-          url: perfil?.fotoCedulaUrl,
+          label: 'Cédula (frente)',
+          url: perfil?.fotoCedulaFrenteUrl,
           onArchivoElegido: (bytes, nombre, contentType) async {
             await ref
                 .read(subirFotoCedulaPacienteUseCaseProvider)
                 .execute(
+                  lado: LadoDocumento.frente,
+                  bytes: bytes,
+                  nombreArchivo: nombre,
+                  contentType: contentType,
+                );
+            await onCambio();
+          },
+        ),
+        const SizedBox(height: 12),
+        _DocumentoUploadRow(
+          label: 'Cédula (reverso)',
+          url: perfil?.fotoCedulaReversoUrl,
+          onArchivoElegido: (bytes, nombre, contentType) async {
+            await ref
+                .read(subirFotoCedulaPacienteUseCaseProvider)
+                .execute(
+                  lado: LadoDocumento.reverso,
                   bytes: bytes,
                   nombreArchivo: nombre,
                   contentType: contentType,
@@ -782,7 +804,8 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
     if ((p?.vehiculoPlaca as String?)?.trim().isNotEmpty != true) {
       faltantes.add('Placa');
     }
-    if (p?.cedulaUrl == null) faltantes.add('Cédula');
+    if (p?.cedulaFrenteUrl == null) faltantes.add('Cédula (frente)');
+    if (p?.cedulaReversoUrl == null) faltantes.add('Cédula (reverso)');
     if (p?.licenciaUrl == null) faltantes.add('Licencia de conducción');
     if (p?.soatUrl == null) faltantes.add('SOAT');
     if (p?.tecnicomecanicaUrl == null) faltantes.add('Tecnomecánica');
@@ -862,10 +885,22 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
           style: TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
+        // La cédula colombiana trae información necesaria en las dos
+        // caras — se piden por separado, ambas obligatorias antes de
+        // que `aprobar_domiciliario`/`enviar_solicitud_domiciliario`
+        // dejen pasar la validación.
         _DocumentoUploadRow(
-          label: 'Cédula',
-          url: widget.perfil?.cedulaUrl,
-          onArchivoElegido: (b, n, c) => _subirDocumento(TipoDocumentoDomiciliario.cedula, b, n, c),
+          label: 'Cédula (frente)',
+          url: widget.perfil?.cedulaFrenteUrl,
+          onArchivoElegido: (b, n, c) =>
+              _subirDocumento(TipoDocumentoDomiciliario.cedulaFrente, b, n, c),
+        ),
+        const SizedBox(height: 8),
+        _DocumentoUploadRow(
+          label: 'Cédula (reverso)',
+          url: widget.perfil?.cedulaReversoUrl,
+          onArchivoElegido: (b, n, c) =>
+              _subirDocumento(TipoDocumentoDomiciliario.cedulaReverso, b, n, c),
         ),
         const SizedBox(height: 8),
         _DocumentoUploadRow(

@@ -274,8 +274,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                         _Tarjeta(
                           titulo: 'Receta médica',
                           filas: {'Fecha de vencimiento': solicitud.recetaFechaVencimiento},
-                          miniatura: solicitud.recetaUrl,
-                          miniaturaEtiqueta: 'Foto de la receta',
+                          miniaturas: {'Foto de la receta': solicitud.recetaUrl},
                         ),
                         const SizedBox(height: 16),
                         _Tarjeta(
@@ -286,8 +285,10 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                         _Tarjeta(
                           titulo: 'Identidad y entrega',
                           filas: {'Dirección de entrega': solicitud.direccionEntrega},
-                          miniatura: solicitud.cedulaUrl,
-                          miniaturaEtiqueta: 'Cédula (de tu perfil)',
+                          miniaturas: {
+                            'Cédula (frente, de tu perfil)': solicitud.cedulaFrenteUrl,
+                            'Cédula (reverso, de tu perfil)': solicitud.cedulaReversoUrl,
+                          },
                         ),
                         const SizedBox(height: 24),
                         if (solicitud.estado == 'borrador') ...[
@@ -374,14 +375,13 @@ class _Tarjeta extends StatelessWidget {
   const _Tarjeta({
     required this.titulo,
     required this.filas,
-    this.miniatura,
-    this.miniaturaEtiqueta,
+    this.miniaturas = const {},
   });
 
   final String titulo;
   final Map<String, String?> filas;
-  final String? miniatura;
-  final String? miniaturaEtiqueta;
+  /// Etiqueta -> URL. Puede haber más de una (ej. cédula frente/reverso).
+  final Map<String, String?> miniaturas;
 
   @override
   Widget build(BuildContext context) {
@@ -405,19 +405,19 @@ class _Tarjeta extends StatelessWidget {
             titulo,
             style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 16),
           ),
-          if (miniaturaEtiqueta != null) ...[
+          for (final entrada in miniaturas.entries) ...[
             const SizedBox(height: 8),
             Row(
               children: [
-                _Miniatura(url: miniatura),
+                _Miniatura(url: entrada.value),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    miniatura == null
-                        ? '$miniaturaEtiqueta — no subida'
-                        : (miniatura!.split('?').first.toLowerCase().endsWith('.pdf')
-                              ? miniaturaEtiqueta!
-                              : '$miniaturaEtiqueta — toca para verla'),
+                    entrada.value == null
+                        ? '${entrada.key} — no subida'
+                        : (entrada.value!.split('?').first.toLowerCase().endsWith('.pdf')
+                              ? entrada.key
+                              : '${entrada.key} — toca para verla'),
                     style: const TextStyle(color: AppColors.navy),
                   ),
                 ),

@@ -111,4 +111,19 @@ class SolicitudRemoteDatasource {
     final respuesta = await _apiClient.get('/pedidos/historial', autenticado: true);
     return respuesta as List<dynamic>;
   }
+
+  /// HU-07/HU-09 — cédula del Paciente (ambos lados), para mostrar en
+  /// la farmacia al reclamar el medicamento. La API solo la devuelve
+  /// mientras el pedido está `asignado_en_camino_farmacia` (404 fuera
+  /// de esa ventana, ver `ObtenerDocumentosPacienteParaRecogerUseCase`
+  /// del lado de la API).
+  Future<Map<String, dynamic>> obtenerDocumentosPacienteParaRecoger(
+    String solicitudId,
+  ) async {
+    final respuesta = await _apiClient.get(
+      '/pedidos/$solicitudId/documentos-paciente',
+      autenticado: true,
+    );
+    return respuesta as Map<String, dynamic>;
+  }
 }

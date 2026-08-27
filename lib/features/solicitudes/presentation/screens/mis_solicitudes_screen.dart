@@ -42,15 +42,18 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
   }
 
   /// G01 — no se puede ni empezar una solicitud nueva si el perfil
-  /// todavía no tiene foto de cédula cargada (HU-02); la API igual lo
-  /// bloquea (403), pero se evita el viaje mandando directo a completar
-  /// el perfil.
+  /// todavía no tiene los 2 lados de la cédula cargados (HU-02, la
+  /// cédula colombiana trae información necesaria en ambas caras); la
+  /// API igual lo bloquea (403/`sin_cedula`), pero se evita el viaje
+  /// mandando directo a completar el perfil.
   Future<void> _onNuevaSolicitud() async {
     String? errorPerfil;
     bool tieneCedula = false;
     try {
       final perfil = await ref.read(obtenerPerfilUseCaseProvider).execute();
-      tieneCedula = perfil.paciente?.fotoCedulaUrl != null;
+      tieneCedula =
+          perfil.paciente?.fotoCedulaFrenteUrl != null &&
+          perfil.paciente?.fotoCedulaReversoUrl != null;
     } on ApiException catch (error) {
       errorPerfil = error.message;
     } on ApiSinConexionException catch (error) {

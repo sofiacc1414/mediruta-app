@@ -1,4 +1,5 @@
 import '../entities/perfil.dart';
+import '../value-objects/lado_documento.dart';
 import '../value-objects/tipo_documento_domiciliario.dart';
 
 /// Puerto del dominio de perfil (HU-02) — el dominio no sabe que existe
@@ -23,8 +24,10 @@ abstract class PerfilRepository {
     required String ciudad,
   });
 
-  /// G01/G03 — foto de cédula del Paciente.
+  /// G01/G03 — foto de un lado (frente o reverso) de la cédula del
+  /// Paciente. Los dos lados se suben por separado.
   Future<void> subirFotoCedulaPaciente({
+    required LadoDocumento lado,
     required List<int> bytes,
     required String nombreArchivo,
     required String contentType,

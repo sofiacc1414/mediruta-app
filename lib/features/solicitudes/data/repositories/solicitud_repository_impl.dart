@@ -1,4 +1,5 @@
 import '../../domain/entities/datos_solicitud.dart';
+import '../../domain/entities/documentos_paciente_para_recoger.dart';
 import '../../domain/entities/pedido_activo.dart';
 import '../../domain/entities/pedido_disponible.dart';
 import '../../domain/entities/pedido_historial.dart';
@@ -111,5 +112,13 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   Future<List<PedidoHistorial>> listarHistorialPedidos() async {
     final respuesta = await _datasource.listarHistorialPedidos();
     return respuesta.map((e) => PedidoHistorial.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<DocumentosPacienteParaRecoger> obtenerDocumentosPacienteParaRecoger(
+    String solicitudId,
+  ) async {
+    final respuesta = await _datasource.obtenerDocumentosPacienteParaRecoger(solicitudId);
+    return DocumentosPacienteParaRecoger.fromJson(respuesta);
   }
 }

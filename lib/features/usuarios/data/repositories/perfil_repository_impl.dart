@@ -1,5 +1,6 @@
 import '../../domain/entities/perfil.dart';
 import '../../domain/repositories/perfil_repository.dart';
+import '../../domain/value-objects/lado_documento.dart';
 import '../../domain/value-objects/tipo_documento_domiciliario.dart';
 import '../datasources/perfil_remote_datasource.dart';
 
@@ -42,11 +43,13 @@ class PerfilRepositoryImpl implements PerfilRepository {
 
   @override
   Future<void> subirFotoCedulaPaciente({
+    required LadoDocumento lado,
     required List<int> bytes,
     required String nombreArchivo,
     required String contentType,
   }) {
     return _datasource.subirFotoCedulaPaciente(
+      lado: lado,
       bytes: bytes,
       nombreArchivo: nombreArchivo,
       contentType: contentType,

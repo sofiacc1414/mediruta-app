@@ -1,4 +1,5 @@
 import 'package:mediruta_app/features/solicitudes/domain/entities/datos_solicitud.dart';
+import 'package:mediruta_app/features/solicitudes/domain/entities/documentos_paciente_para_recoger.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_activo.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_disponible.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_historial.dart';
@@ -17,6 +18,8 @@ class FakeSolicitudRepository implements SolicitudRepository {
   List<PedidoDisponible> pedidosDisponiblesARetornar = const [];
   PedidoActivo? pedidoActivoARetornar;
   List<PedidoHistorial> historialPedidosARetornar = const [];
+  DocumentosPacienteParaRecoger documentosPacienteParaRecogerARetornar =
+      const DocumentosPacienteParaRecoger(cedulaFrenteUrl: null, cedulaReversoUrl: null);
 
   Map<String, dynamic>? ultimaLlamada;
 
@@ -142,5 +145,14 @@ class FakeSolicitudRepository implements SolicitudRepository {
     _registrar('listarHistorialPedidos', {});
     _lanzarSiCorresponde();
     return historialPedidosARetornar;
+  }
+
+  @override
+  Future<DocumentosPacienteParaRecoger> obtenerDocumentosPacienteParaRecoger(
+    String solicitudId,
+  ) async {
+    _registrar('obtenerDocumentosPacienteParaRecoger', {'solicitudId': solicitudId});
+    _lanzarSiCorresponde();
+    return documentosPacienteParaRecogerARetornar;
   }
 }

@@ -1,4 +1,5 @@
 import '../../../../shared/core/network/api_client.dart';
+import '../../domain/value-objects/lado_documento.dart';
 import '../../domain/value-objects/tipo_documento_domiciliario.dart';
 
 /// Traduce las operaciones de perfil (HU-02) a requests concretos contra
@@ -43,6 +44,7 @@ class PerfilRemoteDatasource {
   }
 
   Future<void> subirFotoCedulaPaciente({
+    required LadoDocumento lado,
     required List<int> bytes,
     required String nombreArchivo,
     required String contentType,
@@ -52,6 +54,7 @@ class PerfilRemoteDatasource {
       bytes: bytes,
       nombreArchivo: nombreArchivo,
       contentType: contentType,
+      campos: {'lado': lado.valor},
       autenticado: true,
     );
   }

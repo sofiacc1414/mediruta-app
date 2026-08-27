@@ -16,7 +16,8 @@ class Solicitud {
     required this.creadoEn,
     required this.enviadoEn,
     required this.canceladoEn,
-    required this.cedulaUrl,
+    required this.cedulaFrenteUrl,
+    required this.cedulaReversoUrl,
     required this.medicamentos,
     required this.historial,
     required this.codigoEntrega,
@@ -44,9 +45,11 @@ class Solicitud {
   final String? enviadoEn;
   final String? canceladoEn;
 
-  /// URL firmada de `perfil_paciente.foto_cedula_path` (HU-02) —
-  /// referencia viva, nunca se copia a la solicitud.
-  final String? cedulaUrl;
+  /// URLs firmadas de `perfil_paciente.foto_cedula_frente_path`/
+  /// `foto_cedula_reverso_path` (HU-02) — referencia viva, nunca se
+  /// copian a la solicitud.
+  final String? cedulaFrenteUrl;
+  final String? cedulaReversoUrl;
   final List<Medicamento> medicamentos;
   final List<EventoHistorial> historial;
 
@@ -72,7 +75,8 @@ class Solicitud {
       creadoEn: json['creadoEn'] as String,
       enviadoEn: json['enviadoEn'] as String?,
       canceladoEn: json['canceladoEn'] as String?,
-      cedulaUrl: json['cedulaUrl'] as String?,
+      cedulaFrenteUrl: json['cedulaFrenteUrl'] as String?,
+      cedulaReversoUrl: json['cedulaReversoUrl'] as String?,
       medicamentos: (json['medicamentos'] as List<dynamic>)
           .map((e) => Medicamento.fromJson(e as Map<String, dynamic>))
           .toList(),

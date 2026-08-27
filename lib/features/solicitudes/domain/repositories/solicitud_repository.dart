@@ -1,4 +1,5 @@
 import '../entities/datos_solicitud.dart';
+import '../entities/documentos_paciente_para_recoger.dart';
 import '../entities/pedido_activo.dart';
 import '../entities/pedido_disponible.dart';
 import '../entities/pedido_historial.dart';
@@ -69,4 +70,11 @@ abstract class SolicitudRepository {
 
   /// "Mis pedidos" del Domiciliario — todos los que aceptó alguna vez.
   Future<List<PedidoHistorial>> listarHistorialPedidos();
+
+  /// HU-07/HU-09 — cédula del Paciente (ambos lados), para mostrar en
+  /// la farmacia al reclamar el medicamento. La API la niega (404)
+  /// fuera de la ventana `asignado_en_camino_farmacia`.
+  Future<DocumentosPacienteParaRecoger> obtenerDocumentosPacienteParaRecoger(
+    String solicitudId,
+  );
 }
