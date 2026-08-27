@@ -134,6 +134,12 @@ class FakeSolicitudRepository implements SolicitudRepository {
   }
 
   @override
+  Future<void> reportarNovedadPaciente(String solicitudId, String detalle) async {
+    _registrar('reportarNovedadPaciente', {'solicitudId': solicitudId, 'detalle': detalle});
+    _lanzarSiCorresponde();
+  }
+
+  @override
   Future<PedidoActivo?> obtenerPedidoActivo() async {
     _registrar('obtenerPedidoActivo', {});
     _lanzarSiCorresponde();

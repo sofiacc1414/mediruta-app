@@ -23,6 +23,7 @@ import '../../domain/usecases/marcar_en_sitio_usecase.dart';
 import '../../domain/usecases/marcar_medicamentos_recogidos_usecase.dart';
 import '../../domain/usecases/obtener_pedido_activo_usecase.dart';
 import '../../domain/usecases/obtener_solicitud_usecase.dart';
+import '../../domain/usecases/reportar_novedad_paciente_usecase.dart';
 import '../../domain/usecases/reportar_novedad_usecase.dart';
 import '../../domain/usecases/subir_receta_usecase.dart';
 
@@ -92,6 +93,10 @@ final entregarPedidoUseCaseProvider = Provider(
 
 final reportarNovedadUseCaseProvider = Provider(
   (ref) => ReportarNovedadUseCase(ref.watch(solicitudRepositoryProvider)),
+);
+
+final reportarNovedadPacienteUseCaseProvider = Provider(
+  (ref) => ReportarNovedadPacienteUseCase(ref.watch(solicitudRepositoryProvider)),
 );
 
 final obtenerPedidoActivoUseCaseProvider = Provider(

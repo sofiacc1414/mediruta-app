@@ -122,6 +122,56 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     }
   }
 
+  /// HU-07 (ronda 2) — el Paciente también puede reportar una novedad
+  /// sobre su propio pedido (antes solo el Domiciliario podía), mismo
+  /// diálogo que usa `mi_pedido_activo_screen.dart` del lado Domiciliario.
+  Future<void> _reportarNovedad() async {
+    final controller = TextEditingController();
+    final detalle = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reportar novedad'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Contanos qué pasó',
+            hintText: 'Ej.: el domiciliario no contesta',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: const Text('Reportar'),
+          ),
+        ],
+      ),
+    );
+    if (detalle == null || detalle.isEmpty || !mounted) return;
+
+    setState(() {
+      _procesando = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(reportarNovedadPacienteUseCaseProvider)
+          .execute(widget.solicitudId, detalle);
+      await _cargar();
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } on ApiSinConexionException catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _procesando = false);
+    }
+  }
+
   Future<void> _copiarCodigoEntrega(String codigo) async {
     await Clipboard.setData(ClipboardData(text: codigo));
     if (!mounted) return;
@@ -323,6 +373,16 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                             cargando: _procesando,
                             onPressed: _cancelar,
                           ),
+                        if (solicitud.estado != 'cancelada' &&
+                            solicitud.estado != 'entregado' &&
+                            solicitud.novedadAbierta == null) ...[
+                          const SizedBox(height: 8),
+                          AppButton(
+                            variante: AppButtonVariante.secondary,
+                            onPressed: _procesando ? null : _reportarNovedad,
+                            label: 'Reportar novedad',
+                          ),
+                        ],
                       ],
                     ],
                   ),

@@ -65,6 +65,11 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   }
 
   @override
+  Future<void> reportarNovedadPaciente(String solicitudId, String detalle) {
+    return _datasource.reportarNovedadPaciente(solicitudId, detalle);
+  }
+
+  @override
   Future<List<PedidoDisponible>> listarPedidosDisponibles() async {
     final respuesta = await _datasource.listarPedidosDisponibles();
     return respuesta

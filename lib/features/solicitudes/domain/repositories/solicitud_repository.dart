@@ -39,6 +39,13 @@ abstract class SolicitudRepository {
   /// G06.
   Future<void> cancelar(String solicitudId);
 
+  /// HU-07 (ronda 2) — el Paciente también puede reportar una novedad
+  /// sobre su propio pedido (antes solo el Domiciliario podía). No
+  /// reutiliza [reportarNovedad] porque ese está scopeado al pedido
+  /// activo del Domiciliario (`/pedidos/:id/novedad`); este pega a
+  /// `/solicitudes/:id/novedad`.
+  Future<void> reportarNovedadPaciente(String solicitudId, String detalle);
+
   // --- Domiciliario (HU-09/HU-07) ---
 
   /// Pool de pedidos disponibles, ya ordenado por distancia real a la

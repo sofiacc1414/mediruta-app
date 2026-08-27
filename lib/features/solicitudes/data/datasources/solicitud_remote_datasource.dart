@@ -62,6 +62,16 @@ class SolicitudRemoteDatasource {
     return _apiClient.post('/solicitudes/$solicitudId/cancelar', autenticado: true);
   }
 
+  /// HU-07 (ronda 2) — reportar novedad del lado Paciente, distinto del
+  /// endpoint del Domiciliario (`/pedidos/:id/novedad`, más abajo).
+  Future<void> reportarNovedadPaciente(String solicitudId, String detalle) {
+    return _apiClient.post(
+      '/solicitudes/$solicitudId/novedad',
+      body: {'detalle': detalle},
+      autenticado: true,
+    );
+  }
+
   // --- Domiciliario (HU-09/HU-07) ---
 
   Future<List<dynamic>> listarPedidosDisponibles() async {
