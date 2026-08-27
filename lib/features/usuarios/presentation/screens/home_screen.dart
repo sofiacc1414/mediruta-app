@@ -19,6 +19,7 @@ import '../../domain/entities/rol_asignado.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/disponibilidad_domiciliario_provider.dart';
 import '../providers/perfil_providers.dart';
+import '../widgets/boton_cambiar_modo.dart';
 import '../widgets/main_bottom_bar.dart';
 
 /// HU-03/HU-09/HU-07 — pantalla de inicio del rol activo.
@@ -182,14 +183,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(20),
                 children: [
-                  _Encabezado(
-                    saludo: _saludoDelMomento(),
-                    nombre: _perfil?.nombreCompleto ?? usuario?.correo,
-                    fotoUrl: _perfil?.fotoPerfilUrl,
-                    modoEtiqueta: esDomiciliario
-                        ? 'Estás en modo Domiciliario'
-                        : (esPaciente ? 'Estás en modo Paciente' : null),
-                    onTap: () => Navigator.of(context).pushNamed('/perfil'),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _Encabezado(
+                          saludo: _saludoDelMomento(),
+                          nombre: _perfil?.nombreCompleto ?? usuario?.correo,
+                          fotoUrl: _perfil?.fotoPerfilUrl,
+                          modoEtiqueta: esDomiciliario
+                              ? 'Estás en modo Domiciliario'
+                              : (esPaciente ? 'Estás en modo Paciente' : null),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const BotonCambiarModo(),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   if (esPaciente) ..._contenidoPaciente(context),
@@ -319,68 +328,61 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-/// Encabezado de identidad: avatar + nombre + saludo del momento, como
-/// una sola unidad tappable hacia el perfil — reemplaza la fila suelta
-/// de "Hola, {correo}" + ícono de perfil aparte.
+/// Encabezado de identidad: avatar + nombre + saludo del momento — de
+/// solo lectura, ya no navega a Perfil (que ahora tiene su propio
+/// destino directo en la barra inferior; tocar el nombre para llegar
+/// ahí quedaba redundante).
 class _Encabezado extends StatelessWidget {
   const _Encabezado({
     required this.saludo,
     required this.nombre,
     required this.fotoUrl,
     required this.modoEtiqueta,
-    required this.onTap,
   });
 
   final String saludo;
   final String? nombre;
   final String? fotoUrl;
   // "Estás en modo Paciente/Domiciliario" — declara arriba de todo qué
-  // rol está activo ahora mismo, no solo en el botón de la barra que
-  // lo cambia.
+  // rol está activo ahora mismo, no solo en el botón que lo cambia.
   final String? modoEtiqueta;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            _Avatar(fotoUrl: fotoUrl, nombre: nombre),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(saludo, style: const TextStyle(color: AppColors.teal)),
-                  Text(
-                    nombre ?? 'Sesión activa',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppColors.navy,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          _Avatar(fotoUrl: fotoUrl, nombre: nombre),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(saludo, style: const TextStyle(color: AppColors.teal)),
+                Text(
+                  nombre ?? 'Sesión activa',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w700,
                   ),
-                  if (modoEtiqueta != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      modoEtiqueta!,
-                      style: const TextStyle(
-                        color: AppColors.teal,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (modoEtiqueta != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    modoEtiqueta!,
+                    style: const TextStyle(
+                      color: AppColors.teal,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
-            const Icon(Icons.chevron_right, color: AppColors.teal),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

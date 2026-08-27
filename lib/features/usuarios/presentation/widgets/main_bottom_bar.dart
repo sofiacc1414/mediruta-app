@@ -11,20 +11,19 @@ import '../screens/home_screen.dart';
 import '../screens/perfil_screen.dart';
 import 'app_bottom_bar.dart';
 
-const _iconosRol = {'PACIENTE': Icons.medication_outlined, 'DOMICILIARIO': Icons.moped_outlined};
-
 /// La navegación de toda la app — no solo de Home. Cada pantalla
 /// principal la agrega como su `bottomNavigationBar`, así que siempre
 /// está presente, en cualquier punto del flujo.
 ///
+/// Orden fijo: Inicio (izquierda), Mis pedidos/solicitudes (centro),
+/// Perfil (derecha) — "Pedidos disponibles" (Domiciliario, solo en
+/// línea) se suma junto a "Mis pedidos" sin correr a Perfil del
+/// extremo derecho. El selector de modo ya no vive acá — ver
+/// `BotonCambiarModo`, ahora en la esquina superior de Home.
+///
 /// Cada toque reemplaza toda la pila de navegación (en vez de apilar
 /// otra pantalla arriba) — son destinos, no un "volver": tocar el
 /// mismo destino en el que ya estás simplemente lo refresca.
-///
-/// El selector de modo (si la cuenta tiene los 2 roles) vive acá
-/// como un botón más de la barra, no en el cuerpo de Home: tocarlo
-/// alterna el rol activo y lleva a Inicio, que es donde vive el
-/// contenido específico de cada modo.
 class MainBottomBar extends ConsumerWidget {
   const MainBottomBar({super.key});
 
@@ -43,26 +42,6 @@ class MainBottomBar extends ConsumerWidget {
 
     return AppBottomNavBar(
       items: [
-        if (roles.length > 1)
-          AppBottomNavAction(
-            // El ícono sigue mostrando el modo ACTUAL (referencia
-            // visual rápida); la etiqueta nombra la acción del botón
-            // en sí ("Cambiar modo"), no el estado — mostrar el
-            // nombre del rol activo ahí se leía como un indicador,
-            // no como algo tocable.
-            icono: _iconosRol[modo] ?? Icons.swap_horiz,
-            etiqueta: 'Cambiar modo',
-            onTap: () {
-              final otroRol = roles.firstWhere((r) => r.codigo != modo, orElse: () => roles.first);
-              ref.read(modoActivoProvider.notifier).state = otroRol.codigo;
-              irA(HomeScreen.routeName);
-            },
-          ),
-        AppBottomNavAction(
-          icono: Icons.person_outline,
-          etiqueta: 'Perfil',
-          onTap: () => irA(PerfilScreen.routeName),
-        ),
         AppBottomNavAction(
           icono: Icons.home_rounded,
           etiqueta: 'Inicio',
@@ -81,6 +60,11 @@ class MainBottomBar extends ConsumerWidget {
             etiqueta: 'Disponibles',
             onTap: () => irA(PedidosDisponiblesScreen.routeName),
           ),
+        AppBottomNavAction(
+          icono: Icons.person_outline,
+          etiqueta: 'Perfil',
+          onTap: () => irA(PerfilScreen.routeName),
+        ),
       ],
     );
   }
