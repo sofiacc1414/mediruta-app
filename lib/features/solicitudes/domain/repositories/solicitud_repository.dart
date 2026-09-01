@@ -46,6 +46,22 @@ abstract class SolicitudRepository {
   /// `/solicitudes/:id/novedad`.
   Future<void> reportarNovedadPaciente(String solicitudId, String detalle);
 
+  /// HU-07 (ronda 3) — el Paciente pide corregir dirección de entrega
+  /// y/o de farmacia de un pedido ya enviado. No aplica el cambio: el
+  /// admin ve el diff (actual vs propuesto) y aprueba o rechaza. Al
+  /// menos uno de los dos campos debe venir no nulo.
+  Future<void> solicitarEdicionPedido(
+    String solicitudId, {
+    String? direccionEntrega,
+    String? direccionFarmacia,
+    String? detalle,
+  });
+
+  /// HU-07 (ronda 3) — el Paciente reporta que el código de entrega no
+  /// se generó o no lo ve en su pantalla. El admin lo regenera o lo
+  /// reenvía por correo directo sobre el pedido.
+  Future<void> reportarCodigoNoGenerado(String solicitudId, {String? detalle});
+
   // --- Domiciliario (HU-09/HU-07) ---
 
   /// Pool de pedidos disponibles, ya ordenado por distancia real a la

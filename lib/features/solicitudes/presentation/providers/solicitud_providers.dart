@@ -23,8 +23,10 @@ import '../../domain/usecases/marcar_en_sitio_usecase.dart';
 import '../../domain/usecases/marcar_medicamentos_recogidos_usecase.dart';
 import '../../domain/usecases/obtener_pedido_activo_usecase.dart';
 import '../../domain/usecases/obtener_solicitud_usecase.dart';
+import '../../domain/usecases/reportar_codigo_no_generado_usecase.dart';
 import '../../domain/usecases/reportar_novedad_paciente_usecase.dart';
 import '../../domain/usecases/reportar_novedad_usecase.dart';
+import '../../domain/usecases/solicitar_edicion_pedido_usecase.dart';
 import '../../domain/usecases/subir_receta_usecase.dart';
 
 /// Cableado de dependencias de solicitudes (HU-03) — mismo espíritu que
@@ -97,6 +99,14 @@ final reportarNovedadUseCaseProvider = Provider(
 
 final reportarNovedadPacienteUseCaseProvider = Provider(
   (ref) => ReportarNovedadPacienteUseCase(ref.watch(solicitudRepositoryProvider)),
+);
+
+final solicitarEdicionPedidoUseCaseProvider = Provider(
+  (ref) => SolicitarEdicionPedidoUseCase(ref.watch(solicitudRepositoryProvider)),
+);
+
+final reportarCodigoNoGeneradoUseCaseProvider = Provider(
+  (ref) => ReportarCodigoNoGeneradoUseCase(ref.watch(solicitudRepositoryProvider)),
 );
 
 final obtenerPedidoActivoUseCaseProvider = Provider(

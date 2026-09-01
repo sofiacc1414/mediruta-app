@@ -72,6 +72,35 @@ class SolicitudRemoteDatasource {
     );
   }
 
+  /// HU-07 (ronda 3) — pide corregir dirección de entrega y/o farmacia
+  /// de un pedido ya enviado. Solo manda los campos no nulos.
+  Future<void> solicitarEdicionPedido(
+    String solicitudId, {
+    String? direccionEntrega,
+    String? direccionFarmacia,
+    String? detalle,
+  }) {
+    return _apiClient.post(
+      '/solicitudes/$solicitudId/solicitar-edicion',
+      body: {
+        if (direccionEntrega != null) 'direccionEntrega': direccionEntrega,
+        if (direccionFarmacia != null) 'direccionFarmacia': direccionFarmacia,
+        if (detalle != null) 'detalle': detalle,
+      },
+      autenticado: true,
+    );
+  }
+
+  /// HU-07 (ronda 3) — reporta que el código de entrega no se generó o
+  /// no se ve en la app.
+  Future<void> reportarCodigoNoGenerado(String solicitudId, {String? detalle}) {
+    return _apiClient.post(
+      '/solicitudes/$solicitudId/reportar-codigo-no-generado',
+      body: {if (detalle != null) 'detalle': detalle},
+      autenticado: true,
+    );
+  }
+
   // --- Domiciliario (HU-09/HU-07) ---
 
   Future<List<dynamic>> listarPedidosDisponibles() async {
