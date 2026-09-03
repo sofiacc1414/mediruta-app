@@ -238,7 +238,24 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     final pedido = _pedido;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi pedido activo')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Mi pedido activo',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            color: AppColors.navy,
+          ),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
       bottomNavigationBar: const MainBottomBar(),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
@@ -256,48 +273,96 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
                         const SizedBox(height: 16),
                       ],
                       if (pedido == null)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 48),
-                          child: Text(
-                            'No tenés ningún pedido en curso ahora mismo.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppColors.teal),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 48),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.inbox_outlined,
+                                size: 64,
+                                color: Colors.grey.withValues(alpha: 0.3),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No tenés ningún pedido en curso',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.navy,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Los pedidos que aceptes aparecerán aquí.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.grey.withValues(alpha: 0.8),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
                           ),
                         )
                       else ...[
+                        // Tarjeta de información del pedido
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppColors.white,
-                            borderRadius: BorderRadius.circular(20),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.navy.withValues(alpha: 0.06),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
+                                color: Colors.grey.withValues(alpha: 0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                pedido.codigoPedido ?? 'Pedido',
-                                style: const TextStyle(
-                                  color: AppColors.navy,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 18,
-                                ),
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.skyBlue.withValues(alpha: 0.3),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.medication_outlined,
+                                      color: AppColors.teal,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      pedido.codigoPedido ?? 'Pedido',
+                                      style: const TextStyle(
+                                        color: AppColors.navy,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ),
+                                  _EstadoPill(estado: pedido.estado),
+                                ],
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 12),
                               _FilaDireccion(
                                 icono: Icons.storefront_outlined,
                                 texto: pedido.direccionFarmacia,
+                                label: 'Farmacia',
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 6),
                               _FilaDireccion(
                                 icono: Icons.home_outlined,
                                 texto: pedido.direccionEntrega,
+                                label: 'Entrega',
                               ),
                             ],
                           ),
@@ -310,17 +375,44 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
                             decoration: BoxDecoration(
                               color: AppColors.beige,
                               borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.skyBlue.withValues(alpha: 0.3),
+                              ),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.info_outline, color: AppColors.navy),
+                                const Icon(Icons.info_outline, color: AppColors.navy, size: 20),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: Text(
-                                    'Novedad reportada: ${pedido.novedadPropiaAbierta!.detalle}\n'
-                                    'Un administrador la va a revisar.',
-                                    style: const TextStyle(color: AppColors.navy),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Novedad reportada',
+                                        style: TextStyle(
+                                          color: AppColors.navy,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        pedido.novedadPropiaAbierta!.detalle,
+                                        style: const TextStyle(
+                                          color: AppColors.navy,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      const Text(
+                                        'Un administrador la va a revisar.',
+                                        style: TextStyle(
+                                          color: AppColors.teal,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -329,24 +421,39 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
                         ],
                         if (pedido.estado == 'asignado_en_camino_farmacia') ...[
                           const SizedBox(height: 16),
-                          AppButton(
-                            variante: AppButtonVariante.secondary,
-                            label: 'Ver documentos del paciente',
-                            onPressed: _verDocumentosPaciente,
+                          SizedBox(
+                            width: double.infinity,
+                            child: AppButton(
+                              variante: AppButtonVariante.secondary,
+                              label: 'Ver documentos del paciente',
+                              onPressed: _verDocumentosPaciente,
+                            ),
                           ),
                         ],
                         const SizedBox(height: 24),
-                        AppTrackingTimeline(
-                          estadoActual: pedido.estado,
-                          historial: pedido.historial,
-                          accionPasoActual: _accionPara(pedido.estado),
+                        // Timeline
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                          ),
+                          child: AppTrackingTimeline(
+                            estadoActual: pedido.estado,
+                            historial: pedido.historial,
+                            accionPasoActual: _accionPara(pedido.estado),
+                          ),
                         ),
                         const SizedBox(height: 24),
                         if (pedido.novedadPropiaAbierta == null)
-                          AppButton(
-                            variante: AppButtonVariante.secondary,
-                            label: 'Reportar novedad',
-                            onPressed: _procesando ? null : _reportarNovedad,
+                          SizedBox(
+                            width: double.infinity,
+                            child: AppButton(
+                              variante: AppButtonVariante.secondary,
+                              label: 'Reportar novedad',
+                              onPressed: _procesando ? null : _reportarNovedad,
+                            ),
                           ),
                       ],
                     ],
@@ -358,23 +465,119 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
   }
 }
 
+// ==================== WIDGETS DE DISEÑO ====================
+
+class _EstadoPill extends StatelessWidget {
+  const _EstadoPill({required this.estado});
+
+  final String estado;
+
+  String _getLabel() {
+    switch (estado) {
+      case 'asignado_en_camino_farmacia':
+        return 'En camino a farmacia';
+      case 'medicamentos_recogidos':
+        return 'Medicamentos recogidos';
+      case 'en_camino_entrega':
+        return 'En camino a entrega';
+      case 'en_sitio':
+        return 'En sitio';
+      case 'entregado':
+        return 'Entregado';
+      default:
+        return estado;
+    }
+  }
+
+  Color _getColor() {
+    switch (estado) {
+      case 'asignado_en_camino_farmacia':
+        return Colors.orange;
+      case 'medicamentos_recogidos':
+        return AppColors.teal;
+      case 'en_camino_entrega':
+        return Colors.blue;
+      case 'en_sitio':
+        return Colors.purple;
+      case 'entregado':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: _getColor().withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _getColor().withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        _getLabel(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: _getColor(),
+        ),
+      ),
+    );
+  }
+}
+
 class _FilaDireccion extends StatelessWidget {
-  const _FilaDireccion({required this.icono, required this.texto});
+  const _FilaDireccion({
+    required this.icono,
+    required this.texto,
+    required this.label,
+  });
 
   final IconData icono;
   final String? texto;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icono, size: 16, color: AppColors.teal),
-        const SizedBox(width: 8),
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: AppColors.skyBlue.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(
+            icono,
+            size: 14,
+            color: AppColors.teal,
+          ),
+        ),
+        const SizedBox(width: 10),
         Expanded(
-          child: Text(
-            texto ?? 'Sin dirección',
-            style: const TextStyle(color: AppColors.teal, fontSize: 13),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.withValues(alpha: 0.6),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                texto ?? 'Sin dirección',
+                style: const TextStyle(
+                  color: AppColors.navy,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -412,9 +615,30 @@ class _HojaDocumentosPaciente extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Cédula del paciente',
-              style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 18),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.skyBlue.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.credit_card_outlined,
+                    color: AppColors.teal,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Cédula del paciente',
+                  style: TextStyle(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             const Text(
@@ -447,19 +671,47 @@ class _FotoDocumento extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.navy,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: url == null ? null : () => mostrarImagenCompleta(context, url: url),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             child: Container(
               width: double.infinity,
               height: 160,
-              color: AppColors.beige,
+              decoration: BoxDecoration(
+                color: AppColors.beige,
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: url == null
-                  ? const Center(
-                      child: Text('No disponible', style: TextStyle(color: AppColors.teal)),
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.image_not_supported_outlined,
+                            color: Colors.grey.withValues(alpha: 0.4),
+                            size: 32,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'No disponible',
+                            style: TextStyle(
+                              color: Colors.grey.withValues(alpha: 0.5),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
                     )
                   : Image.network(
                       url!,
@@ -468,8 +720,25 @@ class _FotoDocumento extends StatelessWidget {
                         if (progress == null) return child;
                         return const Center(child: CircularProgressIndicator());
                       },
-                      errorBuilder: (context, error, stackTrace) => const Center(
-                        child: Icon(Icons.image_not_supported_outlined, color: AppColors.navy),
+                      errorBuilder: (context, error, stackTrace) => Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image_not_supported_outlined,
+                              color: Colors.grey.withValues(alpha: 0.4),
+                              size: 32,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Error al cargar',
+                              style: TextStyle(
+                                color: Colors.grey.withValues(alpha: 0.5),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
             ),
@@ -490,7 +759,11 @@ class _BotonPaso extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      child: AppLoadingButton(label: label, cargando: false, onPressed: onPressed),
+      child: AppLoadingButton(
+        label: label,
+        cargando: false,
+        onPressed: onPressed,
+      ),
     );
   }
 }

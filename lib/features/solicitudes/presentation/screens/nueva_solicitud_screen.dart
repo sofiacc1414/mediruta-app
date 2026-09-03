@@ -9,30 +9,15 @@ import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
-import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
-import '../../../../shared/widgets/app_text_field.dart';
 import '../../../usuarios/presentation/providers/perfil_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/datos_solicitud.dart';
 import '../../domain/entities/medicamento.dart';
 import '../providers/solicitud_providers.dart';
 
-/// G01/G04 — HU-03. Crear una solicitud nueva (`solicitudId == null`,
-/// borrador guardado solo en el dispositivo hasta confirmar — nada viaja
-/// a la API mientras se completa) o editar una ya existente en Borrador
-/// (`solicitudId != null`, carga y guarda directo contra la API).
-///
-/// La receta (foto) sigue el mismo diferido que la solicitud entera: se
-/// elige acá pero recién se sube (`SubirRecetaUseCase`) dentro de
-/// `_persistir()`, cuando ya existe un id remoto — nunca antes de
-/// confirmar. La foto elegida (bytes en memoria) NO se guarda en el
-/// borrador local junto con el resto de los campos — si la app se
-/// cierra de golpe antes de confirmar, los campos de texto sobreviven
-/// pero la foto elegida hay que volver a elegirla (limitación aceptada,
-/// evita tener que codificar imágenes en base64 dentro de
-/// `shared_preferences`).
+/// G01/G04 — HU-03. Crear una solicitud nueva o editar una existente en Borrador.
 class NuevaSolicitudScreen extends ConsumerStatefulWidget {
   const NuevaSolicitudScreen({super.key, this.solicitudId});
 
@@ -47,12 +32,6 @@ class NuevaSolicitudScreen extends ConsumerStatefulWidget {
 String? _vacioComoNulo(String texto) => texto.trim().isEmpty ? null : texto.trim();
 
 class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
-  /// Cada medicamento se agrega/edita en un diálogo aparte (ver
-  /// `_DialogoMedicamento`) — antes se mostraban 5 campos editables en
-  /// línea todo el tiempo, junto al botón "Agregar medicamento", y era
-  /// confuso cuál de los dos hacía falta usar. Acá solo se guarda el
-  /// valor ya confirmado (`Medicamento`, no controllers) — la lista se
-  /// muestra como filas resumen, tocar una la vuelve a abrir para editar.
   final List<Medicamento> _medicamentos = [];
   final _direccionEntrega = TextEditingController();
   final _direccionFarmacia = TextEditingController();
@@ -112,14 +91,10 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       if (borrador != null) {
         _rellenar(borrador);
       } else {
-        // Best-effort: precarga la dirección del perfil (HU-02). Si
-        // falla, el paciente igual puede escribirla a mano.
         try {
           final perfil = await ref.read(obtenerPerfilUseCaseProvider).execute();
           _direccionEntrega.text = perfil.paciente?.direccion ?? '';
-        } catch (_) {
-          // no crítico
-        }
+        } catch (_) {}
       }
     }
 
@@ -135,9 +110,6 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     }
   }
 
-  /// Abre el diálogo de agregar (`indice == null`) o editar (`indice`
-  /// apunta a la línea existente) un medicamento. `null` en el resultado
-  /// significa que se canceló — no toca la lista.
   Future<void> _abrirDialogoMedicamento({int? indice}) async {
     final resultado = await showDialog<Medicamento>(
       context: context,
@@ -146,11 +118,42 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       ),
     );
     if (resultado == null) return;
+
     setState(() {
       if (indice != null) {
         _medicamentos[indice] = resultado;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Medicamento editado exitosamente',
+              style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.white,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+            ),
+            elevation: 4,
+          ),
+        );
       } else {
         _medicamentos.add(resultado);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Medicamento registrado con éxito',
+              style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.white,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+            ),
+            elevation: 4,
+          ),
+        );
       }
     });
     _onCambioCampo();
@@ -170,9 +173,6 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     );
   }
 
-  /// Mientras se crea (no edita), cada cambio se guarda solo en el
-  /// dispositivo — nunca en la API — para que sobreviva aunque cierren
-  /// la app de golpe, sin gastar red/BD mientras se está escribiendo.
   void _onCambioCampo() {
     if (_editandoExistente || _cargandoInicial) return;
     ref.read(borradorLocalRepositoryProvider).guardar(_datosActuales());
@@ -196,9 +196,6 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
         actuales.toJson().toString() != originales.toJson().toString();
   }
 
-  /// Crea (si es nueva) o actualiza (si ya existe) con los valores
-  /// actuales, y sube la receta pendiente si había una elegida. Único
-  /// punto donde esta pantalla habla con la API para persistir datos.
   Future<String> _persistir() async {
     final datos = _datosActuales();
     String id;
@@ -266,20 +263,25 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('¡Pedido enviado!'),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          '¡Tu solicitud fue exitosa!',
+          style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600, fontSize: 18),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Tu solicitud pasó a revisión. Guardá este código de pedido:'),
+            const Text('Guarda este código de pedido:'),
             const SizedBox(height: 12),
             Text(
               codigoPedido,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.navy,
-                fontWeight: FontWeight.w800,
-                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                fontSize: 20,
               ),
             ),
           ],
@@ -287,7 +289,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Entendido'),
+            child: Text('Entendido', style: TextStyle(color: AppColors.navy)),
           ),
         ],
       ),
@@ -302,20 +304,22 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Text('Cambios sin guardar'),
           content: const Text('¿Guardás los cambios antes de salir?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Seguir editando'),
+              child: const Text('Seguir editando', style: TextStyle(color: AppColors.navy)),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Descartar'),
+              child: const Text('Descartar', style: TextStyle(color: AppColors.navy)),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Guardar'),
+              child: const Text('Guardar', style: TextStyle(color: AppColors.teal)),
             ),
           ],
         ),
@@ -329,6 +333,8 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('¿Continuar con este pedido más tarde?'),
         content: const Text(
           'Podés guardar lo que ya cargaste para retomarlo después, o descartarlo.',
@@ -336,15 +342,15 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Seguir editando'),
+            child: const Text('Seguir editando', style: TextStyle(color: AppColors.navy)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Descartar'),
+            child: const Text('Descartar', style: TextStyle(color: AppColors.navy)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Guardar para después'),
+            child: const Text('Guardar para después', style: TextStyle(color: AppColors.teal)),
           ),
         ],
       ),
@@ -358,11 +364,6 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     return true;
   }
 
-  /// A diferencia de una fecha de expedición (siempre pasada), la de
-  /// vencimiento normalmente es futura — pero también tiene que poder
-  /// elegirse una ya pasada: es justamente el caso que
-  /// `calcularFaltantes`/`app.enviar_solicitud` necesitan poder detectar
-  /// ("receta vencida"), no algo que el selector deba impedir de entrada.
   Future<void> _elegirFechaReceta() async {
     final ahora = DateTime.now();
     final seleccionada = await showDatePicker(
@@ -380,22 +381,26 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
   Future<void> _elegirFotoReceta() async {
     final origen = await showModalBottomSheet<_OrigenArchivo>(
       context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
+              leading: const Icon(Icons.photo_camera_outlined, color: AppColors.teal),
               title: const Text('Tomar foto'),
               onTap: () => Navigator.of(context).pop(_OrigenArchivo.camara),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
+              leading: const Icon(Icons.photo_library_outlined, color: AppColors.teal),
               title: const Text('Elegir de la galería'),
               onTap: () => Navigator.of(context).pop(_OrigenArchivo.galeria),
             ),
             ListTile(
-              leading: const Icon(Icons.picture_as_pdf_outlined),
+              leading: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.teal),
               title: const Text('Elegir PDF'),
               onTap: () => Navigator.of(context).pop(_OrigenArchivo.pdf),
             ),
@@ -451,8 +456,23 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
         }
       },
       child: Scaffold(
+        backgroundColor: Colors.white,
         appBar: AppBar(
-          title: Text(_editandoExistente ? 'Editar solicitud' : 'Nueva solicitud'),
+          title: const Text(
+            'Nueva solicitud',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+              color: AppColors.navy,
+            ),
+          ),
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
+            onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
+          ),
         ),
         bottomNavigationBar: const MainBottomBar(),
         body: _cargandoInicial
@@ -461,47 +481,90 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 480),
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Center(
-                          child: AppIconBadge(icono: Icons.medication_outlined),
+                        // ====== IMAGEN SOLA ======
+                        Align(
+                          alignment: Alignment.center,
+                          child: Image.asset(
+                            'assets/images/hero_medicamentos.png',
+                            height: 180,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.medication_outlined,
+                              color: AppColors.navy,
+                              size: 60,
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
+
                         if (_error != null) ...[
                           AppErrorBanner(mensaje: _error!),
                           const SizedBox(height: 16),
                         ],
-                        const _TituloSeccion('Medicamentos'),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Una fórmula puede traer más de uno — agregá una línea por cada uno.',
-                          style: TextStyle(color: AppColors.teal, fontSize: 13),
-                        ),
-                        if (_medicamentos.isEmpty) ...[
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Todavía no agregaste ningún medicamento.',
-                            style: TextStyle(color: AppColors.teal, fontSize: 13),
+
+                        // ====== SECCIÓN: MEDICAMENTOS ======
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                           ),
-                        ],
-                        for (var i = 0; i < _medicamentos.length; i++) ...[
-                          const SizedBox(height: 12),
-                          _FilaResumenMedicamento(
-                            medicamento: _medicamentos[i],
-                            enabled: !_guardando,
-                            onEditar: () => _abrirDialogoMedicamento(indice: i),
-                            onQuitar: () => _quitarMedicamento(i),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'Medicamentos',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.navy,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Una fórmula puede traer más de uno',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: AppColors.teal, fontSize: 13),
+                              ),
+                              const Text(
+                                'Agrega una línea por cada uno',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: AppColors.teal, fontSize: 13),
+                              ),
+                              const SizedBox(height: 12),
+                              // Botón gris claro con letra azul oscuro
+                              Center(
+                                child: InkWell(
+                                  onTap: _guardando ? null : () => _abrirDialogoMedicamento(),
+                                  borderRadius: BorderRadius.circular(30),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF2F4F7),
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    child: Text(
+                                      _medicamentos.isEmpty ? 'Agregar medicamento' : 'Agregar otro medicamento',
+                                      style: const TextStyle(
+                                        color: AppColors.navy,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                        const SizedBox(height: 12),
-                        AppButton(
-                          variante: AppButtonVariante.secondary,
-                          label: 'Agregar medicamento',
-                          onPressed: _guardando ? null : () => _abrirDialogoMedicamento(),
                         ),
                         const SizedBox(height: 24),
+
+                        // ====== SECCIÓN: RECETA ======
                         const _TituloSeccion('Receta médica'),
                         const SizedBox(height: 12),
                         _FilaFotoReceta(
@@ -518,6 +581,8 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                           onTap: _guardando ? null : _elegirFechaReceta,
                         ),
                         const SizedBox(height: 24),
+
+                        // ====== SECCIÓN: FARMACIA ======
                         const _TituloSeccion('Farmacia'),
                         const SizedBox(height: 4),
                         const Text(
@@ -525,22 +590,25 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                           style: TextStyle(color: AppColors.teal, fontSize: 13),
                         ),
                         const SizedBox(height: 12),
-                        AppTextField(
+                        _CampoTextoBlanco(
                           label: 'Dirección de la farmacia',
                           icono: Icons.local_pharmacy_outlined,
                           controller: _direccionFarmacia,
                           enabled: !_guardando,
                         ),
                         const SizedBox(height: 24),
+
+                        // ====== SECCIÓN: ENTREGA ======
                         const _TituloSeccion('Entrega'),
                         const SizedBox(height: 12),
-                        AppTextField(
+                        _CampoTextoBlanco(
                           label: 'Dirección de entrega',
                           icono: Icons.home_outlined,
                           controller: _direccionEntrega,
                           enabled: !_guardando,
                         ),
                         const SizedBox(height: 24),
+
                         AppLoadingButton(
                           label: 'Guardar borrador',
                           variante: AppButtonVariante.secondary,
@@ -586,10 +654,51 @@ class _TituloSeccion extends StatelessWidget {
   }
 }
 
-/// Presentaciones más comunes en fórmulas médicas colombianas — sugeridas
-/// en `_CampoFormaFarmaceutica`, no una lista cerrada (una fórmula real a
-/// veces trae una presentación fuera de esta lista, por eso el campo
-/// sigue aceptando cualquier texto tipeado/pegado).
+// ====== CAMPO BLANCO CON BORDE GRIS ======
+class _CampoTextoBlanco extends StatelessWidget {
+  const _CampoTextoBlanco({
+    required this.label,
+    required this.icono,
+    required this.controller,
+    required this.enabled,
+  });
+
+  final String label;
+  final IconData icono;
+  final TextEditingController controller;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      child: TextField(
+        controller: controller,
+        enabled: enabled,
+        style: const TextStyle(
+          fontSize: 15,
+          color: AppColors.navy,
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+            color: Colors.grey.withValues(alpha: 0.8),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+          prefixIcon: Icon(icono, color: AppColors.teal, size: 20),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
+    );
+  }
+}
+
 const List<String> _formasFarmaceuticasSugeridas = [
   'Tableta',
   'Tableta recubierta',
@@ -620,29 +729,7 @@ const List<String> _formasFarmaceuticasSugeridas = [
   'Frasco',
 ];
 
-/// Compara sin distinguir mayúsculas/acentos — para que "capsula" (sin
-/// tilde, como muchas personas tipean en el celular) igual encuentre
-/// "Cápsula" al filtrar.
-String _normalizar(String texto) {
-  const conAcento = 'áéíóúÁÉÍÓÚñÑ';
-  const sinAcento = 'aeiouAEIOUnN';
-  var resultado = texto.toLowerCase();
-  for (var i = 0; i < conAcento.length; i++) {
-    resultado = resultado.replaceAll(conAcento[i].toLowerCase(), sinAcento[i].toLowerCase());
-  }
-  return resultado;
-}
-
-/// Campo de forma farmacéutica: sugiere presentaciones comunes y filtra
-/// a medida que se escribe (más fluido que un desplegable rígido), pero
-/// no restringe — el texto tipeado/pegado se guarda tal cual aunque no
-/// esté en la lista. `RawAutocomplete` con `textEditingController`
-/// propio evita tener que sincronizar dos controllers a mano.
-///
-/// `RawAutocomplete` exige que si le pasás un `textEditingController`
-/// externo también le pases un `focusNode` externo (uno de los dos solo
-/// no alcanza — falla una assertion). Por eso StatefulWidget: necesita
-/// dueño con dispose() propio, no puede crearse suelto dentro de build().
+// ====== CAMPO DE FORMA FARMACÉUTICA CON AUTOCOMPLETADO ======
 class _CampoFormaFarmaceutica extends StatefulWidget {
   const _CampoFormaFarmaceutica({required this.controller});
 
@@ -653,72 +740,156 @@ class _CampoFormaFarmaceutica extends StatefulWidget {
 }
 
 class _CampoFormaFarmaceuticaState extends State<_CampoFormaFarmaceutica> {
-  final _focusNode = FocusNode();
+  final FocusNode _focusNode = FocusNode();
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+
+  List<String> _sugerencias = [];
+  bool _mostrarSugerencias = false;
 
   @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onTextoCambiado);
   }
 
   @override
-  Widget build(BuildContext context) {
-    return RawAutocomplete<String>(
-      textEditingController: widget.controller,
-      focusNode: _focusNode,
-      optionsBuilder: (textEditingValue) {
-        final filtro = _normalizar(textEditingValue.text.trim());
-        if (filtro.isEmpty) return _formasFarmaceuticasSugeridas;
-        return _formasFarmaceuticasSugeridas.where(
-          (opcion) => _normalizar(opcion).contains(filtro),
-        );
-      },
-      fieldViewBuilder: (context, fieldController, focusNode, onFieldSubmitted) {
-        // El FocusNode hay que pasarlo explícito a AppTextField — sin
-        // esto, AppTextField arma el suyo propio puertas adentro y
-        // RawAutocomplete nunca se entera de que el campo tiene foco
-        // (mira este FocusNode, no el interno), así que las opciones no
-        // se mostraban nunca aunque el campo se viera enfocado.
-        return AppTextField(
-          label: 'Forma farmacéutica',
-          icono: Icons.category_outlined,
-          controller: fieldController,
-          focusNode: focusNode,
-        );
-      },
-      optionsViewBuilder: (context, onSelected, options) {
-        return Align(
-          alignment: Alignment.topLeft,
+  void dispose() {
+    widget.controller.removeListener(_onTextoCambiado);
+    _focusNode.dispose();
+    _ocultarSugerencias();
+    super.dispose();
+  }
+
+  void _onTextoCambiado() {
+    final texto = widget.controller.text.toLowerCase().trim();
+    if (texto.isEmpty) {
+      setState(() {
+        _sugerencias = [];
+        _mostrarSugerencias = false;
+      });
+      _ocultarSugerencias();
+      return;
+    }
+
+    final sugerencias = _formasFarmaceuticasSugeridas
+        .where((opcion) => opcion.toLowerCase().contains(texto))
+        .toList();
+
+    if (sugerencias.isEmpty) {
+      _ocultarSugerencias();
+      setState(() {
+        _sugerencias = [];
+        _mostrarSugerencias = false;
+      });
+    } else {
+      setState(() {
+        _sugerencias = sugerencias;
+        _mostrarSugerencias = true;
+      });
+      _mostrarOverlay();
+    }
+  }
+
+  void _mostrarOverlay() {
+    _ocultarSugerencias();
+    if (!mounted) return;
+
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final size = renderBox.size;
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        width: size.width,
+        child: CompositedTransformFollower(
+          link: _layerLink,
+          offset: Offset(0, size.height + 4),
           child: Material(
             elevation: 4,
             borderRadius: BorderRadius.circular(12),
+            color: Colors.white,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 320),
+              constraints: const BoxConstraints(maxHeight: 200),
               child: ListView.builder(
                 padding: EdgeInsets.zero,
                 shrinkWrap: true,
-                itemCount: options.length,
+                itemCount: _sugerencias.length,
                 itemBuilder: (context, index) {
-                  final opcion = options.elementAt(index);
+                  final sugerencia = _sugerencias[index];
                   return ListTile(
-                    title: Text(opcion),
-                    onTap: () => onSelected(opcion),
+                    title: Text(
+                      sugerencia,
+                      style: const TextStyle(color: AppColors.navy, fontSize: 14),
+                    ),
+                    onTap: () {
+                      widget.controller.text = sugerencia;
+                      setState(() {
+                        _sugerencias = [];
+                        _mostrarSugerencias = false;
+                      });
+                      _ocultarSugerencias();
+                      _focusNode.unfocus();
+                    },
                   );
                 },
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _ocultarSugerencias() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(left: 16),
+              child: Icon(Icons.medication_outlined, color: AppColors.teal, size: 20),
+            ),
+            Expanded(
+              child: TextField(
+                controller: widget.controller,
+                focusNode: _focusNode,
+                style: const TextStyle(color: AppColors.navy, fontSize: 15),
+                decoration: InputDecoration(
+                  hintText: 'Forma farmacéutica (Obligatorio)',
+                  hintStyle: TextStyle(color: Colors.grey.withValues(alpha: 0.6), fontSize: 13),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                ),
+                onTap: () {
+                  if (widget.controller.text.isNotEmpty) {
+                    _onTextoCambiado();
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-/// Diálogo para agregar o editar una línea de medicamento — antes se
-/// mostraban 5 campos editables en línea todo el tiempo junto al botón
-/// "Agregar medicamento", confuso cuál de los dos correspondía usar. Se
-/// completa acá y recién al aceptar aparece como fila resumen en la
-/// lista; tocar esa fila reabre este mismo diálogo con sus datos.
 class _DialogoMedicamento extends StatefulWidget {
   const _DialogoMedicamento({this.inicial});
 
@@ -736,6 +907,12 @@ class _DialogoMedicamentoState extends State<_DialogoMedicamento> {
   );
   late final _cantidad = TextEditingController(text: widget.inicial?.cantidad ?? '');
   late final _posologia = TextEditingController(text: widget.inicial?.posologia ?? '');
+
+  bool get _datosCompletos =>
+      _nombre.text.trim().isNotEmpty &&
+      _concentracion.text.trim().isNotEmpty &&
+      _formaFarmaceutica.text.trim().isNotEmpty &&
+      _cantidad.text.trim().isNotEmpty;
 
   @override
   void dispose() {
@@ -762,7 +939,12 @@ class _DialogoMedicamentoState extends State<_DialogoMedicamento> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.inicial == null ? 'Agregar medicamento' : 'Editar medicamento'),
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        widget.inicial == null ? 'Agregar medicamento' : 'Editar medicamento',
+        style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.navy),
+      ),
       content: SizedBox(
         width: 360,
         child: SingleChildScrollView(
@@ -770,30 +952,34 @@ class _DialogoMedicamentoState extends State<_DialogoMedicamento> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AppTextField(
-                label: 'Nombre del medicamento',
+              _CampoTextoBlanco(
+                label: 'Nombre del medicamento (Obligatorio)',
                 icono: Icons.medication_outlined,
                 controller: _nombre,
+                enabled: true,
               ),
               const SizedBox(height: 12),
-              AppTextField(
-                label: 'Concentración/dosis',
+              _CampoTextoBlanco(
+                label: 'Concentración/dosis (Obligatorio)',
                 icono: Icons.science_outlined,
                 controller: _concentracion,
+                enabled: true,
               ),
               const SizedBox(height: 12),
               _CampoFormaFarmaceutica(controller: _formaFarmaceutica),
               const SizedBox(height: 12),
-              AppTextField(
-                label: 'Cantidad solicitada',
+              _CampoTextoBlanco(
+                label: 'Cantidad solicitada (Obligatorio)',
                 icono: Icons.numbers_outlined,
                 controller: _cantidad,
+                enabled: true,
               ),
               const SizedBox(height: 12),
-              AppTextField(
-                label: 'Posología / indicaciones de uso (opcional)',
+              _CampoTextoBlanco(
+                label: 'Posología / indicaciones de uso (Opcional)',
                 icono: Icons.schedule_outlined,
                 controller: _posologia,
+                enabled: true,
               ),
             ],
           ),
@@ -802,13 +988,13 @@ class _DialogoMedicamentoState extends State<_DialogoMedicamento> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: const Text('Cancelar', style: TextStyle(color: AppColors.navy)),
         ),
         AnimatedBuilder(
-          animation: _nombre,
+          animation: Listenable.merge([_nombre, _concentracion, _formaFarmaceutica, _cantidad]),
           builder: (context, _) => TextButton(
-            onPressed: _nombre.text.trim().isEmpty ? null : _aceptar,
-            child: const Text('Aceptar'),
+            onPressed: _datosCompletos ? _aceptar : null,
+            child: const Text('Aceptar', style: TextStyle(color: AppColors.teal)),
           ),
         ),
       ],
@@ -816,8 +1002,6 @@ class _DialogoMedicamentoState extends State<_DialogoMedicamento> {
   }
 }
 
-/// Fila resumen de un medicamento ya agregado — tocarla abre el diálogo
-/// para editarlo. Reemplaza a la tarjeta con 5 campos siempre visibles.
 class _FilaResumenMedicamento extends StatelessWidget {
   const _FilaResumenMedicamento({
     required this.medicamento,
@@ -845,13 +1029,21 @@ class _FilaResumenMedicamento extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.skyBlue),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.medication_outlined, color: AppColors.teal),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+              ),
+              child: const Icon(Icons.medication_outlined, color: AppColors.navy, size: 20),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -864,13 +1056,6 @@ class _FilaResumenMedicamento extends StatelessWidget {
                   if (detalle.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(detalle, style: const TextStyle(color: AppColors.teal, fontSize: 13)),
-                  ],
-                  if (!medicamento.estaCompleto) ...[
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Faltan datos — toca para completar',
-                      style: TextStyle(color: AppColors.teal, fontSize: 12, fontStyle: FontStyle.italic),
-                    ),
                   ],
                 ],
               ),
@@ -887,11 +1072,7 @@ class _FilaResumenMedicamento extends StatelessWidget {
   }
 }
 
-/// Fila de subida de la foto de la receta — cámara/galería/PDF, mismo
-/// patrón que los documentos de HU-02. Muestra una miniatura de lo ya
-/// elegido: `Image.memory` si se acaba de tomar/elegir en esta misma
-/// sesión (todavía no subido), o `Image.network` si ya estaba subida
-/// (editando una solicitud existente).
+// ====== FILA DE RECETA ======
 class _FilaFotoReceta extends StatelessWidget {
   const _FilaFotoReceta({
     required this.tieneArchivo,
@@ -914,53 +1095,71 @@ class _FilaFotoReceta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        GestureDetector(
-          onTap: _esImagenVisible
-              ? () => mostrarImagenCompleta(
-                  context,
-                  bytes: bytesLocal != null ? Uint8List.fromList(bytesLocal!) : null,
-                  url: bytesLocal == null ? urlServidor : null,
-                )
-              : null,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              width: 44,
-              height: 44,
-              color: AppColors.beige,
-              child: _miniatura(),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: _esImagenVisible
+                ? () => mostrarImagenCompleta(
+                    context,
+                    bytes: bytesLocal != null ? Uint8List.fromList(bytesLocal!) : null,
+                    url: bytesLocal == null ? urlServidor : null,
+                  )
+                : null,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                ),
+                child: _contenidoCentral(),
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            tieneArchivo
-                ? (_esImagenVisible ? 'Foto de la receta — toca para verla' : 'Foto de la receta')
-                : 'Foto de la receta — no subida',
-            style: const TextStyle(color: AppColors.navy),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              tieneArchivo
+                  ? (_esImagenVisible ? 'Foto de la receta — toca para verla' : 'Receta (PDF) subida')
+                  : 'Foto de la receta — no subida',
+              style: const TextStyle(
+                color: AppColors.navy,
+                fontSize: 14,
+              ),
+            ),
           ),
-        ),
-        TextButton(
-          onPressed: onElegir,
-          child: Text(tieneArchivo ? 'Reemplazar' : 'Subir'),
-        ),
-      ],
+          TextButton(
+            onPressed: onElegir,
+            child: Text(
+              tieneArchivo ? 'Reemplazar' : 'Subir',
+              style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _miniatura() {
+  Widget _contenidoCentral() {
     if (bytesLocal != null) {
       if (esPdfLocal) {
-        return const Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 22);
+        return const Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 24);
       }
       return Image.memory(Uint8List.fromList(bytesLocal!), fit: BoxFit.cover);
     }
     if (urlServidor != null) {
       if (_urlEsPdf) {
-        return const Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 22);
+        return const Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 24);
       }
       return Image.network(
         urlServidor!,
@@ -969,7 +1168,8 @@ class _FilaFotoReceta extends StatelessWidget {
             const Icon(Icons.image_not_supported_outlined, color: AppColors.navy, size: 20),
       );
     }
-    return const SizedBox.shrink();
+    // Icono de hoja cuando no hay nada subido
+    return const Icon(Icons.description_outlined, color: AppColors.navy, size: 24);
   }
 }
 
@@ -984,20 +1184,26 @@ class _CampoFecha extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(28),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: const Icon(Icons.event_outlined, color: AppColors.teal),
-          filled: true,
-          fillColor: AppColors.beige,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(28),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
         ),
-        child: Text(fecha != null ? _isoFecha(fecha!) : 'Selecciona una fecha'),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: const TextStyle(color: AppColors.teal, fontSize: 13),
+            prefixIcon: const Icon(Icons.event_outlined, color: AppColors.teal),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          ),
+          child: Text(
+            fecha != null ? _isoFecha(fecha!) : 'Selecciona una fecha',
+            style: const TextStyle(color: AppColors.navy),
+          ),
+        ),
       ),
     );
   }

@@ -4,12 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
-import '../../../../shared/widgets/app_promo_banner.dart';
-import '../../../../shared/widgets/app_stat_tile.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
 import '../../../solicitudes/domain/entities/pedido_activo.dart';
 import '../../../solicitudes/domain/entities/solicitud_resumen.dart';
 import '../../../solicitudes/presentation/providers/solicitud_providers.dart';
+import '../../../solicitudes/presentation/screens/historial_pedidos_screen.dart';
 import '../../../solicitudes/presentation/screens/mi_pedido_activo_screen.dart';
 import '../../../solicitudes/presentation/screens/mis_solicitudes_screen.dart';
 import '../../../solicitudes/presentation/screens/pedidos_disponibles_screen.dart';
@@ -19,20 +18,8 @@ import '../../domain/entities/rol_asignado.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/disponibilidad_domiciliario_provider.dart';
 import '../providers/perfil_providers.dart';
-import '../widgets/boton_cambiar_modo.dart';
 import '../widgets/main_bottom_bar.dart';
 
-/// HU-03/HU-09/HU-07 — pantalla de inicio del rol activo.
-///
-/// v5, a pedido explícito de corrección sobre v4: la barra inferior
-/// (`MainBottomBar`) deja de vivir solo acá — es persistente en toda
-/// la app, cada pantalla principal la agrega. El selector de modo
-/// (Paciente/Domiciliario) también se mudó a la barra; acá solo queda
-/// el contenido específico del modo activo. "Disponible" pasó a ser
-/// estado compartido (`disponibilidadDomiciliarioProvider`) en vez de
-/// local de esta pantalla, porque la barra necesita saber si el
-/// Domiciliario está en línea sin importar en qué pantalla esté
-/// parado. Paleta y tipografía oficiales sin cambios.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -70,11 +57,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!mounted) return;
       setState(() => _perfil = perfil);
     } on ApiException {
-      // Silencioso a propósito: el saludo cae a "Hola" sin nombre si
-      // esto falla — no vale la pena tapar toda la pantalla por un
-      // dato de encabezado que no es crítico.
     } on ApiSinConexionException {
-      // idem
     }
   }
 
@@ -109,9 +92,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       setState(() {
         final activas = solicitudes.where((s) => !estadosTerminales.contains(s.estado)).toList();
         _activas = activas.length;
-        // La más reciente en curso es la que más le importa a la
-        // persona ahora mismo — protagonista del hero, no un número
-        // más en una lista.
         _solicitudActiva = activas.isEmpty ? null : activas.first;
         _entregadosMes = solicitudes.where((s) {
           if (s.estado != 'entregado') return false;
@@ -164,14 +144,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final esPaciente = modo == 'PACIENTE';
     final esDomiciliario = modo == 'DOMICILIARIO';
 
-    // El modo puede cambiar desde el toggle de `MainBottomBar` — se
-    // detecta en cada build y se dispara la carga correspondiente
-    // después del frame (evita `setState` durante `build`).
     if (modo != _modoCargado) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _cargarSegunModo());
     }
 
     return Scaffold(
+      backgroundColor: Colors.white,
       bottomNavigationBar: const MainBottomBar(),
       body: SafeArea(
         child: RefreshIndicator(
@@ -181,26 +159,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               constraints: const BoxConstraints(maxWidth: 480),
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _Encabezado(
-                          saludo: _saludoDelMomento(),
-                          nombre: _perfil?.nombreCompleto ?? usuario?.correo,
-                          fotoUrl: _perfil?.fotoPerfilUrl,
-                          modoEtiqueta: esDomiciliario
-                              ? 'Estás en modo Domiciliario'
-                              : (esPaciente ? 'Estás en modo Paciente' : null),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const BotonCambiarModo(),
-                    ],
+                  _Encabezado(
+                    saludo: _saludoDelMomento(),
+                    nombre: _perfil?.nombreCompleto ?? usuario?.correo,
+                    fotoUrl: _perfil?.fotoPerfilUrl,
+                    modoEtiqueta: esDomiciliario
+                        ? 'Estás en modo Domiciliario'
+                        : (esPaciente ? 'Estás en modo Paciente' : null),
                   ),
                   const SizedBox(height: 24),
+
+                  // Tarjeta Hero personalizada según el rol
+                  if (esDomiciliario)
+                    const _TarjetaHeroBienvenidaDomiciliario()
+                  else
+                    const _TarjetaHeroBienvenida(
+                      titulo: 'Tu salud en movimiento',
+                      descripcion: 'Recibe tus medicamentos en la puerta de tu casa con MediRuta.',
+                      imagenAsset: 'assets/images/hero_delivery.png',
+                    ),
+                  const SizedBox(height: 24),
+
                   if (esPaciente) ..._contenidoPaciente(context),
                   if (esDomiciliario) ..._contenidoDomiciliario(context),
                 ],
@@ -214,41 +195,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   List<Widget> _contenidoPaciente(BuildContext context) {
     final solicitud = _solicitudActiva;
+
     return [
+      const Text(
+        'Mis pedidos',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          color: AppColors.navy,
+        ),
+      ),
+      const SizedBox(height: 12),
+
       if (_errorPaciente != null) ...[
         AppErrorBanner(mensaje: _errorPaciente!),
         const SizedBox(height: 16),
       ],
       if (_cargandoPaciente)
         const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
-      else if (solicitud != null)
-        // Protagonista: el pedido que ya tiene en curso, no un banner
-        // genérico invitándola a pedir algo que ya pidió.
-        _TarjetaHero(
-          onTap: () async {
-            await Navigator.of(context).pushNamed(
-              SolicitudDetalleScreen.routeName,
-              arguments: solicitud.id,
-            );
-            _cargarStatsPaciente();
-          },
-          eyebrow: 'Tu pedido en curso',
-          titulo: solicitud.codigoPedido ?? 'Solicitud enviada',
-          trailing: AppStatusPill(estado: solicitud.estado),
-          accion: 'Ver seguimiento',
-        )
-      else
-        AppPromoBanner(
-          titulo: '¿Necesitás pedir tus medicamentos?',
-          icono: Icons.medication_outlined,
-          accion: 'Nueva solicitud',
-          onTapAccion: () => Navigator.of(context).pushNamed(MisSolicitudesScreen.routeName),
+      else ...[
+        if (solicitud != null) ...[
+          _TarjetaHero(
+            onTap: () async {
+              await Navigator.of(context).pushNamed(
+                SolicitudDetalleScreen.routeName,
+                arguments: solicitud.id,
+              );
+              _cargarStatsPaciente();
+            },
+            eyebrow: 'Tu pedido en curso',
+            titulo: solicitud.codigoPedido ?? 'Solicitud enviada',
+            trailing: AppStatusPill(estado: solicitud.estado),
+            accion: 'Ver seguimiento',
+          ),
+          const SizedBox(height: 16),
+        ],
+        
+        _TarjetaPedirMedicamentos(
+          onTap: () => Navigator.of(context).pushNamed(MisSolicitudesScreen.routeName),
         ),
-      const SizedBox(height: 16),
+        const SizedBox(height: 16),
+      ],
+
       Row(
         children: [
           Expanded(
-            child: AppStatTile(
+            child: _TarjetaStats(
               icono: Icons.local_shipping_outlined,
               valor: '$_activas',
               label: 'Pedidos activos',
@@ -256,7 +248,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: AppStatTile(
+            child: _TarjetaStats(
               icono: Icons.check_circle_outline,
               valor: '$_entregadosMes',
               label: 'Entregados este mes',
@@ -264,23 +256,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
-      const SizedBox(height: 16),
-      Center(
-        child: TextButton(
-          onPressed: () => Navigator.of(context).pushNamed(MisSolicitudesScreen.routeName),
-          child: const Text('Ver todas mis solicitudes'),
-        ),
-      ),
     ];
   }
 
   List<Widget> _contenidoDomiciliario(BuildContext context) {
     final disponibilidad = ref.watch(disponibilidadDomiciliarioProvider);
     return [
-      // El switch "Disponible" es la decisión más importante de esta
-      // pantalla para el Domiciliario — protagonista, con un estado
-      // visual bien distinto entre apagado (calmo, outline) y
-      // encendido (fill navy, "en línea").
       _TarjetaDisponibilidad(
         disponible: disponibilidad.disponible,
         actualizando: disponibilidad.actualizando,
@@ -297,41 +278,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ],
       if (_cargandoDomiciliario)
         const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
-      else if (_pedidoActivo != null)
-        _TarjetaHero(
-          onTap: () async {
-            await Navigator.of(context).pushNamed(MiPedidoActivoScreen.routeName);
-            _cargarPedidoActivoDomiciliario();
-          },
-          eyebrow: 'Pedido activo',
-          titulo: _pedidoActivo!.codigoPedido ?? 'Pedido en curso',
-          trailing: AppStatusPill(estado: _pedidoActivo!.estado),
-          accion: 'Continuar entrega',
-        )
-      else if (disponibilidad.disponible)
-        AppPromoBanner(
-          titulo: 'Buscá pedidos cerca tuyo',
-          icono: Icons.moped_outlined,
-          accion: 'Ver pedidos disponibles',
-          onTapAccion: () => Navigator.of(context).pushNamed(PedidosDisponiblesScreen.routeName),
-        )
-      else
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          child: Text(
-            'Activá "Disponible" para empezar a recibir pedidos cerca tuyo.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.teal),
+      else ...[
+        // Pedido activo (si existe)
+        if (_pedidoActivo != null) ...[
+          _TarjetaHero(
+            onTap: () async {
+              await Navigator.of(context).pushNamed(MiPedidoActivoScreen.routeName);
+              _cargarPedidoActivoDomiciliario();
+            },
+            eyebrow: 'Pedido activo',
+            titulo: _pedidoActivo!.codigoPedido ?? 'Pedido en curso',
+            trailing: AppStatusPill(estado: _pedidoActivo!.estado),
+            accion: 'Continuar entrega',
           ),
-        ),
+          const SizedBox(height: 16),
+          // Tarjeta "Ver mis pedidos" SIEMPRE debajo del pedido activo
+          _TarjetaVerPedidos(
+            onTap: () => Navigator.of(context).pushNamed(HistorialPedidosScreen.routeName),
+          ),
+        ] else if (disponibilidad.disponible) ...[
+          // Si no hay pedido activo y está disponible, mostrar "Ver mis pedidos"
+          _TarjetaVerPedidos(
+            onTap: () => Navigator.of(context).pushNamed(HistorialPedidosScreen.routeName),
+          ),
+        ] else ...[
+          // Si no está disponible, mostrar mensaje
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              'Activá "Disponible" para empezar a recibir pedidos cerca tuyo.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.teal),
+            ),
+          ),
+        ],
+      ],
     ];
   }
 }
 
-/// Encabezado de identidad: avatar + nombre + saludo del momento — de
-/// solo lectura, ya no navega a Perfil (que ahora tiene su propio
-/// destino directo en la barra inferior; tocar el nombre para llegar
-/// ahí quedaba redundante).
+// ==================== WIDGETS DE DISEÑO ====================
+
+// ENCABEZADO CON FOTO A LA IZQUIERDA
 class _Encabezado extends StatelessWidget {
   const _Encabezado({
     required this.saludo,
@@ -343,8 +331,6 @@ class _Encabezado extends StatelessWidget {
   final String saludo;
   final String? nombre;
   final String? fotoUrl;
-  // "Estás en modo Paciente/Domiciliario" — declara arriba de todo qué
-  // rol está activo ahora mismo, no solo en el botón que lo cambia.
   final String? modoEtiqueta;
 
   @override
@@ -359,12 +345,14 @@ class _Encabezado extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(saludo, style: const TextStyle(color: AppColors.teal)),
+                Text(saludo, style: const TextStyle(color: AppColors.teal, fontSize: 14)),
+                const SizedBox(height: 2),
                 Text(
                   nombre ?? 'Sesión activa',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: AppColors.navy,
                     fontWeight: FontWeight.w700,
+                    fontSize: 20,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -431,9 +419,471 @@ class _Avatar extends StatelessWidget {
   }
 }
 
-/// Tarjeta protagonista: para el pedido que ya está en curso, sea del
-/// Paciente o del Domiciliario — fondo navy sólido a propósito, para
-/// que gane frente a cualquier otro elemento de la pantalla.
+// TARJETA DE ESTADÍSTICAS (Borde gris delgado)
+class _TarjetaStats extends StatelessWidget {
+  const _TarjetaStats({
+    required this.icono,
+    required this.valor,
+    required this.label,
+  });
+
+  final IconData icono;
+  final String valor;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                ),
+                child: Icon(
+                  icono,
+                  color: AppColors.navy,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                valor,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.navy,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// TARJETA HERO PARA PACIENTE
+class _TarjetaHeroBienvenida extends StatelessWidget {
+  const _TarjetaHeroBienvenida({
+    required this.titulo,
+    required this.descripcion,
+    required this.imagenAsset,
+  });
+
+  final String titulo;
+  final String descripcion;
+  final String imagenAsset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 180,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFE3EFFD),
+            Color(0xFFC0D9F5),
+          ],
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            right: 20,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: ClipOval(
+                child: Image.asset(
+                  imagenAsset,
+                  width: 110,
+                  height: 110,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: 110,
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.skyBlue, width: 2),
+                    ),
+                    child: const Icon(Icons.local_shipping, color: AppColors.navy, size: 40),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.navy.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'MediRuta',
+                    style: TextStyle(
+                      color: AppColors.navy,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    color: AppColors.navy,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: 200,
+                  child: Text(
+                    descripcion,
+                    style: const TextStyle(
+                      color: AppColors.navy,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// TARJETA HERO PARA DOMICILIARIO (VERSIÓN 2 LÍNEAS)
+class _TarjetaHeroBienvenidaDomiciliario extends StatelessWidget {
+  const _TarjetaHeroBienvenidaDomiciliario();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 180,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFE3EFFD),
+            Color(0xFFC0D9F5),
+          ],
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            right: 20,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/domiciliario.png',
+                  width: 110,
+                  height: 110,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: 110,
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.skyBlue, width: 2),
+                    ),
+                    child: const Icon(Icons.delivery_dining, color: AppColors.navy, size: 40),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.navy.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'MediRuta - Domiciliario',
+                    style: TextStyle(
+                      color: AppColors.navy,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Lleva salud a tu comunidad',
+                  style: TextStyle(
+                    color: AppColors.navy,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: 200,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Conecta con personas que necesitan sus medicamentos',
+                        style: TextStyle(
+                          color: AppColors.navy.withValues(alpha: 0.7),
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                      Text(
+                        'y realiza entregas seguras.',
+                        style: TextStyle(
+                          color: AppColors.navy.withValues(alpha: 0.7),
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// TARJETA PARA PEDIR MEDICAMENTOS (PACIENTE)
+class _TarjetaPedirMedicamentos extends StatelessWidget {
+  const _TarjetaPedirMedicamentos({
+    required this.onTap,
+  });
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.skyBlue.withValues(alpha: 0.3),
+            ),
+            child: const Icon(
+              Icons.medication_outlined,
+              color: AppColors.teal,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            '¿Necesitás pedir tus medicamentos?',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppColors.navy,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Realiza una nueva solicitud y te la llevamos a tu puerta.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(30),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF2F4F7),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: const Text(
+                'Nueva solicitud',
+                style: TextStyle(
+                  color: AppColors.navy,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// TARJETA PARA VER PEDIDOS (DOMICILIARIO)
+class _TarjetaVerPedidos extends StatelessWidget {
+  const _TarjetaVerPedidos({
+    required this.onTap,
+  });
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.skyBlue.withValues(alpha: 0.3),
+            ),
+            child: const Icon(
+              Icons.list_alt_outlined,
+              color: AppColors.teal,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            '¿Quieres ver tus pedidos?',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppColors.navy,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Visualiza tus pedidos pendientes por entregar.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(30),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF2F4F7),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: const Text(
+                'Ver mis pedidos',
+                style: TextStyle(
+                  color: AppColors.navy,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// TARJETA DE PEDIDO EN CURSO (Fondo súper claro y suave)
 class _TarjetaHero extends StatelessWidget {
   const _TarjetaHero({
     required this.eyebrow,
@@ -458,8 +908,16 @@ class _TarjetaHero extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppColors.navy,
           borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF5FAFF),
+              Color(0xFFEAF3FC),
+            ],
+          ),
+          border: Border.all(color: AppColors.skyBlue.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,7 +928,7 @@ class _TarjetaHero extends StatelessWidget {
                   child: Text(
                     eyebrow.toUpperCase(),
                     style: const TextStyle(
-                      color: AppColors.skyBlue,
+                      color: AppColors.navy,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.6,
@@ -484,7 +942,7 @@ class _TarjetaHero extends StatelessWidget {
             Text(
               titulo,
               style: const TextStyle(
-                color: AppColors.white,
+                color: AppColors.navy,
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
               ),
@@ -494,10 +952,13 @@ class _TarjetaHero extends StatelessWidget {
               children: [
                 Text(
                   accion,
-                  style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(width: 4),
-                const Icon(Icons.arrow_forward, color: AppColors.white, size: 16),
+                const Icon(Icons.arrow_forward, color: AppColors.navy, size: 16),
               ],
             ),
           ],
@@ -507,9 +968,7 @@ class _TarjetaHero extends StatelessWidget {
   }
 }
 
-/// El switch "Disponible" como protagonista de la pantalla del
-/// Domiciliario — dos estados bien distintos: apagado (calmo, blanco
-/// con borde) y encendido (fill navy, "en línea").
+// TARJETA DE DISPONIBILIDAD (CON EL MISMO ESTILO QUE _TarjetaHero)
 class _TarjetaDisponibilidad extends StatelessWidget {
   const _TarjetaDisponibilidad({
     required this.disponible,
@@ -523,62 +982,85 @@ class _TarjetaDisponibilidad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: disponible ? AppColors.navy : AppColors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: disponible ? null : Border.all(color: AppColors.skyBlue, width: 1.5),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: disponible ? AppColors.white.withValues(alpha: 0.15) : AppColors.beige,
-            ),
-            child: Icon(
-              disponible ? Icons.bolt : Icons.bolt_outlined,
-              color: disponible ? AppColors.white : AppColors.navy,
-            ),
+    return InkWell(
+      onTap: () => onChanged(!disponible),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF5FAFF),
+              Color(0xFFEAF3FC),
+            ],
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  disponible ? 'Estás en línea' : 'Disponible para recibir pedidos',
-                  style: TextStyle(
-                    color: disponible ? AppColors.white : AppColors.navy,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  disponible ? 'Vas a aparecer en el pool de pedidos.' : 'Estás fuera de línea.',
-                  style: TextStyle(
-                    color: disponible ? AppColors.skyBlue : AppColors.teal,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+          border: Border.all(color: AppColors.skyBlue.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: disponible 
+                    ? AppColors.teal.withValues(alpha: 0.15) 
+                    : AppColors.skyBlue.withValues(alpha: 0.3),
+              ),
+              child: Icon(
+                disponible ? Icons.bolt : Icons.bolt_outlined,
+                color: disponible ? AppColors.teal : AppColors.navy,
+                size: 24,
+              ),
             ),
-          ),
-          actualizando
-              ? SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: disponible ? AppColors.white : AppColors.navy,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    disponible ? 'Estás en línea' : 'Disponible para recibir pedidos',
+                    style: const TextStyle(
+                      color: AppColors.navy,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
                   ),
-                )
-              : Switch(value: disponible, onChanged: onChanged),
-        ],
+                  const SizedBox(height: 2),
+                  Text(
+                    disponible 
+                        ? 'Vas a aparecer en el pool de pedidos.' 
+                        : 'Estás fuera de línea.',
+                    style: TextStyle(
+                      color: AppColors.navy.withValues(alpha: 0.6),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actualizando
+                ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.navy,
+                    ),
+                  )
+                : Switch(
+                    value: disponible,
+                    onChanged: onChanged,
+                    activeColor: AppColors.teal,
+                    activeTrackColor: AppColors.teal.withValues(alpha: 0.4),
+                    inactiveTrackColor: AppColors.skyBlue.withValues(alpha: 0.3),
+                  ),
+          ],
+        ),
       ),
     );
   }
