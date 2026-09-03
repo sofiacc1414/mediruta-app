@@ -67,8 +67,9 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Aquí agregamos TODA la carpeta de imágenes
   assets:
-    - assets/images/logo_mediruta.png
+    - assets/images/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

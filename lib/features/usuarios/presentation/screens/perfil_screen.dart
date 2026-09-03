@@ -7,9 +7,7 @@ import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
-import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
-import '../../../../shared/widgets/app_text_field.dart';
 import '../../domain/entities/perfil.dart';
 import '../../domain/value-objects/lado_documento.dart';
 import '../../domain/value-objects/tipo_documento_domiciliario.dart';
@@ -19,19 +17,6 @@ import '../providers/usuario_providers.dart';
 import '../widgets/main_bottom_bar.dart';
 import 'cambiar_contrasena_screen.dart';
 
-/// HU-02 — pantalla "Mi perfil". Secciones condicionales según los roles
-/// de la cuenta (context.md, Parte B, sección 4.1: un usuario puede
-/// tener PACIENTE y DOMICILIARIO a la vez).
-///
-/// Un solo botón "Guardar cambios" al pie guarda datos comunes + el
-/// perfil del rol activo a la vez (antes cada tarjeta tenía su propio
-/// "Guardar" — confuso, varios botones casi idénticos en una pantalla
-/// corta). Por eso los controllers de texto viven acá, no en cada
-/// sub-sección — así el botón único puede leerlos a todos. Documentos y
-/// avatar quedan aparte: son acciones inmediatas al elegir el archivo,
-/// no datos de formulario que tenga sentido "guardar" después. "Enviar
-/// solicitud" (validación de Domiciliario) también queda aparte — es
-/// una acción distinta a guardar los datos, mismo criterio que HU-03.
 class PerfilScreen extends ConsumerStatefulWidget {
   const PerfilScreen({super.key});
 
@@ -60,14 +45,12 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   final _vehiculoPlacaController = TextEditingController();
 
   bool _guardandoCambios = false;
-  String? _errorGuardar;
+  bool _notificacionesActivas = true;
+  bool _modoAdultoMayor = false;
 
   @override
   void initState() {
     super.initState();
-    // No se puede `ref.watch` en initState — se lee una sola vez. El
-    // correo no cambia mientras esta pantalla está abierta (no hay
-    // funcionalidad para editarlo).
     final estadoInicial = ref.read(authSessionProvider);
     final usuarioInicial = estadoInicial is AuthAutenticado ? estadoInicial.usuario : null;
     _correoController = TextEditingController(text: usuarioInicial?.correo ?? '');
@@ -88,15 +71,6 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     super.dispose();
   }
 
-  /// Carga completa: pisa TODOS los controllers con lo que devuelve la
-  /// API. Solo es seguro usarla cuando no hay riesgo de perder algo que
-  /// la persona esté tipeando sin guardar todavía — el primer arranque
-  /// (nada tipeado aún) y el pull-to-refresh explícito (la persona pidió
-  /// recargar a propósito, mismo criterio que cualquier otra pantalla
-  /// con `RefreshIndicator`). Para refrescos disparados por OTRA acción
-  /// (subir avatar/documento, pedir un rol) usar `_recargarSoloPerfil`
-  /// o `_onRolAgregado` — NUNCA esta, o se pierde texto sin guardar
-  /// (bug real: pasó justo así con la foto de perfil).
   Future<void> _cargarPerfil() async {
     setState(() {
       _cargandoPerfil = true;
@@ -128,12 +102,6 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     }
   }
 
-  /// Refresco "silencioso": solo actualiza `_perfil` (para que se vea
-  /// la URL nueva de un avatar/documento recién subido) — nunca toca un
-  /// controller de texto ni el spinner de pantalla completa. Es lo que
-  /// corresponde después de subir el avatar o un documento: son
-  /// acciones aparte de "Guardar cambios", no deberían poder pisar lo
-  /// que la persona esté tipeando en otro campo de la misma pantalla.
   Future<void> _recargarSoloPerfil() async {
     try {
       final perfil = await ref.read(obtenerPerfilUseCaseProvider).execute();
@@ -146,14 +114,6 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     }
   }
 
-  /// Tras "Solicitar ser Paciente/Domiciliario", la API puede devolver
-  /// dirección/cédula ya copiadas del otro perfil (ver
-  /// `20260823110000_solicitar_rol_reusa_datos.sql`) — hay que
-  /// mostrarlas sin esperar un pull-to-refresh manual. Pero a
-  /// diferencia de `_cargarPerfil`, solo toca los controllers del rol
-  /// recién otorgado (antes vacíos, nadie pudo haber tipeado nada ahí
-  /// todavía) — nunca los de Datos básicos ni los del otro rol, que sí
-  /// podrían tener texto sin guardar.
   Future<void> _onRolAgregado(String rolNuevo) async {
     try {
       final perfil = await ref.read(obtenerPerfilUseCaseProvider).execute();
@@ -215,13 +175,14 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       faltantes.add('dirección, tipo de vehículo y placa de Domiciliario');
     }
     if (faltantes.isNotEmpty) {
-      setState(() => _errorGuardar = 'Completa: ${faltantes.join('; ')}.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Completa: ${faltantes.join('; ')}.')),
+      );
       return;
     }
 
     setState(() {
       _guardandoCambios = true;
-      _errorGuardar = null;
     });
     try {
       await ref
@@ -250,21 +211,33 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             );
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Cambios guardados.')));
+      
+      Navigator.of(context).pop(); 
+      await _recargarSoloPerfil();
+      
+      // SNACKBAR PERSONALIZADO: Fondo blanco, letra azul
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Guardado exitosamente',
+            style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: Colors.white,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          elevation: 4,
+        ),
+      );
+      
     } on ApiException catch (error) {
-      setState(() => _errorGuardar = error.message);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
     } on ApiSinConexionException catch (error) {
-      setState(() => _errorGuardar = error.toString());
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _guardandoCambios = false);
     }
   }
 
-  /// Mudado acá desde Home (v3 lo tenía en el menú "Cuenta") — Perfil
-  /// es ahora el destino directo de la barra inferior donde vive todo
-  /// lo relacionado a la cuenta, cerrar sesión incluido.
   Future<void> _cerrarSesion(BuildContext context) async {
     await ref.read(authSessionProvider.notifier).cerrarSesion();
     ref.invalidate(modoActivoProvider);
@@ -278,498 +251,554 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     final estado = ref.watch(authSessionProvider);
     final usuario = estado is AuthAutenticado ? estado.usuario : null;
     final roles = usuario?.roles ?? const [];
-    // Mismo "modo" activo que se elige en home_screen.dart — si la cuenta
-    // es multirol, acá solo se muestra la tarjeta del rol activo, no la de
-    // todos los roles que tenga la cuenta (para cambiar de tarjeta hay que
-    // cambiar el modo en Inicio).
     final modo = ref.watch(modoActivoProvider) ?? (roles.isNotEmpty ? roles.first.codigo : null);
     final esPaciente = modo == 'PACIENTE';
     final esDomiciliario = modo == 'DOMICILIARIO';
-    // Distinto de esPaciente/esDomiciliario (que reflejan el "modo"
-    // activo, no qué roles tiene realmente la cuenta) — acá sí importa
-    // la existencia real del rol, para ofrecer "Solicitar ser X" solo
-    // cuando de verdad falta.
     final tienePaciente = roles.any((r) => r.codigo == 'PACIENTE');
     final tieneDomiciliario = roles.any((r) => r.codigo == 'DOMICILIARIO');
     final rolesDomiciliario = roles.where((r) => r.codigo == 'DOMICILIARIO');
     final estadoRolDomiciliario = rolesDomiciliario.isEmpty ? null : rolesDomiciliario.first.estado;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi perfil')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          'Tu perfil',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            color: AppColors.navy,
+          ),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
       bottomNavigationBar: const MainBottomBar(),
       body: _cargandoPerfil
           ? const Center(child: CircularProgressIndicator())
           : Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: RefreshIndicator(
-                  onRefresh: _cargarPerfil,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Center(
-                          child: _AvatarPerfil(
-                            fotoPerfilUrl: _perfil?.fotoPerfilUrl,
-                            onCambio: _recargarSoloPerfil,
+                constraints: const BoxConstraints(maxWidth: 500),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Encabezado con fondo BLANCO (sin degradado azul)
+                      _ProfileHeaderMinimalista(
+                        fotoPerfilUrl: _perfil?.fotoPerfilUrl,
+                        nombre: _perfil?.nombreCompleto ?? '',
+                        correo: _correoController.text,
+                        onCambio: _recargarSoloPerfil,
+                      ),
+                      const SizedBox(height: 32),
+
+                      // SECCIÓN: CUENTA
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4, bottom: 8),
+                        child: Text(
+                          'Cuenta',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.navy,
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        if (_errorCarga != null) ...[
-                          AppErrorBanner(mensaje: _errorCarga!),
-                          const SizedBox(height: 16),
-                        ],
-                        _SeccionDatosComunes(
-                          correoController: _correoController,
-                          nombreController: _nombreController,
-                          telefonoController: _telefonoController,
-                          enabled: !_guardandoCambios,
-                        ),
-                        if (esPaciente) ...[
-                          const SizedBox(height: 24),
-                          _SeccionPaciente(
-                            perfil: _perfil?.paciente,
-                            direccionController: _pacienteDireccionController,
-                            departamentoController: _pacienteDepartamentoController,
-                            ciudadController: _pacienteCiudadController,
-                            fechaNacimiento: _pacienteFechaNacimiento,
-                            onElegirFecha: _elegirFechaNacimiento,
-                            enabled: !_guardandoCambios,
-                            onCambio: _recargarSoloPerfil,
-                          ),
-                        ],
-                        if (esDomiciliario) ...[
-                          const SizedBox(height: 24),
-                          _SeccionDomiciliario(
-                            perfil: _perfil?.domiciliario,
-                            estadoRol: estadoRolDomiciliario,
-                            direccionController: _domiciliarioDireccionController,
-                            vehiculoTipoController: _vehiculoTipoController,
-                            vehiculoPlacaController: _vehiculoPlacaController,
-                            enabled: !_guardandoCambios,
-                            onCambio: _recargarSoloPerfil,
-                          ),
-                        ],
-                        const SizedBox(height: 24),
-                        if (_errorGuardar != null) ...[
-                          AppErrorBanner(mensaje: _errorGuardar!),
-                          const SizedBox(height: 12),
-                        ],
-                        AppLoadingButton(
-                          label: 'Guardar cambios',
-                          cargando: _guardandoCambios,
-                          onPressed: () => _guardarCambios(
-                            esPaciente: esPaciente,
-                            esDomiciliario: esDomiciliario,
-                          ),
-                        ),
-                        if (!tienePaciente || !tieneDomiciliario) ...[
-                          const SizedBox(height: 24),
-                          _SeccionAgregarRol(
-                            ofrecerPaciente: !tienePaciente,
-                            ofrecerDomiciliario: !tieneDomiciliario,
-                            onAgregado: _onRolAgregado,
-                          ),
-                        ],
-                        const SizedBox(height: 32),
-                        const _SeccionDesactivarCuenta(),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: () => _cerrarSesion(context),
-                            icon: const Icon(Icons.logout, color: AppColors.teal),
-                            label: const Text(
-                              'Cerrar sesión',
-                              style: TextStyle(color: AppColors.teal),
+                      ),
+                      
+                      // LISTA DE ROLES (SIN CAJÓN GRIS)
+                      if (roles.isNotEmpty) ...[
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            'Mis roles',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.navy,
                             ),
                           ),
                         ),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: roles.map((rol) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.skyBlue.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                rol.codigo,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.navy,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 12),
                       ],
+
+                      _CardAccion(
+                        icon: Icons.person_outline,
+                        iconColor: AppColors.navy,
+                        titulo: 'Información personal',
+                        subtitulo: 'Nombre, teléfono, correo',
+                        onTap: () => _showPersonalInfoDialog(),
+                      ),
+                      const SizedBox(height: 12),
+                      if (esPaciente)
+                        _CardAccion(
+                          icon: Icons.health_and_safety_outlined,
+                          iconColor: AppColors.navy,
+                          titulo: 'Datos de Paciente',
+                          subtitulo: 'Dirección, documentos',
+                          onTap: () => _showPacienteDialog(),
+                        ),
+                      if (esPaciente) const SizedBox(height: 12),
+                      if (esDomiciliario)
+                        _CardAccion(
+                          icon: Icons.delivery_dining_outlined,
+                          iconColor: AppColors.navy,
+                          titulo: 'Datos de Domiciliario',
+                          subtitulo: _getDomiciliarioStatus(estadoRolDomiciliario),
+                          onTap: () => _showDomiciliarioDialog(),
+                        ),
+                      if (esDomiciliario) const SizedBox(height: 12),
+                      // Botón para agregar otro rol solo si falta alguno
+                      if (!tienePaciente || !tieneDomiciliario) ...[
+                        _CardAccion(
+                          icon: Icons.add_circle_outline,
+                          iconColor: AppColors.navy,
+                          titulo: 'Agregar otro rol',
+                          subtitulo: 'Usá la misma cuenta para ambos roles',
+                          onTap: () => _showAgregarRolDialog(),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      
+                      const SizedBox(height: 40),
+
+                      // SECCIÓN: NOTIFICACIONES
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4, bottom: 8),
+                        child: Text(
+                          'Notificaciones',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.navy,
+                          ),
+                        ),
+                      ),
+                      _CardSwitch(
+                        icon: Icons.notifications_none_rounded,
+                        iconColor: AppColors.navy,
+                        titulo: 'Notificaciones',
+                        subtitulo: 'Avisos de entregas',
+                        valor: _notificacionesActivas,
+                        onChanged: (val) => setState(() => _notificacionesActivas = val),
+                      ),
+                      
+                      const SizedBox(height: 40),
+
+                      // SECCIÓN: ACCESIBILIDAD
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4, bottom: 8),
+                        child: Text(
+                          'Accesibilidad',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.navy,
+                          ),
+                        ),
+                      ),
+                      _CardSwitch(
+                        icon: Icons.accessibility_new_rounded,
+                        iconColor: AppColors.navy,
+                        titulo: 'Modo adulto mayor',
+                        subtitulo: 'Texto y botones más grandes',
+                        valor: _modoAdultoMayor,
+                        onChanged: (val) => setState(() => _modoAdultoMayor = val),
+                      ),
+                      
+                      const SizedBox(height: 40),
+
+                      // SECCIÓN: SEGURIDAD
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4, bottom: 8),
+                        child: Text(
+                          'Seguridad',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.navy,
+                          ),
+                        ),
+                      ),
+                      _CardAccion(
+                        icon: Icons.lock_outline,
+                        iconColor: AppColors.navy,
+                        titulo: 'Seguridad',
+                        subtitulo: 'Cambiar contraseña',
+                        onTap: () => Navigator.of(context).pushNamed(CambiarContrasenaScreen.routeName),
+                      ),
+                      const SizedBox(height: 12),
+                      _CardAccion(
+                        icon: Icons.help_outline,
+                        iconColor: AppColors.navy,
+                        titulo: 'Ayuda',
+                        subtitulo: 'Soporte y preguntas frecuentes',
+                        onTap: () => _showHelpDialog(),
+                      ),
+                      const SizedBox(height: 12),
+                      _CardAccion(
+                        icon: Icons.logout,
+                        iconColor: AppColors.navy,
+                        titulo: 'Cerrar sesión',
+                        subtitulo: 'Salir de tu cuenta',
+                        onTap: () => _cerrarSesion(context),
+                      ),
+                      const SizedBox(height: 12),
+                      _CardAccion(
+                        icon: Icons.warning_amber_rounded,
+                        iconColor: AppColors.navy,
+                        titulo: 'Desactivar cuenta',
+                        subtitulo: 'Esta acción es permanente',
+                        onTap: () => _showDesactivarCuentaDialog(),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+
+  void _showPersonalInfoDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _EditarPerfilBottomSheet(
+        title: 'Información personal',
+        children: [
+          _CampoPerfil(
+            label: 'Correo electrónico',
+            icono: Icons.email_outlined,
+            controller: _correoController,
+            enabled: false,
+          ),
+          const SizedBox(height: 12),
+          _CampoPerfil(
+            label: 'Nombre completo',
+            icono: Icons.person_outline,
+            controller: _nombreController,
+            enabled: !_guardandoCambios,
+          ),
+          const SizedBox(height: 12),
+          _CampoPerfil(
+            label: 'Teléfono',
+            icono: Icons.phone_outlined,
+            controller: _telefonoController,
+            keyboardType: TextInputType.phone,
+            enabled: !_guardandoCambios,
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 50,
+            child: AppLoadingButton(
+              label: 'Guardar cambios',
+              cargando: _guardandoCambios,
+              onPressed: () => _guardarCambios(
+                esPaciente: false,
+                esDomiciliario: false,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPacienteDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _EditarPerfilBottomSheet(
+        title: 'Datos de Paciente',
+        children: [
+          _CampoPerfil(
+            label: 'Dirección de entrega',
+            icono: Icons.home_outlined,
+            controller: _pacienteDireccionController,
+            enabled: !_guardandoCambios,
+          ),
+          const SizedBox(height: 12),
+          _CampoPerfil(
+            label: 'Departamento',
+            icono: Icons.map_outlined,
+            controller: _pacienteDepartamentoController,
+            enabled: !_guardandoCambios,
+          ),
+          const SizedBox(height: 12),
+          _CampoPerfil(
+            label: 'Ciudad',
+            icono: Icons.location_city_outlined,
+            controller: _pacienteCiudadController,
+            enabled: !_guardandoCambios,
+          ),
+          const SizedBox(height: 12),
+          _CampoFechaPerfil(
+            label: 'Fecha de nacimiento',
+            fecha: _pacienteFechaNacimiento,
+            onTap: !_guardandoCambios ? _elegirFechaNacimiento : null,
+          ),
+          const SizedBox(height: 16),
+          const Divider(color: AppColors.skyBlue, height: 1),
+          const SizedBox(height: 12),
+          const Text(
+            'Documentos',
+            style: TextStyle(
+              color: AppColors.navy,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _DocumentoUploadRow(
+            label: 'Cédula (frente)',
+            url: _perfil?.paciente?.fotoCedulaFrenteUrl,
+            onArchivoElegido: (bytes, nombre, contentType) async {
+              await ref
+                  .read(subirFotoCedulaPacienteUseCaseProvider)
+                  .execute(
+                    lado: LadoDocumento.frente,
+                    bytes: bytes,
+                    nombreArchivo: nombre,
+                    contentType: contentType,
+                  );
+              await _recargarSoloPerfil();
+            },
+          ),
+          const SizedBox(height: 8),
+          _DocumentoUploadRow(
+            label: 'Cédula (reverso)',
+            url: _perfil?.paciente?.fotoCedulaReversoUrl,
+            onArchivoElegido: (bytes, nombre, contentType) async {
+              await ref
+                  .read(subirFotoCedulaPacienteUseCaseProvider)
+                  .execute(
+                    lado: LadoDocumento.reverso,
+                    bytes: bytes,
+                    nombreArchivo: nombre,
+                    contentType: contentType,
+                  );
+              await _recargarSoloPerfil();
+            },
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 50,
+            child: AppLoadingButton(
+              label: 'Guardar cambios',
+              cargando: _guardandoCambios,
+              onPressed: () => _guardarCambios(
+                esPaciente: true,
+                esDomiciliario: false,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDomiciliarioDialog() {
+    final estado = _getDomiciliarioStatusRaw();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _EditarPerfilBottomSheet(
+        title: 'Datos de Domiciliario',
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: estado == 'habilitado'
+                  ? AppColors.teal.withValues(alpha: 0.1)
+                  : estado == 'pendiente_validacion'
+                      ? Colors.orange.withValues(alpha: 0.1)
+                      : estado == 'rechazado'
+                          ? Colors.red.withValues(alpha: 0.1)
+                          : AppColors.skyBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  estado == 'habilitado'
+                      ? Icons.check_circle
+                      : estado == 'pendiente_validacion'
+                          ? Icons.hourglass_empty
+                          : estado == 'rechazado'
+                              ? Icons.cancel
+                              : Icons.info_outline,
+                  color: estado == 'habilitado'
+                      ? AppColors.teal
+                      : estado == 'pendiente_validacion'
+                          ? Colors.orange
+                          : estado == 'rechazado'
+                              ? Colors.red
+                              : AppColors.teal,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _getDomiciliarioStatus(estado),
+                    style: TextStyle(
+                      color: estado == 'habilitado'
+                          ? AppColors.teal
+                          : estado == 'pendiente_validacion'
+                              ? Colors.orange
+                              : estado == 'rechazado'
+                                  ? Colors.red
+                                  : AppColors.teal,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _CampoPerfil(
+            label: 'Dirección de residencia',
+            icono: Icons.home_outlined,
+            controller: _domiciliarioDireccionController,
+            enabled: !_guardandoCambios,
+          ),
+          const SizedBox(height: 12),
+          _CampoPerfil(
+            label: 'Tipo de vehículo',
+            icono: Icons.two_wheeler_outlined,
+            controller: _vehiculoTipoController,
+            enabled: !_guardandoCambios,
+          ),
+          const SizedBox(height: 12),
+          _CampoPerfil(
+            label: 'Placa',
+            icono: Icons.pin_outlined,
+            controller: _vehiculoPlacaController,
+            enabled: !_guardandoCambios,
+          ),
+          const SizedBox(height: 16),
+          const Divider(color: AppColors.skyBlue, height: 1),
+          const SizedBox(height: 12),
+          const Text(
+            'Documentos de validación',
+            style: TextStyle(
+              color: AppColors.navy,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _DocumentoUploadRow(
+            label: 'Cédula (frente)',
+            url: _perfil?.domiciliario?.cedulaFrenteUrl,
+            onArchivoElegido: (b, n, c) =>
+                _subirDocumentoDomiciliario(TipoDocumentoDomiciliario.cedulaFrente, b, n, c),
+          ),
+          const SizedBox(height: 8),
+          _DocumentoUploadRow(
+            label: 'Cédula (reverso)',
+            url: _perfil?.domiciliario?.cedulaReversoUrl,
+            onArchivoElegido: (b, n, c) =>
+                _subirDocumentoDomiciliario(TipoDocumentoDomiciliario.cedulaReverso, b, n, c),
+          ),
+          const SizedBox(height: 8),
+          _DocumentoUploadRow(
+            label: 'Licencia de conducción',
+            url: _perfil?.domiciliario?.licenciaUrl,
+            onArchivoElegido: (b, n, c) =>
+                _subirDocumentoDomiciliario(TipoDocumentoDomiciliario.licencia, b, n, c),
+          ),
+          const SizedBox(height: 8),
+          _DocumentoUploadRow(
+            label: 'SOAT',
+            url: _perfil?.domiciliario?.soatUrl,
+            onArchivoElegido: (b, n, c) =>
+                _subirDocumentoDomiciliario(TipoDocumentoDomiciliario.soat, b, n, c),
+          ),
+          const SizedBox(height: 8),
+          _DocumentoUploadRow(
+            label: 'Tecnomecánica',
+            url: _perfil?.domiciliario?.tecnicomecanicaUrl,
+            onArchivoElegido: (b, n, c) =>
+                _subirDocumentoDomiciliario(TipoDocumentoDomiciliario.tecnicomecanica, b, n, c),
+          ),
+          if (estado == 'borrador') ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 50,
+              child: AppLoadingButton(
+                label: 'Enviar solicitud de validación',
+                cargando: _guardandoCambios,
+                onPressed: () => _enviarSolicitudDomiciliario(),
               ),
             ),
-    );
-  }
-}
-
-/// Avatar del usuario, en la cabecera de la pantalla — muestra la foto de
-/// perfil ya subida (URL firmada) o el badge por defecto, con un botón de
-/// cámara superpuesto para subir/reemplazar.
-class _AvatarPerfil extends ConsumerStatefulWidget {
-  const _AvatarPerfil({required this.fotoPerfilUrl, required this.onCambio});
-
-  final String? fotoPerfilUrl;
-  final Future<void> Function() onCambio;
-
-  @override
-  ConsumerState<_AvatarPerfil> createState() => _AvatarPerfilState();
-}
-
-class _AvatarPerfilState extends ConsumerState<_AvatarPerfil> {
-  bool _subiendo = false;
-  String? _error;
-
-  Future<void> _elegirYSubir() async {
-    final origen = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Tomar foto'),
-              onTap: () => Navigator.of(context).pop(ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Elegir de la galería'),
-              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
-            ),
           ],
-        ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 50,
+            child: AppLoadingButton(
+              label: 'Guardar cambios',
+              cargando: _guardandoCambios,
+              onPressed: () => _guardarCambios(
+                esPaciente: false,
+                esDomiciliario: true,
+              ),
+            ),
+          ),
+        ],
       ),
     );
-    if (origen == null) return;
+  }
 
-    final archivo = await ImagePicker().pickImage(source: origen, imageQuality: 85);
-    if (archivo == null || !mounted) return;
-
-    setState(() {
-      _subiendo = true;
-      _error = null;
-    });
-    try {
-      final bytes = await archivo.readAsBytes();
-      await ref
-          .read(subirFotoPerfilUseCaseProvider)
-          .execute(
-            bytes: bytes,
-            nombreArchivo: archivo.name,
-            contentType: _contentTypeDesde(archivo.name),
-          );
-      await widget.onCambio();
-    } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } on ApiSinConexionException catch (e) {
-      if (mounted) setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _subiendo = false);
+  String _getDomiciliarioStatus(String? estado) {
+    switch (estado) {
+      case 'pendiente_validacion':
+        return 'Tu solicitud está en revisión';
+      case 'habilitado':
+        return 'Ya estás validado como Domiciliario';
+      case 'rechazado':
+        return 'Solicitud rechazada';
+      default:
+        return 'Completa tus datos y envía la solicitud';
     }
   }
 
-  String _contentTypeDesde(String nombreArchivo) {
-    final minuscula = nombreArchivo.toLowerCase();
-    if (minuscula.endsWith('.png')) return 'image/png';
-    return 'image/jpeg';
+  String? _getDomiciliarioStatusRaw() {
+    final roles = ref.read(authSessionProvider);
+    final usuario = roles is AuthAutenticado ? roles.usuario : null;
+    final rolesDomiciliario = usuario?.roles.where((r) => r.codigo == 'DOMICILIARIO') ?? [];
+    return rolesDomiciliario.isEmpty ? null : rolesDomiciliario.first.estado;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            ClipOval(
-              child: widget.fotoPerfilUrl != null
-                  ? Image.network(
-                      widget.fotoPerfilUrl!,
-                      width: 96,
-                      height: 96,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return const SizedBox(
-                          width: 96,
-                          height: 96,
-                          child: Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) =>
-                          const AppIconBadge(icono: Icons.badge_outlined),
-                    )
-                  : const AppIconBadge(icono: Icons.badge_outlined),
-            ),
-            Positioned(
-              right: -4,
-              bottom: -4,
-              child: InkWell(
-                onTap: _subiendo ? null : _elegirYSubir,
-                customBorder: const CircleBorder(),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: const BoxDecoration(
-                    color: AppColors.navy,
-                    shape: BoxShape.circle,
-                  ),
-                  child: _subiendo
-                      ? const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.white,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.photo_camera_outlined,
-                          color: AppColors.white,
-                          size: 18,
-                        ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 8),
-          AppErrorBanner(mensaje: _error!),
-        ],
-      ],
-    );
-  }
-}
-
-/// Encabezado de sección — mismo estilo en las 3 tarjetas.
-class _TituloSeccion extends StatelessWidget {
-  const _TituloSeccion(this.texto);
-
-  final String texto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      texto,
-      style: const TextStyle(
-        color: AppColors.navy,
-        fontWeight: FontWeight.w700,
-        fontSize: 16,
-      ),
-    );
-  }
-}
-
-class _Tarjeta extends StatelessWidget {
-  const _Tarjeta({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.skyBlue),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
-    );
-  }
-}
-
-/// G02/G03/G04 — nombre y teléfono, comunes a cualquier rol. Los
-/// controllers los posee `PerfilScreen` (guardado unificado) — esta
-/// sección solo muestra los campos y "Cambiar contraseña" (acción
-/// aparte, no un dato de formulario).
-class _SeccionDatosComunes extends StatelessWidget {
-  const _SeccionDatosComunes({
-    required this.correoController,
-    required this.nombreController,
-    required this.telefonoController,
-    required this.enabled,
-  });
-
-  final TextEditingController correoController;
-  final TextEditingController nombreController;
-  final TextEditingController telefonoController;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Tarjeta(
-      children: [
-        const _TituloSeccion('Datos básicos'),
-        const SizedBox(height: 12),
-        AppTextField(
-          label: 'Correo',
-          icono: Icons.email_outlined,
-          controller: correoController,
-          enabled: false,
-        ),
-        const SizedBox(height: 12),
-        AppTextField(
-          label: 'Nombre completo',
-          icono: Icons.person_outline,
-          controller: nombreController,
-          enabled: enabled,
-        ),
-        const SizedBox(height: 12),
-        AppTextField(
-          label: 'Teléfono',
-          icono: Icons.phone_outlined,
-          controller: telefonoController,
-          keyboardType: TextInputType.phone,
-          enabled: enabled,
-        ),
-        const SizedBox(height: 16),
-        AppButton(
-          variante: AppButtonVariante.secondary,
-          label: 'Cambiar contraseña',
-          onPressed: () =>
-              Navigator.of(context).pushNamed(CambiarContrasenaScreen.routeName),
-        ),
-      ],
-    );
-  }
-}
-
-/// G01/G03/G04 — dirección, fecha de nacimiento y foto de cédula. El
-/// controller de dirección y la fecha los posee `PerfilScreen`
-/// (guardado unificado); la foto de cédula sigue siendo una subida
-/// inmediata al elegir el archivo, no pasa por "Guardar cambios".
-class _SeccionPaciente extends ConsumerWidget {
-  const _SeccionPaciente({
-    required this.perfil,
-    required this.direccionController,
-    required this.departamentoController,
-    required this.ciudadController,
-    required this.fechaNacimiento,
-    required this.onElegirFecha,
-    required this.enabled,
-    required this.onCambio,
-  });
-
-  final dynamic perfil;
-  final TextEditingController direccionController;
-  final TextEditingController departamentoController;
-  final TextEditingController ciudadController;
-  final DateTime? fechaNacimiento;
-  final VoidCallback onElegirFecha;
-  final bool enabled;
-  final Future<void> Function() onCambio;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return _Tarjeta(
-      children: [
-        const _TituloSeccion('Perfil de Paciente'),
-        const SizedBox(height: 12),
-        AppTextField(
-          label: 'Dirección de entrega',
-          icono: Icons.home_outlined,
-          controller: direccionController,
-          enabled: enabled,
-        ),
-        const SizedBox(height: 12),
-        // HU-09: departamento/ciudad se usan para geolocalizar la
-        // dirección al crear un pedido (asignación por cercanía) — sin
-        // esto la API no puede calcular la distancia al domiciliario.
-        AppTextField(
-          label: 'Departamento',
-          icono: Icons.map_outlined,
-          controller: departamentoController,
-          enabled: enabled,
-        ),
-        const SizedBox(height: 12),
-        AppTextField(
-          label: 'Ciudad',
-          icono: Icons.location_city_outlined,
-          controller: ciudadController,
-          enabled: enabled,
-        ),
-        const SizedBox(height: 12),
-        _CampoFecha(
-          label: 'Fecha de nacimiento',
-          fecha: fechaNacimiento,
-          onTap: enabled ? onElegirFecha : null,
-        ),
-        const SizedBox(height: 16),
-        // La cédula colombiana trae información necesaria en las dos
-        // caras — se piden y se muestran por separado, ambas
-        // obligatorias antes de poder enviar una solicitud
-        // (`app.crear_solicitud` las exige a las dos).
-        _DocumentoUploadRow(
-          label: 'Cédula (frente)',
-          url: perfil?.fotoCedulaFrenteUrl,
-          onArchivoElegido: (bytes, nombre, contentType) async {
-            await ref
-                .read(subirFotoCedulaPacienteUseCaseProvider)
-                .execute(
-                  lado: LadoDocumento.frente,
-                  bytes: bytes,
-                  nombreArchivo: nombre,
-                  contentType: contentType,
-                );
-            await onCambio();
-          },
-        ),
-        const SizedBox(height: 12),
-        _DocumentoUploadRow(
-          label: 'Cédula (reverso)',
-          url: perfil?.fotoCedulaReversoUrl,
-          onArchivoElegido: (bytes, nombre, contentType) async {
-            await ref
-                .read(subirFotoCedulaPacienteUseCaseProvider)
-                .execute(
-                  lado: LadoDocumento.reverso,
-                  bytes: bytes,
-                  nombreArchivo: nombre,
-                  contentType: contentType,
-                );
-            await onCambio();
-          },
-        ),
-      ],
-    );
-  }
-}
-
-/// G01/G03/G04 — dirección, vehículo y documentos de validación. Los
-/// controllers de dirección/vehículo los posee `PerfilScreen` (guardado
-/// unificado). Documentos y "Enviar solicitud" quedan aparte — acciones
-/// propias, no datos de "Guardar cambios".
-class _SeccionDomiciliario extends ConsumerStatefulWidget {
-  const _SeccionDomiciliario({
-    required this.perfil,
-    required this.estadoRol,
-    required this.direccionController,
-    required this.vehiculoTipoController,
-    required this.vehiculoPlacaController,
-    required this.enabled,
-    required this.onCambio,
-  });
-
-  final dynamic perfil;
-
-  /// Estado de `usuario_roles` para DOMICILIARIO — a diferencia de
-  /// `perfil` (los datos en sí), esto dice en qué parte del flujo de
-  /// validación está la cuenta: `borrador` (recién ahora se completa,
-  /// todavía no se envió), `pendiente_validacion` (ya enviada, un admin
-  /// la está revisando), `habilitado` (aprobada) o `rechazado`.
-  final String? estadoRol;
-  final TextEditingController direccionController;
-  final TextEditingController vehiculoTipoController;
-  final TextEditingController vehiculoPlacaController;
-  final bool enabled;
-  final Future<void> Function() onCambio;
-
-  @override
-  ConsumerState<_SeccionDomiciliario> createState() => _SeccionDomiciliarioState();
-}
-
-class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
-  bool _enviando = false;
-  String? _error;
-
-  Future<void> _subirDocumento(
+  Future<void> _subirDocumentoDomiciliario(
     TipoDocumentoDomiciliario tipo,
     List<int> bytes,
     String nombre,
@@ -783,342 +812,806 @@ class _SeccionDomiciliarioState extends ConsumerState<_SeccionDomiciliario> {
           nombreArchivo: nombre,
           contentType: contentType,
         );
-    await widget.onCambio();
+    await _recargarSoloPerfil();
   }
 
-  /// Mismos 7 campos obligatorios que ya exige `app.enviar_solicitud_
-  /// domiciliario`/`app.aprobar_domiciliario` — se deshabilita "Enviar
-  /// solicitud" preventivamente en vez de depender de chocar con el 422.
-  /// A propósito lee `widget.perfil` (lo ya guardado en el servidor), no
-  /// los controllers (lo que se está tipeando pero todavía no se
-  /// guardó) — enviar la solicitud es sobre lo que el servidor ya tiene.
-  List<String> _calcularFaltantes() {
-    final p = widget.perfil;
-    final faltantes = <String>[];
-    if ((p?.direccion as String?)?.trim().isNotEmpty != true) {
-      faltantes.add('Dirección de residencia');
-    }
-    if ((p?.vehiculoTipo as String?)?.trim().isNotEmpty != true) {
-      faltantes.add('Tipo de vehículo');
-    }
-    if ((p?.vehiculoPlaca as String?)?.trim().isNotEmpty != true) {
-      faltantes.add('Placa');
-    }
-    if (p?.cedulaFrenteUrl == null) faltantes.add('Cédula (frente)');
-    if (p?.cedulaReversoUrl == null) faltantes.add('Cédula (reverso)');
-    if (p?.licenciaUrl == null) faltantes.add('Licencia de conducción');
-    if (p?.soatUrl == null) faltantes.add('SOAT');
-    if (p?.tecnicomecanicaUrl == null) faltantes.add('Tecnomecánica');
-    return faltantes;
-  }
-
-  Future<void> _enviarSolicitud() async {
-    setState(() {
-      _enviando = true;
-      _error = null;
-    });
+  Future<void> _enviarSolicitudDomiciliario() async {
+    setState(() => _guardandoCambios = true);
     try {
-      final mensaje =
-          await ref.read(enviarSolicitudDomiciliarioUseCaseProvider).execute();
-      // El estado del rol pasa de borrador a pendiente_validacion — no
-      // viaja en el JWT ni en GET /perfil, vive en la sesión
-      // (authSessionProvider). Sin refrescarla acá, "estadoRol" seguía
-      // mostrando "borrador" (y el botón "Enviar solicitud" seguía
-      // habilitado) hasta cerrar y volver a entrar a la pantalla.
+      final mensaje = await ref.read(enviarSolicitudDomiciliarioUseCaseProvider).execute();
       final usuarioActualizado = await ref.read(obtenerSesionActualUseCaseProvider).execute();
       ref.read(authSessionProvider.notifier).sesionIniciada(usuarioActualizado);
-      await widget.onCambio();
+      await _recargarSoloPerfil();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
     } on ApiException catch (error) {
-      setState(() => _error = error.message);
-    } on ApiSinConexionException catch (error) {
-      setState(() => _error = error.toString());
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
     } finally {
-      if (mounted) setState(() => _enviando = false);
+      if (mounted) setState(() => _guardandoCambios = false);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return _Tarjeta(
-      children: [
-        const _TituloSeccion('Perfil de Domiciliario'),
-        const SizedBox(height: 4),
-        Text(
-          switch (widget.estadoRol) {
-            'pendiente_validacion' => 'Tu solicitud está en revisión por un administrador.',
-            'habilitado' => 'Ya estás validado como Domiciliario.',
-            'rechazado' => 'Tu solicitud fue rechazada.',
-            _ => 'Completá tus datos y enviá la solicitud para que un administrador te valide.',
-          },
-          style: const TextStyle(color: AppColors.teal, fontSize: 13),
-        ),
-        const SizedBox(height: 12),
-        if (_error != null) ...[
-          AppErrorBanner(mensaje: _error!),
-          const SizedBox(height: 12),
-        ],
-        AppTextField(
-          label: 'Dirección de residencia',
-          icono: Icons.home_outlined,
-          controller: widget.direccionController,
-          enabled: widget.enabled,
-        ),
-        const SizedBox(height: 12),
-        AppTextField(
-          label: 'Tipo de vehículo',
-          icono: Icons.two_wheeler_outlined,
-          controller: widget.vehiculoTipoController,
-          enabled: widget.enabled,
-        ),
-        const SizedBox(height: 12),
-        AppTextField(
-          label: 'Placa',
-          icono: Icons.pin_outlined,
-          controller: widget.vehiculoPlacaController,
-          enabled: widget.enabled,
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Documentos de validación',
-          style: TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
-        // La cédula colombiana trae información necesaria en las dos
-        // caras — se piden por separado, ambas obligatorias antes de
-        // que `aprobar_domiciliario`/`enviar_solicitud_domiciliario`
-        // dejen pasar la validación.
-        _DocumentoUploadRow(
-          label: 'Cédula (frente)',
-          url: widget.perfil?.cedulaFrenteUrl,
-          onArchivoElegido: (b, n, c) =>
-              _subirDocumento(TipoDocumentoDomiciliario.cedulaFrente, b, n, c),
-        ),
-        const SizedBox(height: 8),
-        _DocumentoUploadRow(
-          label: 'Cédula (reverso)',
-          url: widget.perfil?.cedulaReversoUrl,
-          onArchivoElegido: (b, n, c) =>
-              _subirDocumento(TipoDocumentoDomiciliario.cedulaReverso, b, n, c),
-        ),
-        const SizedBox(height: 8),
-        _DocumentoUploadRow(
-          label: 'Licencia de conducción',
-          url: widget.perfil?.licenciaUrl,
-          onArchivoElegido: (b, n, c) => _subirDocumento(TipoDocumentoDomiciliario.licencia, b, n, c),
-        ),
-        const SizedBox(height: 8),
-        _DocumentoUploadRow(
-          label: 'SOAT',
-          url: widget.perfil?.soatUrl,
-          onArchivoElegido: (b, n, c) => _subirDocumento(TipoDocumentoDomiciliario.soat, b, n, c),
-        ),
-        const SizedBox(height: 8),
-        _DocumentoUploadRow(
-          label: 'Tecnomecánica',
-          url: widget.perfil?.tecnicomecanicaUrl,
-          onArchivoElegido: (b, n, c) =>
-              _subirDocumento(TipoDocumentoDomiciliario.tecnicomecanica, b, n, c),
-        ),
-        if (widget.estadoRol == 'borrador') ...[
-          const SizedBox(height: 16),
-          AppLoadingButton(
-            label: 'Enviar solicitud',
-            cargando: _enviando,
-            onPressed: _calcularFaltantes().isEmpty ? _enviarSolicitud : null,
-          ),
-          if (_calcularFaltantes().isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Para enviar falta: ${_calcularFaltantes().join(', ')}.',
-              style: const TextStyle(color: AppColors.teal, fontSize: 13),
-            ),
-          ],
-        ],
-      ],
-    );
-  }
-}
-
-/// Ofrece pedir el rol que le falta a la cuenta (PACIENTE y/o
-/// DOMICILIARIO) sin pasar por un registro nuevo. Al agregarse, refresca
-/// los roles de la sesión (`authSessionProvider.sesionIniciada` — los
-/// roles no viven en el JWT, hay que volver a pedirlos), el perfil (los
-/// datos recién copiados del otro rol) y cambia el "Modo" al rol nuevo
-/// para que la persona vea de una el formulario que acaba de pedir.
-class _SeccionAgregarRol extends ConsumerStatefulWidget {
-  const _SeccionAgregarRol({
-    required this.ofrecerPaciente,
-    required this.ofrecerDomiciliario,
-    required this.onAgregado,
-  });
-
-  final bool ofrecerPaciente;
-  final bool ofrecerDomiciliario;
-
-  /// Recarga el perfil del padre — el rol nuevo puede llegar con
-  /// dirección/foto de cédula ya copiadas del otro perfil (API), y sin
-  /// esto no se verían hasta un pull-to-refresh manual. Recibe qué rol se
-  /// acaba de otorgar para que el padre actualice solo los controllers de
-  /// ESE rol (recién otorgado, nadie pudo haber tipeado nada ahí todavía)
-  /// y no pise datos sin guardar de Datos básicos ni del otro rol.
-  final Future<void> Function(String rolNuevo) onAgregado;
-
-  @override
-  ConsumerState<_SeccionAgregarRol> createState() => _SeccionAgregarRolState();
-}
-
-class _SeccionAgregarRolState extends ConsumerState<_SeccionAgregarRol> {
-  bool _procesando = false;
-  String? _error;
-
-  Future<void> _solicitar(String rolNuevo, Future<String> Function() ejecutar) async {
-    setState(() {
-      _procesando = true;
-      _error = null;
-    });
-    try {
-      final mensaje = await ejecutar();
-      final usuarioActualizado = await ref.read(obtenerSesionActualUseCaseProvider).execute();
-      ref.read(authSessionProvider.notifier).sesionIniciada(usuarioActualizado);
-      // Cambia el "Modo" al rol recién otorgado para que la persona vea
-      // de una la pantalla que le corresponde (Perfil de Paciente/
-      // Domiciliario) — sin esto, con más de un rol ahora en la cuenta,
-      // tendría que ir a Inicio y cambiar de modo a mano para encontrar
-      // el formulario que acaba de pedir.
-      ref.read(modoActivoProvider.notifier).state = rolNuevo;
-      await widget.onAgregado(rolNuevo);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
-    } on ApiException catch (error) {
-      setState(() => _error = error.message);
-    } on ApiSinConexionException catch (error) {
-      setState(() => _error = error.toString());
-    } finally {
-      if (mounted) setState(() => _procesando = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _Tarjeta(
-      children: [
-        const _TituloSeccion('Otro rol'),
-        const SizedBox(height: 4),
-        const Text(
-          'Podés usar la misma cuenta para los dos roles.',
-          style: TextStyle(color: AppColors.teal, fontSize: 13),
-        ),
-        const SizedBox(height: 12),
-        if (_error != null) ...[
-          AppErrorBanner(mensaje: _error!),
-          const SizedBox(height: 12),
-        ],
-        if (widget.ofrecerPaciente) ...[
-          AppLoadingButton(
-            variante: AppButtonVariante.secondary,
-            label: 'Solicitar ser Paciente',
-            cargando: _procesando,
-            onPressed: () => _solicitar(
-              'PACIENTE',
-              () => ref.read(solicitarRolPacienteUseCaseProvider).execute(),
-            ),
-          ),
-          if (widget.ofrecerDomiciliario) const SizedBox(height: 8),
-        ],
-        if (widget.ofrecerDomiciliario)
-          AppLoadingButton(
-            variante: AppButtonVariante.secondary,
-            label: 'Solicitar ser Domiciliario',
-            cargando: _procesando,
-            onPressed: () => _solicitar(
-              'DOMICILIARIO',
-              () => ref.read(solicitarRolDomiciliarioUseCaseProvider).execute(),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// G05 — desactivar cuenta, con confirmación explícita.
-class _SeccionDesactivarCuenta extends ConsumerStatefulWidget {
-  const _SeccionDesactivarCuenta();
-
-  @override
-  ConsumerState<_SeccionDesactivarCuenta> createState() =>
-      _SeccionDesactivarCuentaState();
-}
-
-class _SeccionDesactivarCuentaState extends ConsumerState<_SeccionDesactivarCuenta> {
-  bool _procesando = false;
-  String? _error;
-
-  Future<void> _confirmarYDesactivar() async {
-    final confirmado = await showDialog<bool>(
+  void _showAgregarRolDialog() {
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Desactivar cuenta'),
-        content: const Text(
-          'Tu cuenta pasará a estado inactivo y se cerrará tu sesión. '
-          '¿Querés continuar?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _EditarPerfilBottomSheet(
+        title: 'Agregar otro rol',
+        children: [
+          const Text(
+            'Usá la misma cuenta para ambos roles',
+            style: TextStyle(color: AppColors.teal, fontSize: 14),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Desactivar'),
+          const SizedBox(height: 16),
+          _RolOption(
+            icon: Icons.health_and_safety_outlined,
+            title: 'Solicitar ser Paciente',
+            subtitle: 'Accede a servicios de salud',
+            onTap: () async {
+              await _solicitarRol('PACIENTE');
+            },
+          ),
+          const SizedBox(height: 12),
+          _RolOption(
+            icon: Icons.delivery_dining_outlined,
+            title: 'Solicitar ser Domiciliario',
+            subtitle: 'Realiza entregas de medicamentos',
+            onTap: () async {
+              await _solicitarRol('DOMICILIARIO');
+            },
           ),
         ],
       ),
     );
-    if (confirmado != true) return;
+  }
 
-    setState(() {
-      _procesando = true;
-      _error = null;
-    });
+  Future<void> _solicitarRol(String rol) async {
+    try {
+      final mensaje = rol == 'PACIENTE'
+          ? await ref.read(solicitarRolPacienteUseCaseProvider).execute()
+          : await ref.read(solicitarRolDomiciliarioUseCaseProvider).execute();
+      final usuarioActualizado = await ref.read(obtenerSesionActualUseCaseProvider).execute();
+      ref.read(authSessionProvider.notifier).sesionIniciada(usuarioActualizado);
+      ref.read(modoActivoProvider.notifier).state = rol;
+      await _onRolAgregado(rol);
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
+    } on ApiException catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+    }
+  }
+
+  void _showHelpDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _EditarPerfilBottomSheet(
+        title: 'Ayuda y soporte',
+        children: [
+          _HelpOption(
+            icon: Icons.question_answer_outlined,
+            title: 'Preguntas frecuentes',
+            subtitle: 'Respuestas a dudas comunes',
+          ),
+          const SizedBox(height: 12),
+          _HelpOption(
+            icon: Icons.chat_outlined,
+            title: 'Contactar soporte',
+            subtitle: 'Habla con nuestro equipo',
+          ),
+          const SizedBox(height: 12),
+          _HelpOption(
+            icon: Icons.description_outlined,
+            title: 'Términos y condiciones',
+            subtitle: 'Políticas de uso',
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDesactivarCuentaDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _EditarPerfilBottomSheet(
+        title: 'Desactivar cuenta',
+        isDestructive: true,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Esta acción es permanente y no se puede deshacer. '
+                    'Tu cuenta pasará a estado inactivo y se cerrará tu sesión.',
+                    style: TextStyle(color: Colors.red, fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 50,
+            child: AppLoadingButton(
+              label: 'Confirmar desactivación',
+              variante: AppButtonVariante.secondary,
+              cargando: _guardandoCambios,
+              onPressed: _desactivarCuenta,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _desactivarCuenta() async {
+    setState(() => _guardandoCambios = true);
     try {
       await ref.read(desactivarCuentaUseCaseProvider).execute();
       await ref.read(authSessionProvider.notifier).cerrarSesion();
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
     } on ApiException catch (error) {
-      setState(() => _error = error.message);
-    } on ApiSinConexionException catch (error) {
-      setState(() => _error = error.toString());
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
     } finally {
-      if (mounted) setState(() => _procesando = false);
+      if (mounted) setState(() => _guardandoCambios = false);
     }
+  }
+}
+
+// ==================== WIDGETS MINIMALISTAS ====================
+
+class _ProfileHeaderMinimalista extends ConsumerStatefulWidget {
+  const _ProfileHeaderMinimalista({
+    required this.fotoPerfilUrl,
+    required this.nombre,
+    required this.correo,
+    required this.onCambio,
+  });
+
+  final String? fotoPerfilUrl;
+  final String nombre;
+  final String correo;
+  final Future<void> Function() onCambio;
+
+  @override
+  ConsumerState<_ProfileHeaderMinimalista> createState() => _ProfileHeaderMinimalistaState();
+}
+
+class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimalista> {
+  bool _subiendo = false;
+
+  Future<void> _elegirYSubir() async {
+    final origen = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.skyBlue,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: AppColors.beige,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.photo_camera_outlined, color: AppColors.teal),
+                ),
+                title: const Text('Tomar foto', style: TextStyle(fontWeight: FontWeight.w500)),
+                onTap: () => Navigator.of(context).pop(ImageSource.camera),
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: AppColors.beige,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.photo_library_outlined, color: AppColors.teal),
+                ),
+                title: const Text('Elegir de la galería', style: TextStyle(fontWeight: FontWeight.w500)),
+                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (origen == null) return;
+
+    final archivo = await ImagePicker().pickImage(source: origen, imageQuality: 85);
+    if (archivo == null || !mounted) return;
+
+    setState(() => _subiendo = true);
+    try {
+      final bytes = await archivo.readAsBytes();
+      await ref
+          .read(subirFotoPerfilUseCaseProvider)
+          .execute(
+            bytes: bytes,
+            nombreArchivo: archivo.name,
+            contentType: _contentTypeDesde(archivo.name),
+          );
+      await widget.onCambio();
+    } finally {
+      if (mounted) setState(() => _subiendo = false);
+    }
+  }
+
+  String _contentTypeDesde(String nombreArchivo) {
+    final minuscula = nombreArchivo.toLowerCase();
+    if (minuscula.endsWith('.png')) return 'image/png';
+    return 'image/jpeg';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (_error != null) ...[
-          AppErrorBanner(mensaje: _error!),
-          const SizedBox(height: 12),
+    // Fondo BLANCO PURO con borde fino para que sea casi invisible
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white, // Fondo blanco
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)), // Borde gris muy suave
+      ),
+      child: Row(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.skyBlue.withValues(alpha: 0.2), width: 1),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: widget.fotoPerfilUrl != null
+                    ? Image.network(
+                        widget.fotoPerfilUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.person, size: 40, color: AppColors.teal),
+                      )
+                    : const Icon(Icons.person, size: 40, color: AppColors.teal),
+              ),
+              Positioned(
+                right: -2,
+                bottom: -2,
+                child: GestureDetector(
+                  onTap: _subiendo ? null : _elegirYSubir,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.skyBlue, width: 1.5),
+                    ),
+                    child: _subiendo
+                        ? const Padding(
+                            padding: EdgeInsets.all(4),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.camera_alt_outlined, size: 12, color: AppColors.navy),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.nombre.isEmpty ? 'Usuario' : widget.nombre,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.navy,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.correo,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
-        AppLoadingButton(
-          label: 'Desactivar cuenta',
-          variante: AppButtonVariante.secondary,
-          cargando: _procesando,
-          onPressed: _confirmarYDesactivar,
-        ),
-      ],
+      ),
     );
   }
 }
 
-/// Fila reutilizable para elegir (cámara/galería) y subir un documento —
-/// muestra una miniatura real (o un ícono de PDF) del archivo ya subido en
-/// vez de solo un check, usando la URL firmada que devuelve la API.
+class _CardSwitch extends StatelessWidget {
+  const _CardSwitch({
+    required this.icon,
+    required this.iconColor,
+    required this.titulo,
+    required this.subtitulo,
+    required this.valor,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String titulo;
+  final String subtitulo;
+  final bool valor;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.navy,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitulo,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Switch.adaptive(
+            value: valor,
+            onChanged: onChanged,
+            activeColor: AppColors.teal,
+            activeTrackColor: AppColors.teal.withValues(alpha: 0.5),
+            inactiveTrackColor: Colors.grey.withValues(alpha: 0.2),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CardAccion extends StatelessWidget {
+  const _CardAccion({
+    required this.icon,
+    required this.iconColor,
+    required this.titulo,
+    required this.onTap,
+    this.subtitulo,
+    this.esDestructivo = false, // Parámetro conservado
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String titulo;
+  final String? subtitulo;
+  final VoidCallback onTap;
+  final bool esDestructivo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+          ),
+          child: Icon(
+            icon, 
+            color: AppColors.navy,
+            size: 22,
+          ),
+        ),
+        title: Text(
+          titulo,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: AppColors.navy,
+          ),
+        ),
+        subtitle: subtitulo != null
+            ? Text(
+                subtitulo!,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey,
+                ),
+              )
+            : null,
+        trailing: const Icon(
+          Icons.chevron_right_rounded, 
+          color: Colors.grey, 
+          size: 24
+        ),
+      ),
+    );
+  }
+}
+
+class _EditarPerfilBottomSheet extends StatelessWidget {
+  const _EditarPerfilBottomSheet({
+    required this.title,
+    required this.children,
+    this.isDestructive = false,
+  });
+
+  final String title;
+  final List<Widget> children;
+  final bool isDestructive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.skyBlue,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.edit_outlined,
+                      color: isDestructive ? Colors.red : AppColors.teal,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: isDestructive ? Colors.red : AppColors.navy,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, color: Colors.grey),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ...children,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RolOption extends StatelessWidget {
+  const _RolOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+          ),
+          child: Icon(icon, color: AppColors.navy, size: 22),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: AppColors.navy,
+            fontSize: 15,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 13,
+          ),
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.teal,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Text(
+            'Solicitar',
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HelpOption extends StatelessWidget {
+  const _HelpOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      child: ListTile(
+        onTap: () {},
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+          ),
+          child: Icon(icon, color: AppColors.navy, size: 22),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: AppColors.navy,
+            fontSize: 15,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 13,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right,
+          color: Colors.grey,
+          size: 20,
+        ),
+      ),
+    );
+  }
+}
+
+class _CampoPerfil extends StatelessWidget {
+  const _CampoPerfil({
+    required this.label,
+    required this.icono,
+    required this.controller,
+    required this.enabled,
+    this.keyboardType,
+  });
+
+  final String label;
+  final IconData icono;
+  final TextEditingController controller;
+  final bool enabled;
+  final TextInputType? keyboardType;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      child: TextField(
+        controller: controller,
+        enabled: enabled,
+        keyboardType: keyboardType,
+        style: const TextStyle(
+          fontSize: 15,
+          color: AppColors.navy,
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+            color: Colors.grey.withValues(alpha: 0.8),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+          prefixIcon: Icon(icono, color: AppColors.teal, size: 20),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.15)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.teal, width: 2),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CampoFechaPerfil extends StatelessWidget {
+  const _CampoFechaPerfil({
+    required this.label,
+    required this.fecha,
+    required this.onTap,
+  });
+
+  final String label;
+  final DateTime? fecha;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        ),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: TextStyle(
+              color: onTap != null ? AppColors.teal : Colors.grey.withValues(alpha: 0.5),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+            prefixIcon: Icon(
+              Icons.cake_outlined,
+              color: onTap != null ? AppColors.teal : Colors.grey.withValues(alpha: 0.5),
+              size: 20,
+            ),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+          child: Text(
+            fecha != null ? _isoFecha(fecha!) : 'Selecciona una fecha',
+            style: TextStyle(
+              color: fecha != null ? AppColors.navy : Colors.grey.withValues(alpha: 0.6),
+              fontSize: 15,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DocumentoUploadRow extends StatefulWidget {
   const _DocumentoUploadRow({
     required this.label,
@@ -1137,10 +1630,6 @@ class _DocumentoUploadRow extends StatefulWidget {
 
 enum _OrigenDocumento { camara, galeria, pdf }
 
-/// Resultado uniforme de elegir un archivo, venga de la cámara/galería
-/// (`image_picker`) o de un PDF del dispositivo (`file_picker`) — muchos
-/// documentos de validación (SOAT, tecnomecánica) existen como PDF
-/// original y no tiene sentido forzar a fotografiarlos.
 class _ArchivoElegido {
   const _ArchivoElegido({
     required this.bytes,
@@ -1160,26 +1649,64 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
   Future<void> _elegirYSubir() async {
     final origen = await showModalBottomSheet<_OrigenDocumento>(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Tomar foto'),
-              onTap: () => Navigator.of(context).pop(_OrigenDocumento.camara),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Elegir de la galería'),
-              onTap: () => Navigator.of(context).pop(_OrigenDocumento.galeria),
-            ),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_outlined),
-              title: const Text('Elegir PDF'),
-              onTap: () => Navigator.of(context).pop(_OrigenDocumento.pdf),
-            ),
-          ],
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.skyBlue,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.photo_camera_outlined, color: AppColors.teal),
+                ),
+                title: const Text('Tomar foto', style: TextStyle(fontWeight: FontWeight.w500)),
+                onTap: () => Navigator.of(context).pop(_OrigenDocumento.camara),
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.photo_library_outlined, color: AppColors.teal),
+                ),
+                title: const Text('Elegir de la galería', style: TextStyle(fontWeight: FontWeight.w500)),
+                onTap: () => Navigator.of(context).pop(_OrigenDocumento.galeria),
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.teal),
+                ),
+                title: const Text('Elegir PDF', style: TextStyle(fontWeight: FontWeight.w500)),
+                onTap: () => Navigator.of(context).pop(_OrigenDocumento.pdf),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -1243,22 +1770,56 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            _Miniatura(url: widget.url),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(widget.label, style: const TextStyle(color: AppColors.navy)),
-            ),
-            TextButton(
-              onPressed: _subiendo ? null : _elegirYSubir,
-              child: Text(
-                _subiendo ? 'Subiendo…' : (yaSubido ? 'Reemplazar' : 'Subir'),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            children: [
+              _Miniatura(url: widget.url),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: AppColors.navy,
+                    fontWeight: yaSubido ? FontWeight.w500 : FontWeight.normal,
+                    fontSize: 14,
+                  ),
+                ),
               ),
-            ),
-          ],
+              TextButton(
+                onPressed: _subiendo ? null : _elegirYSubir,
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: _subiendo
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(
+                        yaSubido ? 'Reemplazar' : 'Subir',
+                        style: TextStyle(
+                          color: yaSubido ? AppColors.teal : AppColors.teal,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
+              ),
+            ],
+          ),
         ),
-        if (_error != null) AppErrorBanner(mensaje: _error!),
+        if (_error != null) ...[
+          const SizedBox(height: 4),
+          AppErrorBanner(mensaje: _error!),
+        ],
       ],
     );
   }
@@ -1271,9 +1832,6 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
   }
 }
 
-/// Miniatura 44x44 de un documento ya subido: imagen real si es
-/// jpg/png, ícono de PDF si corresponde, círculo vacío si no hay nada
-/// subido todavía.
 class _Miniatura extends StatelessWidget {
   const _Miniatura({required this.url});
 
@@ -1284,7 +1842,7 @@ class _Miniatura extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const tamano = 44.0;
+    const tamano = 40.0;
 
     if (url == null) {
       return Container(
@@ -1292,8 +1850,9 @@ class _Miniatura extends StatelessWidget {
         height: tamano,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.teal),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.3), width: 2),
         ),
+        child: const Icon(Icons.add, color: AppColors.teal, size: 16),
       );
     }
 
@@ -1302,12 +1861,12 @@ class _Miniatura extends StatelessWidget {
       child: Container(
         width: tamano,
         height: tamano,
-        color: AppColors.beige,
+        color: Colors.white,
         child: _esPdf
             ? const Icon(
                 Icons.picture_as_pdf_outlined,
                 color: AppColors.navy,
-                size: 22,
+                size: 20,
               )
             : Image.network(
                 url!,
@@ -1316,8 +1875,8 @@ class _Miniatura extends StatelessWidget {
                   if (progress == null) return child;
                   return const Center(
                     child: SizedBox(
-                      width: 18,
-                      height: 18,
+                      width: 16,
+                      height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   );
@@ -1325,39 +1884,9 @@ class _Miniatura extends StatelessWidget {
                 errorBuilder: (context, error, stackTrace) => const Icon(
                   Icons.image_not_supported_outlined,
                   color: AppColors.navy,
-                  size: 20,
+                  size: 18,
                 ),
               ),
-      ),
-    );
-  }
-}
-
-class _CampoFecha extends StatelessWidget {
-  const _CampoFecha({required this.label, required this.fecha, required this.onTap});
-
-  final String label;
-  final DateTime? fecha;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(28),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: const Icon(Icons.cake_outlined, color: AppColors.teal),
-          filled: true,
-          fillColor: AppColors.beige,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(28),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-        ),
-        child: Text(fecha != null ? _isoFecha(fecha!) : 'Selecciona una fecha'),
       ),
     );
   }
