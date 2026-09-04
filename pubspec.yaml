@@ -69,7 +69,8 @@ flutter:
 
   # Aquí agregamos TODA la carpeta de imágenes
   assets:
-    - assets/images/
+    - assets/images/logo_mediruta.png
+    - assets/images/onboarding_hero.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

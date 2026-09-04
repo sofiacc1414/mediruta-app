@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_selection_card.dart';
 
 /// Selector de rol para el registro público — solo PACIENTE o
@@ -16,8 +17,18 @@ class SelectorRol extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   static const _opciones = [
-    (codigo: 'PACIENTE', label: 'Paciente', icono: Icons.person_outline),
-    (codigo: 'DOMICILIARIO', label: 'Domiciliario', icono: Icons.moped_outlined),
+    (
+      codigo: 'PACIENTE',
+      label: 'Paciente',
+      sublabel: 'Recibe tus medicamentos',
+      icono: Icons.person_outline,
+    ),
+    (
+      codigo: 'DOMICILIARIO',
+      label: 'Domiciliario',
+      sublabel: 'Lleva bienestar a otros',
+      icono: Icons.moped_outlined,
+    ),
   ];
 
   @override
@@ -26,11 +37,39 @@ class SelectorRol extends StatelessWidget {
       children: [
         for (final opcion in _opciones) ...[
           Expanded(
-            child: AppSelectionCard(
-              icono: opcion.icono,
-              label: opcion.label,
-              seleccionado: tipoRegistroSeleccionado == opcion.codigo,
-              onTap: () => onChanged(opcion.codigo),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AppSelectionCard(
+                  icono: opcion.icono,
+                  label: opcion.label,
+                  sublabel: opcion.sublabel,
+                  seleccionado: tipoRegistroSeleccionado == opcion.codigo,
+                  onTap: () => onChanged(opcion.codigo),
+                ),
+                if (tipoRegistroSeleccionado == opcion.codigo)
+                  const Positioned(
+                    top: 6,
+                    right: 6,
+                    child: IgnorePointer(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: AppColors.skyBlue,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.check,
+                            size: 14,
+                            color: AppColors.navy,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           if (opcion != _opciones.last) const SizedBox(width: 12),
