@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
-import '../../../../shared/widgets/app_order_card.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/pedido_disponible.dart';
 import '../providers/solicitud_providers.dart';
@@ -125,7 +124,24 @@ class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pedidos disponibles')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Pedidos disponibles',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            color: AppColors.navy,
+          ),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
       bottomNavigationBar: const MainBottomBar(),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
@@ -143,23 +159,41 @@ class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScr
                         const SizedBox(height: 16),
                       ],
                       if ((_pedidos?.isEmpty ?? false) && _error == null)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 48),
-                          child: Text(
-                            'No hay pedidos cerca ahora mismo. Si no estás '
-                            '"Disponible" en Inicio, activalo para empezar a '
-                            'recibirlos.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppColors.teal),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 48),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.inbox_outlined,
+                                size: 64,
+                                color: Colors.grey.withValues(alpha: 0.3),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No hay pedidos disponibles',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.navy,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Activa "Disponible" en tu perfil para empezar a recibir pedidos cerca tuyo.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.grey.withValues(alpha: 0.8),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       for (final pedido in _pedidos ?? []) ...[
-                        AppOrderCard(
-                          titulo: pedido.codigoPedido ?? 'Pedido',
-                          subtitulo:
-                              '${pedido.distanciaKm.toStringAsFixed(1)} km · '
-                              '${pedido.direccionFarmacia ?? 'Farmacia sin dirección'}',
-                          trailing: _BotonAceptarPequeno(onTap: () => _aceptar(pedido)),
+                        _PedidoDisponibleCard(
+                          pedido: pedido,
+                          onAceptar: () => _aceptar(pedido),
                         ),
                         const SizedBox(height: 12),
                       ],
@@ -172,22 +206,172 @@ class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScr
   }
 }
 
-class _BotonAceptarPequeno extends StatelessWidget {
-  const _BotonAceptarPequeno({required this.onTap});
+// ==================== WIDGETS DE DISEÑO ====================
 
-  final VoidCallback onTap;
+class _PedidoDisponibleCard extends StatelessWidget {
+  const _PedidoDisponibleCard({
+    required this.pedido,
+    required this.onAceptar,
+  });
+
+  final PedidoDisponible pedido;
+  final VoidCallback onAceptar;
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        backgroundColor: AppColors.navy,
-        foregroundColor: AppColors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        shape: const StadiumBorder(),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: const Text('Aceptar', style: TextStyle(fontWeight: FontWeight.w600)),
+      child: Row(
+        children: [
+          // Icono - Imagen de fórmula
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppColors.skyBlue.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/images/formula.png',
+                width: 52,
+                height: 52,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: AppColors.skyBlue.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.medication_outlined,
+                    color: AppColors.teal,
+                    size: 28,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          // Información
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  pedido.codigoPedido ?? 'Pedido',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.navy,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 14,
+                      color: Colors.grey.withValues(alpha: 0.6),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        pedido.direccionFarmacia ?? 'Farmacia sin dirección',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.withValues(alpha: 0.7),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.place_outlined,
+                      size: 14,
+                      color: Colors.grey.withValues(alpha: 0.6),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${pedido.distanciaKm.toStringAsFixed(1)} km',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.3),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.attach_money_outlined,
+                      size: 14,
+                      color: AppColors.teal,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '\$0', // Temporal: recompensa no disponible
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.teal,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Botón Aceptar
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.navy,
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: TextButton(
+              onPressed: onAceptar,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: const StadiumBorder(),
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Aceptar',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

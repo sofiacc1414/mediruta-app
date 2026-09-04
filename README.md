@@ -23,7 +23,7 @@ Carpetas de features: `usuarios` (HU-01/HU-02, implementado), `documentos`, `ent
 flutter pub get
 ```
 
-Apunta a la API local por defecto (`http://localhost:3000`). Para otro entorno:
+Apunta por defecto a la API de pruebas en Render (`https://mediruta-api-n9cg.onrender.com`), para poder compilar y probar sin flags. Para developear contra tu API local:
 
 ```bash
 flutter run -d chrome --web-port=5500 --dart-define=API_BASE_URL=http://localhost:3000
