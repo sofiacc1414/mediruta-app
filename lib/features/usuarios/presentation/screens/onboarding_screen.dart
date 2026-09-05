@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math; // ← IMPORTANTE: Importar math
 
 import 'package:flutter/material.dart';
@@ -23,6 +24,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   late AnimationController _animationController;
   late Animation<double> _pulseAnimation;
   int _currentPage = 0;
+  Timer? _autoSlideTimer;
 
   @override
   void initState() {
@@ -42,7 +44,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     _animationController.forward();
     _animationController.repeat(reverse: true);
 
-    Future.delayed(const Duration(seconds: 10), _autoSlide);
+    _autoSlideTimer = Timer(const Duration(seconds: 10), _autoSlide);
   }
 
   void _autoSlide() {
@@ -59,11 +61,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       _currentPage = nextPage;
     });
 
-    Future.delayed(const Duration(seconds: 10), _autoSlide);
+    _autoSlideTimer = Timer(const Duration(seconds: 10), _autoSlide);
   }
 
   @override
   void dispose() {
+    _autoSlideTimer?.cancel();
     _pageController.dispose();
     _animationController.dispose();
     super.dispose();

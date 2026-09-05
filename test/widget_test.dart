@@ -22,14 +22,26 @@ void main() {
   testWidgets(
     'Sin sesión guardada, la app arranca en onboarding y pasa a login al tocar Comenzar',
     (WidgetTester tester) async {
+      // No se usa pumpAndSettle acá: el onboarding tiene un pulso
+      // (`AnimationController.repeat(reverse: true)`) que nunca termina,
+      // así que pumpAndSettle esperaría para siempre. Se pumpea un tiempo
+      // fijo, suficiente para que se resuelva el chequeo de sesión
+      // guardada y la transición de ruta.
       await tester.pumpWidget(const ProviderScope(child: MediRutaApp()));
-      await tester.pumpAndSettle();
+      // El botón "Comenzar" vive en la 2da slide del onboarding, a la
+      // que se llega solo por auto-slide (`Future.delayed` de 10s) o
+      // deslizando — se pumpea más de 10s simulados para llegar ahí.
+      for (var i = 0; i < 65; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
 
       expect(find.text('Comenzar'), findsOneWidget);
       expect(find.text('Iniciar sesión'), findsNothing);
 
       await tester.tap(find.text('Comenzar'));
-      await tester.pumpAndSettle();
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       expect(find.text('Iniciar sesión'), findsWidgets);
       expect(find.byType(Scaffold), findsOneWidget);
