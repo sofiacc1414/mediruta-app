@@ -9,9 +9,11 @@ import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/documentos_paciente_para_recoger.dart';
+import '../../domain/entities/novedad_resumen.dart';
 import '../../domain/entities/pedido_activo.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
+import '../widgets/tarjeta_novedad.dart';
 
 /// HU-09/HU-07 — el pedido que el Domiciliario tiene en curso: mismo
 /// `AppTrackingTimeline` que ve el Paciente, con el botón de acción del
@@ -30,6 +32,7 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
   bool _cargando = true;
   bool _procesando = false;
   PedidoActivo? _pedido;
+  List<NovedadResumen> _novedades = const [];
   String? _error;
 
   @override
@@ -45,8 +48,16 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     });
     try {
       final pedido = await ref.read(obtenerPedidoActivoUseCaseProvider).execute();
+      final novedades = pedido == null
+          ? const <NovedadResumen>[]
+          : await ref
+              .read(listarNovedadesSolicitudDomiciliarioUseCaseProvider)
+              .execute(pedido.id);
       if (!mounted) return;
-      setState(() => _pedido = pedido);
+      setState(() {
+        _pedido = pedido;
+        _novedades = novedades;
+      });
     } on ApiException catch (error) {
       setState(() => _error = error.message);
     } on ApiSinConexionException catch (error) {
@@ -237,42 +248,55 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
   Widget build(BuildContext context) {
     final pedido = _pedido;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'Mi pedido activo',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-            color: AppColors.navy,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
+            onPressed: () => Navigator.of(context).pop(),
           ),
+          title: const Text(
+            'Mi pedido activo',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+              color: AppColors.navy,
+            ),
+          ),
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          // HU-07/HU-09 (ronda 7) — "Pedido" y "Novedades" en tabs
+          // separados, mismo criterio que la pantalla equivalente del
+          // Paciente (`SolicitudDetalleScreen`).
+          bottom: pedido == null
+              ? null
+              : const TabBar(
+                  labelColor: AppColors.navy,
+                  unselectedLabelColor: AppColors.teal,
+                  indicatorColor: AppColors.navy,
+                  tabs: [
+                    Tab(text: 'Pedido'),
+                    Tab(text: 'Novedades'),
+                  ],
+                ),
         ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-      ),
-      bottomNavigationBar: const MainBottomBar(),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: RefreshIndicator(
-                  onRefresh: _cargar,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(20),
-                    children: [
-                      if (_error != null) ...[
-                        AppErrorBanner(mensaje: _error!),
-                        const SizedBox(height: 16),
-                      ],
-                      if (pedido == null)
+        bottomNavigationBar: const MainBottomBar(),
+        body: _cargando
+            ? const Center(child: CircularProgressIndicator())
+            : pedido == null
+                ? RefreshIndicator(
+                    onRefresh: _cargar,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(20),
+                      children: [
+                        if (_error != null) ...[
+                          AppErrorBanner(mensaje: _error!),
+                          const SizedBox(height: 16),
+                        ],
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 48),
                           child: Column(
@@ -303,164 +327,191 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
                               ),
                             ],
                           ),
-                        )
-                      else ...[
-                        // Tarjeta de información del pedido
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withValues(alpha: 0.04),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.skyBlue.withValues(alpha: 0.3),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Icon(
-                                      Icons.medication_outlined,
-                                      color: AppColors.teal,
-                                      size: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      pedido.codigoPedido ?? 'Pedido',
-                                      style: const TextStyle(
-                                        color: AppColors.navy,
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                  ),
-                                  _EstadoPill(estado: pedido.estado),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              _FilaDireccion(
-                                icono: Icons.storefront_outlined,
-                                texto: pedido.direccionFarmacia,
-                                label: 'Farmacia',
-                              ),
-                              const SizedBox(height: 6),
-                              _FilaDireccion(
-                                icono: Icons.home_outlined,
-                                texto: pedido.direccionEntrega,
-                                label: 'Entrega',
-                              ),
-                            ],
-                          ),
                         ),
-                        if (pedido.novedadPropiaAbierta != null) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.beige,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppColors.skyBlue.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(Icons.info_outline, color: AppColors.navy, size: 20),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Novedad reportada',
-                                        style: TextStyle(
-                                          color: AppColors.navy,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        pedido.novedadPropiaAbierta!.detalle,
-                                        style: const TextStyle(
-                                          color: AppColors.navy,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'Un administrador la va a revisar.',
-                                        style: TextStyle(
-                                          color: AppColors.teal,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        if (pedido.estado == 'asignado_en_camino_farmacia') ...[
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: AppButton(
-                              variante: AppButtonVariante.secondary,
-                              label: 'Ver documentos del paciente',
-                              onPressed: _verDocumentosPaciente,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 24),
-                        // Timeline
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                          ),
-                          child: AppTrackingTimeline(
-                            estadoActual: pedido.estado,
-                            historial: pedido.historial,
-                            accionPasoActual: _accionPara(pedido.estado),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        if (pedido.novedadPropiaAbierta == null)
-                          SizedBox(
-                            width: double.infinity,
-                            child: AppButton(
-                              variante: AppButtonVariante.secondary,
-                              label: 'Reportar novedad',
-                              onPressed: _procesando ? null : _reportarNovedad,
-                            ),
-                          ),
                       ],
+                    ),
+                  )
+                : Column(
+                    children: [
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                          child: AppErrorBanner(mensaje: _error!),
+                        ),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            _tabPedido(pedido),
+                            _tabNovedades(pedido),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
+      ),
+    );
+  }
+
+  /// HU-07/HU-09 (ronda 7) — tab "Pedido": info + tracking, sin el
+  /// reporte/historial de novedades (ver `_tabNovedades`).
+  Widget _tabPedido(PedidoActivo pedido) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: RefreshIndicator(
+          onRefresh: _cargar,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(20),
+            children: [
+              // Tarjeta de información del pedido
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.skyBlue.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.medication_outlined,
+                            color: AppColors.teal,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            pedido.codigoPedido ?? 'Pedido',
+                            style: const TextStyle(
+                              color: AppColors.navy,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                        _EstadoPill(estado: pedido.estado),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _FilaDireccion(
+                      icono: Icons.storefront_outlined,
+                      texto: pedido.direccionFarmacia,
+                      label: 'Farmacia',
+                    ),
+                    const SizedBox(height: 6),
+                    _FilaDireccion(
+                      icono: Icons.home_outlined,
+                      texto: pedido.direccionEntrega,
+                      label: 'Entrega',
+                    ),
+                  ],
                 ),
               ),
-            ),
+              if (pedido.estado == 'asignado_en_camino_farmacia') ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: AppButton(
+                    variante: AppButtonVariante.secondary,
+                    label: 'Ver documentos del paciente',
+                    onPressed: _verDocumentosPaciente,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              // Timeline
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                ),
+                child: AppTrackingTimeline(
+                  estadoActual: pedido.estado,
+                  historial: pedido.historial,
+                  accionPasoActual: _accionPara(pedido.estado),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// HU-07/HU-09 (ronda 7) — tab "Novedades": reportar algo nuevo sobre
+  /// el pedido y consultar el estado de lo ya reportado (por el
+  /// Domiciliario o por el Paciente), separado de los datos del pedido.
+  Widget _tabNovedades(PedidoActivo pedido) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: RefreshIndicator(
+          onRefresh: _cargar,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(20),
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  variante: AppButtonVariante.secondary,
+                  label: 'Reportar novedad',
+                  onPressed: _procesando ? null : _reportarNovedad,
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (_novedades.isEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F8FA),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    'Todavía no hay novedades reportadas sobre este pedido.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.teal, fontSize: 13),
+                  ),
+                ),
+              ] else ...[
+                const Text(
+                  'Novedades de este pedido',
+                  style: TextStyle(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+                for (final novedad in _novedades) ...[
+                  const SizedBox(height: 8),
+                  TarjetaNovedad(novedad: novedad),
+                ],
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

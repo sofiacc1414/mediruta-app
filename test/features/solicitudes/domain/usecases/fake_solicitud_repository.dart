@@ -138,6 +138,13 @@ class FakeSolicitudRepository implements SolicitudRepository {
   }
 
   @override
+  Future<List<NovedadResumen>> listarNovedadesSolicitudDomiciliario(String solicitudId) async {
+    _registrar('listarNovedadesSolicitudDomiciliario', {'solicitudId': solicitudId});
+    _lanzarSiCorresponde();
+    return novedadesSolicitudARetornar;
+  }
+
+  @override
   Future<void> reportarNovedadPaciente(String solicitudId, String detalle) async {
     _registrar('reportarNovedadPaciente', {'solicitudId': solicitudId, 'detalle': detalle});
     _lanzarSiCorresponde();
