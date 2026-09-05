@@ -127,6 +127,15 @@ class SolicitudRemoteDatasource {
     );
   }
 
+  /// HU-07 (ronda 5) — todas las novedades del pedido, resueltas o no.
+  Future<List<dynamic>> listarNovedadesSolicitud(String solicitudId) async {
+    final respuesta = await _apiClient.get(
+      '/solicitudes/$solicitudId/novedades',
+      autenticado: true,
+    );
+    return respuesta as List<dynamic>;
+  }
+
   // --- Domiciliario (HU-09/HU-07) ---
 
   Future<List<dynamic>> listarPedidosDisponibles() async {

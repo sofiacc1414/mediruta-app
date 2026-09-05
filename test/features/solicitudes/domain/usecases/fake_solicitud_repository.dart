@@ -1,6 +1,7 @@
 import 'package:mediruta_app/features/solicitudes/domain/entities/datos_solicitud.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/documentos_paciente_para_recoger.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/medicamento.dart';
+import 'package:mediruta_app/features/solicitudes/domain/entities/novedad_resumen.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_activo.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_disponible.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_historial.dart';
@@ -22,6 +23,7 @@ class FakeSolicitudRepository implements SolicitudRepository {
   List<PedidoHistorial> historialPedidosARetornar = const [];
   DocumentosPacienteParaRecoger documentosPacienteParaRecogerARetornar =
       const DocumentosPacienteParaRecoger(cedulaFrenteUrl: null, cedulaReversoUrl: null);
+  List<NovedadResumen> novedadesSolicitudARetornar = const [];
 
   Map<String, dynamic>? ultimaLlamada;
 
@@ -184,6 +186,13 @@ class FakeSolicitudRepository implements SolicitudRepository {
   Future<void> reportarCodigoNoGenerado(String solicitudId, {String? detalle}) async {
     _registrar('reportarCodigoNoGenerado', {'solicitudId': solicitudId, 'detalle': detalle});
     _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<List<NovedadResumen>> listarNovedadesSolicitud(String solicitudId) async {
+    _registrar('listarNovedadesSolicitud', {'solicitudId': solicitudId});
+    _lanzarSiCorresponde();
+    return novedadesSolicitudARetornar;
   }
 
   @override
