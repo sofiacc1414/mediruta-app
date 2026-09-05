@@ -10,6 +10,7 @@ import '../../domain/repositories/borrador_local_repository.dart';
 import '../../domain/repositories/solicitud_repository.dart';
 import '../../domain/usecases/aceptar_pedido_usecase.dart';
 import '../../domain/usecases/actualizar_solicitud_usecase.dart';
+import '../../domain/usecases/adjuntar_receta_propuesta_edicion_usecase.dart';
 import '../../domain/usecases/cancelar_solicitud_usecase.dart';
 import '../../domain/usecases/crear_solicitud_usecase.dart';
 import '../../domain/usecases/entregar_pedido_usecase.dart';
@@ -103,6 +104,10 @@ final reportarNovedadPacienteUseCaseProvider = Provider(
 
 final solicitarEdicionPedidoUseCaseProvider = Provider(
   (ref) => SolicitarEdicionPedidoUseCase(ref.watch(solicitudRepositoryProvider)),
+);
+
+final adjuntarRecetaPropuestaEdicionUseCaseProvider = Provider(
+  (ref) => AdjuntarRecetaPropuestaEdicionUseCase(ref.watch(solicitudRepositoryProvider)),
 );
 
 final reportarCodigoNoGeneradoUseCaseProvider = Provider(

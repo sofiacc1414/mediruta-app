@@ -12,6 +12,7 @@ import '../../domain/entities/solicitud.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
 import 'nueva_solicitud_screen.dart';
+import 'solicitar_edicion_pedido_screen.dart';
 
 /// G03/G05/G06 — HU-03, con el tracking de HU-07/HU-09.
 class SolicitudDetalleScreen extends ConsumerStatefulWidget {
@@ -147,101 +148,17 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     }
   }
 
-  /// HU-07 (ronda 3) — pide corregir dirección de entrega y/o farmacia.
-  /// Precarga los valores actuales; al menos uno debe quedar distinto
-  /// de vacío para poder enviar (mismo mínimo que exige la API).
+  /// HU-07 (ronda 3/4) — pide corregir direcciones, medicamentos y/o
+  /// la foto de la receta de un pedido ya enviado. La pantalla precarga
+  /// los valores actuales y valida "al menos un dato distinto" antes
+  /// de enviar (mismo mínimo que exige la API).
   Future<void> _solicitarEdicion(Solicitud solicitud) async {
-    final entregaController = TextEditingController(text: solicitud.direccionEntrega ?? '');
-    final farmaciaController = TextEditingController(text: solicitud.direccionFarmacia ?? '');
-    final comentarioController = TextEditingController();
-
-    final confirmado = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Pedir corrección de datos'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Un administrador revisa el cambio antes de aplicarlo.'),
-              const SizedBox(height: 12),
-              TextField(
-                controller: entregaController,
-                decoration: const InputDecoration(labelText: 'Dirección de entrega'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: farmaciaController,
-                decoration: const InputDecoration(labelText: 'Dirección de la farmacia'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: comentarioController,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Comentario (opcional)',
-                  hintText: 'Ej.: me mudé de casa',
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Enviar'),
-          ),
-        ],
+    final enviado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => SolicitarEdicionPedidoScreen(solicitud: solicitud),
       ),
     );
-    if (confirmado != true || !mounted) return;
-
-    final nuevaEntrega = entregaController.text.trim();
-    final nuevaFarmacia = farmaciaController.text.trim();
-    final entregaCambio = nuevaEntrega.isNotEmpty && nuevaEntrega != (solicitud.direccionEntrega ?? '');
-    final farmaciaCambio =
-        nuevaFarmacia.isNotEmpty && nuevaFarmacia != (solicitud.direccionFarmacia ?? '');
-
-    if (!entregaCambio && !farmaciaCambio) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Indicá al menos un dato para corregir.')),
-      );
-      return;
-    }
-
-    setState(() {
-      _procesando = true;
-      _error = null;
-    });
-    try {
-      await ref.read(solicitarEdicionPedidoUseCaseProvider).execute(
-            widget.solicitudId,
-            direccionEntrega: entregaCambio ? nuevaEntrega : null,
-            direccionFarmacia: farmaciaCambio ? nuevaFarmacia : null,
-            detalle: comentarioController.text.trim().isEmpty
-                ? null
-                : comentarioController.text.trim(),
-          );
-      await _cargar();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tu solicitud de corrección fue enviada — el administrador la revisa.'),
-          ),
-        );
-      }
-    } on ApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
-    } on ApiSinConexionException catch (error) {
-      if (mounted) setState(() => _error = error.toString());
-    } finally {
-      if (mounted) setState(() => _procesando = false);
-    }
+    if (enviado == true) await _cargar();
   }
 
   /// HU-07 (ronda 3) — reporta que el código de entrega no se generó o
@@ -701,7 +618,7 @@ class _HojaOpcionesReporte extends StatelessWidget {
               _OpcionReporteTile(
                 icono: Icons.edit_location_alt_outlined,
                 titulo: 'Pedir corrección de datos',
-                subtitulo: 'Dirección de entrega o de la farmacia',
+                subtitulo: 'Direcciones, medicamentos o foto de la receta',
                 onTap: () => Navigator.of(context).pop(_OpcionReporte.edicion),
               ),
               const SizedBox(height: 8),

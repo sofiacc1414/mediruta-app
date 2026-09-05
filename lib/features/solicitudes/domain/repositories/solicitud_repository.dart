@@ -1,5 +1,6 @@
 import '../entities/datos_solicitud.dart';
 import '../entities/documentos_paciente_para_recoger.dart';
+import '../entities/medicamento.dart';
 import '../entities/pedido_activo.dart';
 import '../entities/pedido_disponible.dart';
 import '../entities/pedido_historial.dart';
@@ -46,15 +47,33 @@ abstract class SolicitudRepository {
   /// `/solicitudes/:id/novedad`.
   Future<void> reportarNovedadPaciente(String solicitudId, String detalle);
 
-  /// HU-07 (ronda 3) — el Paciente pide corregir dirección de entrega
-  /// y/o de farmacia de un pedido ya enviado. No aplica el cambio: el
-  /// admin ve el diff (actual vs propuesto) y aprueba o rechaza. Al
-  /// menos uno de los dos campos debe venir no nulo.
-  Future<void> solicitarEdicionPedido(
+  /// HU-07 (ronda 3/4) — el Paciente pide corregir dirección de
+  /// entrega, de farmacia y/o medicamentos de un pedido ya enviado. No
+  /// aplica el cambio: el admin ve el diff (actual vs propuesto) y
+  /// aprueba o rechaza. Si además va a proponer una foto de receta
+  /// nueva, [incluyeReceta] debe venir en `true` (la foto en sí viaja
+  /// aparte, ver [adjuntarRecetaPropuestaEdicion], con el id de novedad
+  /// que devuelve esta llamada). Al menos uno de dirección/farmacia/
+  /// medicamentos/receta debe estar presente.
+  Future<String> solicitarEdicionPedido(
     String solicitudId, {
     String? direccionEntrega,
     String? direccionFarmacia,
     String? detalle,
+    List<Medicamento>? medicamentos,
+    bool incluyeReceta = false,
+  });
+
+  /// HU-07 (ronda 4) — adjunta la foto de receta propuesta a una
+  /// novedad de edición ya creada (ver [solicitarEdicionPedido] arriba,
+  /// `incluyeReceta: true`). No toca la receta vigente del pedido —
+  /// eso solo pasa si el admin aprueba la novedad.
+  Future<void> adjuntarRecetaPropuestaEdicion({
+    required String solicitudId,
+    required String novedadId,
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
   });
 
   /// HU-07 (ronda 3) — el Paciente reporta que el código de entrega no
