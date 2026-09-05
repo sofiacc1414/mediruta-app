@@ -11,13 +11,7 @@ class AppBottomNavAction {
   final VoidCallback onTap;
 }
 
-/// Barra de navegación fija — persistente en toda la app (cada
-/// Scaffold de las pantallas principales la incluye vía
-/// `MainBottomBar`), no solo en Home. "Inicio" es un botón más de la
-/// fila, con el mismo peso visual que el resto (sin elevarse ni
-/// resaltar) — la lista de `items` la arma quien construye la barra,
-/// en el orden en que quiere que aparezcan (típicamente con Inicio en
-/// el medio).
+/// Barra de navegación fija — persistente en toda la app.
 class AppBottomNavBar extends StatelessWidget {
   const AppBottomNavBar({super.key, required this.items});
 
@@ -29,9 +23,22 @@ class AppBottomNavBar extends StatelessWidget {
       top: false,
       child: Container(
         height: 64,
-        decoration: const BoxDecoration(
-          color: AppColors.navy,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        decoration: BoxDecoration(
+          // Fondo azul medio suave
+          color: const Color(0xFFD6E8F7),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          // Borde delgado gris en todo el contorno
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.3),
+            width: 0.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -62,14 +69,14 @@ class _BotonBarra extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icono, color: AppColors.white),
+              Icon(icono, color: AppColors.navy),
               const SizedBox(height: 2),
               Text(
                 etiqueta,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.white, fontSize: 11),
+                style: const TextStyle(color: AppColors.navy, fontSize: 11),
               ),
             ],
           ),

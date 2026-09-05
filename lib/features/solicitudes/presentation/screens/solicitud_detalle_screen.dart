@@ -4,10 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
-import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
-import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/solicitud.dart';
@@ -15,10 +13,7 @@ import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
 import 'nueva_solicitud_screen.dart';
 
-/// G03/G05/G06 — HU-03, con el tracking de HU-07/HU-09: resumen +
-/// código de entrega destacado + `AppTrackingTimeline` + acciones según
-/// el estado actual. Medicamentos/receta/cédula mantienen la misma
-/// lógica de siempre, solo cambia cómo se pintan.
+/// G03/G05/G06 — HU-03, con el tracking de HU-07/HU-09.
 class SolicitudDetalleScreen extends ConsumerStatefulWidget {
   const SolicitudDetalleScreen({super.key, required this.solicitudId});
 
@@ -90,16 +85,18 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancelar solicitud'),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Cancelar solicitud', style: TextStyle(color: AppColors.navy)),
         content: const Text('¿Querés cancelar esta solicitud? Esta acción no se puede deshacer.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Volver'),
+            child: const Text('Volver', style: TextStyle(color: AppColors.navy)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Cancelar solicitud'),
+            child: const Text('Cancelar solicitud', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -292,32 +289,40 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     }
   }
 
-  /// HU-07 (ronda 2) — el Paciente también puede reportar una novedad
-  /// sobre su propio pedido (antes solo el Domiciliario podía), mismo
-  /// diálogo que usa `mi_pedido_activo_screen.dart` del lado Domiciliario.
   Future<void> _reportarNovedad() async {
     final controller = TextEditingController();
     final detalle = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reportar novedad'),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Reportar novedad', style: TextStyle(color: AppColors.navy)),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLines: 3,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Contanos qué pasó',
             hintText: 'Ej.: el domiciliario no contesta',
+            labelStyle: const TextStyle(color: AppColors.teal),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: AppColors.teal, width: 2),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: const Text('Cancelar', style: TextStyle(color: AppColors.navy)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: const Text('Reportar'),
+            child: const Text('Reportar', style: TextStyle(color: AppColors.teal)),
           ),
         ],
       ),
@@ -355,7 +360,24 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     final solicitud = _solicitud;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle de solicitud')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          'Detalle de solicitud',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            color: AppColors.navy,
+          ),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       bottomNavigationBar: const MainBottomBar(),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
@@ -372,18 +394,13 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                         const SizedBox(height: 16),
                       ],
                       if (solicitud != null) ...[
+                        // ====== CÓDIGO + ESTADO ======
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppColors.white,
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.navy.withValues(alpha: 0.06),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
+                            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                           ),
                           child: Row(
                             children: [
@@ -407,18 +424,18 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppColors.beige,
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.info_outline, color: AppColors.navy),
+                                const Icon(Icons.info_outline, color: Colors.red),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    'Hay una novedad sobre tu pedido: '
-                                    '${solicitud.novedadAbierta!.detalle}',
+                                    'Hay una novedad sobre tu pedido: ${solicitud.novedadAbierta!.detalle}',
                                     style: const TextStyle(color: AppColors.navy),
                                   ),
                                 ),
@@ -428,11 +445,12 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                         ],
                         if (solicitud.codigoEntrega != null) ...[
                           const SizedBox(height: 16),
+                          // ====== CAJÓN DEL CÓDIGO DE ENTREGA (AZUL CLARO #DBEAFE) ======
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppColors.navy,
+                              color: const Color(0xFFDBEAFE), // Azul claro
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Column(
@@ -440,7 +458,11 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                               children: [
                                 const Text(
                                   'Código de entrega — dáselo al domiciliario',
-                                  style: TextStyle(color: AppColors.skyBlue, fontSize: 12),
+                                  style: TextStyle(
+                                    color: AppColors.navy,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 const SizedBox(height: 6),
                                 Row(
@@ -449,7 +471,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                                       child: Text(
                                         solicitud.codigoEntrega!,
                                         style: const TextStyle(
-                                          color: AppColors.white,
+                                          color: AppColors.navy,
                                           fontSize: 28,
                                           fontWeight: FontWeight.w800,
                                           letterSpacing: 4,
@@ -457,7 +479,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                                       ),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.copy_outlined, color: AppColors.white),
+                                      icon: const Icon(Icons.copy_outlined, color: AppColors.navy),
                                       onPressed: () => _copiarCodigoEntrega(solicitud.codigoEntrega!),
                                     ),
                                   ],
@@ -511,9 +533,10 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                           },
                         ),
                         const SizedBox(height: 24),
+
+                        // ====== BOTONES ESTILO PÍLDORA CON BORDE GRIS ======
                         if (solicitud.estado == 'borrador') ...[
-                          AppButton(
-                            variante: AppButtonVariante.secondary,
+                          _BotonGrisClaro(
                             onPressed: _procesando
                                 ? null
                                 : () async {
@@ -526,32 +549,27 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                                     );
                                     _cargar();
                                   },
-                            label: 'Editar',
+                            etiqueta: 'Editar',
                           ),
                           const SizedBox(height: 8),
-                          AppLoadingButton(
-                            label: 'Enviar a revisión',
-                            cargando: _procesando,
-                            onPressed: _calcularFaltantes(solicitud).isEmpty ? _enviar : null,
-                          ),
-                          const SizedBox(height: 8),
+                          // ✅ ELIMINADO: "Enviar a revisión" ya no se muestra aquí
                         ],
+
                         if (solicitud.estado != 'cancelada')
-                          AppLoadingButton(
-                            variante: AppButtonVariante.secondary,
-                            label: 'Cancelar solicitud',
+                          _BotonGrisClaro(
+                            onPressed: _procesando ? null : _cancelar,
+                            etiqueta: 'Cancelar solicitud',
                             cargando: _procesando,
-                            onPressed: _cancelar,
                           ),
+
                         if (solicitud.estado != 'cancelada' &&
                             solicitud.estado != 'entregado' &&
                             solicitud.novedadAbierta == null) ...[
                           const SizedBox(height: 8),
-                          AppButton(
-                            variante: AppButtonVariante.secondary,
+                          _BotonGrisClaro(
                             onPressed:
                                 _procesando ? null : () => _reportarAlgo(solicitud),
-                            label: 'Algo pasa con mi pedido',
+                            etiqueta: 'Algo pasa con mi pedido',
                           ),
                         ],
                       ],
@@ -564,12 +582,6 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
   }
 }
 
-/// G05 — mismos requisitos que valida `app.enviar_solicitud` en la API
-/// (la cédula no se revisa acá, ya se exigió al crear), incluyendo el
-/// chequeo de receta vencida. Se calcula sobre el `Solicitud` ya cargado
-/// del detalle, a diferencia del formulario de creación/edición que lo
-/// calcula sobre `DatosSolicitud` en progreso — mismo criterio, distinta
-/// fuente de datos.
 List<String> _calcularFaltantes(Solicitud solicitud) {
   final medicamentosNoVacios = solicitud.medicamentos.where((m) => !m.estaVacio).toList();
   final faltantes = <String>[];
@@ -600,6 +612,52 @@ List<String> _calcularFaltantes(Solicitud solicitud) {
     faltantes.add('Dirección de entrega');
   }
   return faltantes;
+}
+
+// ==================== WIDGETS VISUALES INTERNOS ====================
+
+/// Botón con fondo blanco y borde delgado gris claro (estilo píldora)
+class _BotonGrisClaro extends StatelessWidget {
+  const _BotonGrisClaro({
+    required this.onPressed,
+    required this.etiqueta,
+    this.cargando = false,
+  });
+
+  final VoidCallback? onPressed;
+  final String etiqueta;
+  final bool cargando;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 46,
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: cargando ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFF7F8FA),
+          foregroundColor: AppColors.navy,
+          disabledBackgroundColor: Colors.grey.withValues(alpha: 0.1),
+          disabledForegroundColor: Colors.grey,
+          side: BorderSide(color: Colors.grey.withValues(alpha: 0.25)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+        ),
+        child: cargando
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.navy),
+              )
+            : Text(
+                etiqueta,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+      ),
+    );
+  }
 }
 
 /// HU-07 (ronda 3) — las 3 opciones que ofrece `_reportarAlgo`.
@@ -716,6 +774,7 @@ class _OpcionReporteTile extends StatelessWidget {
   }
 }
 
+/// Tarjeta compacta para medicamentos (con imagen aún más grande a la izquierda)
 class _Tarjeta extends StatelessWidget {
   const _Tarjeta({
     required this.titulo,
@@ -725,23 +784,99 @@ class _Tarjeta extends StatelessWidget {
 
   final String titulo;
   final Map<String, String?> filas;
-  /// Etiqueta -> URL. Puede haber más de una (ej. cédula frente/reverso).
   final Map<String, String?> miniaturas;
 
   @override
   Widget build(BuildContext context) {
+    final esMedicamento = titulo.startsWith('Medicamento');
+
+    if (esMedicamento) {
+      final filasVisibles = filas.entries
+          .where((entrada) => entrada.value != null && entrada.value!.trim().isNotEmpty)
+          .toList();
+
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 95,
+              height: 95,
+              decoration: BoxDecoration(
+                color: AppColors.skyBlue.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  'assets/images/pastillera.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.medication_outlined,
+                    color: AppColors.navy,
+                    size: 32,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titulo,
+                    style: const TextStyle(
+                      color: AppColors.navy,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  for (final entrada in filasVisibles)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 1),
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '${entrada.key}: ',
+                              style: const TextStyle(
+                                color: AppColors.teal,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                              ),
+                            ),
+                            TextSpan(
+                              text: entrada.value ?? '—',
+                              style: const TextStyle(
+                                color: AppColors.navy,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.navy.withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -794,11 +929,7 @@ class _Tarjeta extends StatelessWidget {
   }
 }
 
-/// Miniatura 44x44 de un documento: imagen real si es jpg/png, ícono de
-/// PDF si corresponde, círculo vacío si todavía no hay nada subido.
-/// Mismo patrón que `_Miniatura` de `perfil_screen.dart` (HU-02). Si es
-/// una imagen (no PDF, no vacía), tocarla la abre en pantalla completa
-/// con zoom — una miniatura de 44px no alcanza para leer una receta.
+/// Miniatura 44x44 con borde gris claro
 class _Miniatura extends StatelessWidget {
   const _Miniatura({required this.url});
 
@@ -814,7 +945,11 @@ class _Miniatura extends StatelessWidget {
       return Container(
         width: tamano,
         height: tamano,
-        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.teal)),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.3), width: 2),
+        ),
+        child: const Icon(Icons.add, color: AppColors.teal, size: 16),
       );
     }
 
@@ -825,7 +960,10 @@ class _Miniatura extends StatelessWidget {
         child: Container(
           width: tamano,
           height: tamano,
-          color: AppColors.beige,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+          ),
           child: _esPdf
               ? const Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 22)
               : Image.network(
