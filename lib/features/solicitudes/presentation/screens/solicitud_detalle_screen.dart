@@ -12,6 +12,7 @@ import '../../domain/entities/novedad_resumen.dart';
 import '../../domain/entities/solicitud.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
+import '../widgets/tarjeta_novedad.dart';
 import 'nueva_solicitud_screen.dart';
 import 'solicitar_edicion_pedido_screen.dart';
 
@@ -282,214 +283,284 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
   Widget build(BuildContext context) {
     final solicitud = _solicitud;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'Detalle de solicitud',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-            color: AppColors.navy,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text(
+            'Detalle de solicitud',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+              color: AppColors.navy,
+            ),
           ),
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
+          // HU-07 (ronda 7) — "Pedido" y "Novedades" en tabs separados:
+          // antes convivían en un solo scroll larguísimo, con el reporte
+          // y el historial de novedades metidos en medio de los datos
+          // del pedido.
+          bottom: solicitud == null
+              ? null
+              : const TabBar(
+                  labelColor: AppColors.navy,
+                  unselectedLabelColor: AppColors.teal,
+                  indicatorColor: AppColors.navy,
+                  tabs: [
+                    Tab(text: 'Pedido'),
+                    Tab(text: 'Novedades'),
+                  ],
+                ),
         ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      bottomNavigationBar: const MainBottomBar(),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+        bottomNavigationBar: const MainBottomBar(),
+        body: _cargando
+            ? const Center(child: CircularProgressIndicator())
+            : solicitud == null
+                ? Center(
+                    child: _error != null
+                        ? Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: AppErrorBanner(mensaje: _error!),
+                          )
+                        : const SizedBox.shrink(),
+                  )
+                : Column(
                     children: [
-                      if (_error != null) ...[
-                        AppErrorBanner(mensaje: _error!),
-                        const SizedBox(height: 16),
-                      ],
-                      if (solicitud != null) ...[
-                        // ====== CÓDIGO + ESTADO ======
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  solicitud.codigoPedido ?? 'Borrador de solicitud',
-                                  style: const TextStyle(
-                                    color: AppColors.navy,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                              ),
-                              AppStatusPill(estado: solicitud.estado),
-                            ],
-                          ),
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                          child: AppErrorBanner(mensaje: _error!),
                         ),
-                        if (_novedades.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Tus reportes sobre este pedido',
-                            style: TextStyle(
-                              color: AppColors.navy,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
-                          for (final novedad in _novedades) ...[
-                            const SizedBox(height: 8),
-                            _TarjetaNovedad(novedad: novedad),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            _tabPedido(solicitud),
+                            _tabNovedades(solicitud),
                           ],
-                        ],
-                        if (solicitud.codigoEntrega != null) ...[
-                          const SizedBox(height: 16),
-                          // ====== CAJÓN DEL CÓDIGO DE ENTREGA (AZUL CLARO #DBEAFE) ======
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFDBEAFE), // Azul claro
-                              borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                    ],
+                  ),
+      ),
+    );
+  }
+
+  /// HU-07 (ronda 7) — tab "Pedido": todos los datos del pedido, sin el
+  /// reporte/historial de novedades (ver `_tabNovedades`).
+  Widget _tabPedido(Solicitud solicitud) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ====== CÓDIGO + ESTADO ======
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        solicitud.codigoPedido ?? 'Borrador de solicitud',
+                        style: const TextStyle(
+                          color: AppColors.navy,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    AppStatusPill(estado: solicitud.estado),
+                  ],
+                ),
+              ),
+              if (solicitud.codigoEntrega != null) ...[
+                const SizedBox(height: 16),
+                // ====== CAJÓN DEL CÓDIGO DE ENTREGA (AZUL CLARO #DBEAFE) ======
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDBEAFE), // Azul claro
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Código de entrega — dáselo al domiciliario',
+                        style: TextStyle(
+                          color: AppColors.navy,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              solicitud.codigoEntrega!,
+                              style: const TextStyle(
+                                color: AppColors.navy,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 4,
+                              ),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Código de entrega — dáselo al domiciliario',
-                                  style: TextStyle(
-                                    color: AppColors.navy,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        solicitud.codigoEntrega!,
-                                        style: const TextStyle(
-                                          color: AppColors.navy,
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 4,
-                                        ),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.copy_outlined, color: AppColors.navy),
-                                      onPressed: () => _copiarCodigoEntrega(solicitud.codigoEntrega!),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.copy_outlined, color: AppColors.navy),
+                            onPressed: () => _copiarCodigoEntrega(solicitud.codigoEntrega!),
                           ),
                         ],
-                        if (solicitud.codigoPedido != null && solicitud.estado != 'cancelada') ...[
-                          const SizedBox(height: 24),
-                          AppTrackingTimeline(
-                            estadoActual: solicitud.estado,
-                            historial: solicitud.historial,
-                          ),
-                        ],
-                        for (var i = 0; i < solicitud.medicamentos.length; i++) ...[
-                          const SizedBox(height: 16),
-                          _Tarjeta(
-                            titulo: 'Medicamento ${i + 1}',
-                            filas: {
-                              'Nombre': solicitud.medicamentos[i].nombre,
-                              'Concentración/dosis': solicitud.medicamentos[i].concentracion,
-                              'Forma farmacéutica': solicitud.medicamentos[i].formaFarmaceutica,
-                              'Cantidad': solicitud.medicamentos[i].cantidad,
-                              'Posología': solicitud.medicamentos[i].posologia,
-                            },
-                          ),
-                        ],
-                        if (solicitud.medicamentos.isEmpty) ...[
-                          const SizedBox(height: 16),
-                          const _Tarjeta(titulo: 'Medicamentos', filas: {'Ninguno cargado': null}),
-                        ],
-                        const SizedBox(height: 16),
-                        _Tarjeta(
-                          titulo: 'Receta médica',
-                          filas: {'Fecha de vencimiento': solicitud.recetaFechaVencimiento},
-                          miniaturas: {'Foto de la receta': solicitud.recetaUrl},
-                        ),
-                        const SizedBox(height: 16),
-                        _Tarjeta(
-                          titulo: 'Farmacia',
-                          filas: {'Dirección de la farmacia': solicitud.direccionFarmacia},
-                        ),
-                        const SizedBox(height: 16),
-                        _Tarjeta(
-                          titulo: 'Identidad y entrega',
-                          filas: {'Dirección de entrega': solicitud.direccionEntrega},
-                          miniaturas: {
-                            'Cédula (frente, de tu perfil)': solicitud.cedulaFrenteUrl,
-                            'Cédula (reverso, de tu perfil)': solicitud.cedulaReversoUrl,
-                          },
-                        ),
-                        const SizedBox(height: 24),
-
-                        // ====== BOTONES ESTILO PÍLDORA CON BORDE GRIS ======
-                        if (solicitud.estado == 'borrador') ...[
-                          _BotonGrisClaro(
-                            onPressed: _procesando
-                                ? null
-                                : () async {
-                                    await Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => NuevaSolicitudScreen(
-                                          solicitudId: solicitud.id,
-                                        ),
-                                      ),
-                                    );
-                                    _cargar();
-                                  },
-                            etiqueta: 'Editar',
-                          ),
-                          const SizedBox(height: 8),
-                          // ✅ ELIMINADO: "Enviar a revisión" ya no se muestra aquí
-                        ],
-
-                        if (solicitud.estado != 'cancelada')
-                          _BotonGrisClaro(
-                            onPressed: _procesando ? null : _cancelar,
-                            etiqueta: 'Cancelar solicitud',
-                            cargando: _procesando,
-                          ),
-
-                        if (solicitud.estado != 'cancelada' &&
-                            solicitud.estado != 'entregado') ...[
-                          const SizedBox(height: 8),
-                          _BotonGrisClaro(
-                            onPressed:
-                                _procesando ? null : () => _reportarAlgo(solicitud),
-                            etiqueta: 'Algo pasa con mi pedido',
-                          ),
-                        ],
-                      ],
+                      ),
                     ],
                   ),
                 ),
+              ],
+              if (solicitud.codigoPedido != null && solicitud.estado != 'cancelada') ...[
+                const SizedBox(height: 24),
+                AppTrackingTimeline(
+                  estadoActual: solicitud.estado,
+                  historial: solicitud.historial,
+                ),
+              ],
+              for (var i = 0; i < solicitud.medicamentos.length; i++) ...[
+                const SizedBox(height: 16),
+                _Tarjeta(
+                  titulo: 'Medicamento ${i + 1}',
+                  filas: {
+                    'Nombre': solicitud.medicamentos[i].nombre,
+                    'Concentración/dosis': solicitud.medicamentos[i].concentracion,
+                    'Forma farmacéutica': solicitud.medicamentos[i].formaFarmaceutica,
+                    'Cantidad': solicitud.medicamentos[i].cantidad,
+                    'Posología': solicitud.medicamentos[i].posologia,
+                  },
+                ),
+              ],
+              if (solicitud.medicamentos.isEmpty) ...[
+                const SizedBox(height: 16),
+                const _Tarjeta(titulo: 'Medicamentos', filas: {'Ninguno cargado': null}),
+              ],
+              const SizedBox(height: 16),
+              _Tarjeta(
+                titulo: 'Receta médica',
+                filas: {'Fecha de vencimiento': solicitud.recetaFechaVencimiento},
+                miniaturas: {'Foto de la receta': solicitud.recetaUrl},
               ),
-            ),
+              const SizedBox(height: 16),
+              _Tarjeta(
+                titulo: 'Farmacia',
+                filas: {'Dirección de la farmacia': solicitud.direccionFarmacia},
+              ),
+              const SizedBox(height: 16),
+              _Tarjeta(
+                titulo: 'Identidad y entrega',
+                filas: {'Dirección de entrega': solicitud.direccionEntrega},
+                miniaturas: {
+                  'Cédula (frente, de tu perfil)': solicitud.cedulaFrenteUrl,
+                  'Cédula (reverso, de tu perfil)': solicitud.cedulaReversoUrl,
+                },
+              ),
+              const SizedBox(height: 24),
+
+              // ====== BOTONES ESTILO PÍLDORA CON BORDE GRIS ======
+              if (solicitud.estado == 'borrador') ...[
+                _BotonGrisClaro(
+                  onPressed: _procesando
+                      ? null
+                      : () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => NuevaSolicitudScreen(
+                                solicitudId: solicitud.id,
+                              ),
+                            ),
+                          );
+                          _cargar();
+                        },
+                  etiqueta: 'Editar',
+                ),
+                const SizedBox(height: 8),
+              ],
+
+              if (solicitud.estado != 'cancelada')
+                _BotonGrisClaro(
+                  onPressed: _procesando ? null : _cancelar,
+                  etiqueta: 'Cancelar solicitud',
+                  cargando: _procesando,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// HU-07 (ronda 7) — tab "Novedades": reportar algo nuevo sobre el
+  /// pedido y consultar el estado de lo ya reportado, separado de los
+  /// datos del pedido (ver `_tabPedido`).
+  Widget _tabNovedades(Solicitud solicitud) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (solicitud.estado != 'cancelada' && solicitud.estado != 'entregado') ...[
+                _BotonGrisClaro(
+                  onPressed: _procesando ? null : () => _reportarAlgo(solicitud),
+                  etiqueta: 'Reportar novedad',
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (_novedades.isEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F8FA),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    'Todavía no reportaste nada sobre este pedido.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.teal, fontSize: 13),
+                  ),
+                ),
+              ] else ...[
+                const Text(
+                  'Tus reportes sobre este pedido',
+                  style: TextStyle(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+                for (final novedad in _novedades) ...[
+                  const SizedBox(height: 8),
+                  TarjetaNovedad(novedad: novedad),
+                ],
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -900,79 +971,3 @@ class _Miniatura extends StatelessWidget {
   }
 }
 
-/// HU-07 (ronda 5) — una fila de "Tus reportes sobre este pedido", con
-/// su estado. El color se reserva a la paleta oficial (context.md
-/// Parte A, §4) — la diferencia entre "aprobada"/"rechazada" se marca
-/// con el ícono y el texto, no con verde/rojo fuera de paleta.
-class _TarjetaNovedad extends StatelessWidget {
-  const _TarjetaNovedad({required this.novedad});
-
-  final NovedadResumen novedad;
-
-  String get _etiquetaTipo => switch (novedad.tipo) {
-    'edicion' => 'Corrección de datos',
-    'codigo' => 'Código de entrega',
-    _ => 'Pregunta',
-  };
-
-  (IconData, String) get _estado {
-    if (!novedad.resuelta) {
-      return (Icons.hourglass_top_outlined, 'En revisión por un administrador.');
-    }
-    if (novedad.tipo == 'edicion') {
-      if (novedad.accionEdicion == 'aprobada') {
-        return (Icons.check_circle_outline, 'Aprobada — el cambio ya se aplicó a tu pedido.');
-      }
-      if (novedad.accionEdicion == 'rechazada') {
-        if (novedad.incluyeMedicamentosOReceta) {
-          return (
-            Icons.cancel_outlined,
-            'Rechazada. Si todavía necesitás este cambio, cancelá el pedido y creá uno nuevo — '
-                'si el domiciliario ya llegó a la farmacia, cancelar puede generar un cobro por el desplazamiento.',
-          );
-        }
-        return (Icons.cancel_outlined, 'Rechazada.');
-      }
-    }
-    return (Icons.check_circle_outline, 'Resuelta.');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final (icono, mensaje) = _estado;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            _etiquetaTipo,
-            style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 14),
-          ),
-          const SizedBox(height: 4),
-          Text(novedad.detalle, style: const TextStyle(color: AppColors.teal, fontSize: 13)),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icono, size: 16, color: AppColors.navy),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  mensaje,
-                  style: const TextStyle(color: AppColors.navy, fontSize: 13, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}

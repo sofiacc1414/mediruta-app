@@ -159,6 +159,14 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   }
 
   @override
+  Future<List<NovedadResumen>> listarNovedadesSolicitudDomiciliario(String solicitudId) async {
+    final respuesta = await _datasource.listarNovedadesSolicitudDomiciliario(solicitudId);
+    return respuesta
+        .map((e) => NovedadResumen.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
   Future<PedidoActivo?> obtenerPedidoActivo() async {
     final respuesta = await _datasource.obtenerPedidoActivo();
     return respuesta != null ? PedidoActivo.fromJson(respuesta) : null;

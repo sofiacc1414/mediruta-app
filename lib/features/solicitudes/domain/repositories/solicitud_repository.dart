@@ -111,6 +111,11 @@ abstract class SolicitudRepository {
 
   Future<void> reportarNovedad(String solicitudId, String detalle);
 
+  /// HU-07/HU-09 (ronda 7) — equivalente de [listarNovedadesSolicitud]
+  /// para el tab "Novedades" del Domiciliario: todas las novedades del
+  /// pedido, resueltas o no, la haya reportado él o el Paciente.
+  Future<List<NovedadResumen>> listarNovedadesSolicitudDomiciliario(String solicitudId);
+
   /// El pedido que el Domiciliario tiene en curso ahora mismo, o `null`
   /// si no tiene ninguno — sobrevive un cierre/reapertura de la app (el
   /// pool deja de incluirlo apenas se acepta).

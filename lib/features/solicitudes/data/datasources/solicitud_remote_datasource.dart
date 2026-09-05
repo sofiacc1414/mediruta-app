@@ -175,6 +175,16 @@ class SolicitudRemoteDatasource {
     );
   }
 
+  /// HU-07/HU-09 (ronda 7) — equivalente de [listarNovedadesSolicitud]
+  /// para el tab "Novedades" del Domiciliario: todas las del pedido.
+  Future<List<dynamic>> listarNovedadesSolicitudDomiciliario(String solicitudId) async {
+    final respuesta = await _apiClient.get(
+      '/pedidos/$solicitudId/novedades',
+      autenticado: true,
+    );
+    return respuesta as List<dynamic>;
+  }
+
   /// `null` en el cuerpo (200 sin JSON) si no tiene ningún pedido activo.
   Future<Map<String, dynamic>?> obtenerPedidoActivo() async {
     final respuesta = await _apiClient.get('/pedidos/mi-activo', autenticado: true);

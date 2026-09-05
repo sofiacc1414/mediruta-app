@@ -18,6 +18,7 @@ import '../../domain/usecases/enviar_solicitud_usecase.dart';
 import '../../domain/usecases/iniciar_entrega_usecase.dart';
 import '../../domain/usecases/listar_historial_pedidos_usecase.dart';
 import '../../domain/usecases/listar_novedades_solicitud_usecase.dart';
+import '../../domain/usecases/listar_novedades_solicitud_domiciliario_usecase.dart';
 import '../../domain/usecases/obtener_documentos_paciente_para_recoger_usecase.dart';
 import '../../domain/usecases/listar_pedidos_disponibles_usecase.dart';
 import '../../domain/usecases/listar_solicitudes_usecase.dart';
@@ -117,6 +118,10 @@ final reportarCodigoNoGeneradoUseCaseProvider = Provider(
 
 final listarNovedadesSolicitudUseCaseProvider = Provider(
   (ref) => ListarNovedadesSolicitudUseCase(ref.watch(solicitudRepositoryProvider)),
+);
+
+final listarNovedadesSolicitudDomiciliarioUseCaseProvider = Provider(
+  (ref) => ListarNovedadesSolicitudDomiciliarioUseCase(ref.watch(solicitudRepositoryProvider)),
 );
 
 final obtenerPedidoActivoUseCaseProvider = Provider(

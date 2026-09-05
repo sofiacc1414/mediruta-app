@@ -507,9 +507,15 @@ class _TarjetaHeroBienvenida extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Antes esto era un Stack con el texto en un Padding a ancho completo
+    // y la imagen `Positioned` encima a la derecha — en pantallas angostas
+    // el texto no tenía ningún límite real que respetara el espacio de la
+    // imagen y terminaba superpuesto. Con Row + Expanded, el texto nunca
+    // puede invadir el ancho reservado a la imagen, sea cual sea el ancho
+    // de pantalla.
     return Container(
       width: double.infinity,
-      height: 180,
+      constraints: const BoxConstraints(minHeight: 180),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: const LinearGradient(
@@ -522,67 +528,42 @@ class _TarjetaHeroBienvenida extends StatelessWidget {
         ),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned(
-            right: 20,
-            top: 0,
-            bottom: 0,
-            child: Center(
-              child: ClipOval(
-                child: Image.asset(
-                  imagenAsset,
-                  width: 110,
-                  height: 110,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: 110,
-                    height: 110,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.skyBlue, width: 2),
+                      color: AppColors.navy.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Icon(Icons.local_shipping, color: AppColors.navy, size: 40),
+                    child: const Text(
+                      'MediRuta',
+                      style: TextStyle(
+                        color: AppColors.navy,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.navy.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'MediRuta',
-                    style: TextStyle(
+                  const SizedBox(height: 10),
+                  Text(
+                    titulo,
+                    style: const TextStyle(
                       color: AppColors.navy,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  titulo,
-                  style: const TextStyle(
-                    color: AppColors.navy,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                SizedBox(
-                  width: 200,
-                  child: Text(
+                  const SizedBox(height: 6),
+                  Text(
                     descripcion,
                     style: const TextStyle(
                       color: AppColors.navy,
@@ -590,11 +571,30 @@ class _TarjetaHeroBienvenida extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            ClipOval(
+              child: Image.asset(
+                imagenAsset,
+                width: 90,
+                height: 90,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.skyBlue, width: 2),
+                  ),
+                  child: const Icon(Icons.local_shipping, color: AppColors.navy, size: 36),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -606,9 +606,12 @@ class _TarjetaHeroBienvenidaDomiciliario extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Mismo fix que `_TarjetaHeroBienvenida`: Row + Expanded en vez de
+    // Stack + Positioned, para que el texto nunca invada el espacio de
+    // la imagen en pantallas angostas.
     return Container(
       width: double.infinity,
-      height: 180,
+      constraints: const BoxConstraints(minHeight: 180),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: const LinearGradient(
@@ -621,92 +624,73 @@ class _TarjetaHeroBienvenidaDomiciliario extends StatelessWidget {
         ),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned(
-            right: 20,
-            top: 0,
-            bottom: 0,
-            child: Center(
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/domiciliario.png',
-                  width: 110,
-                  height: 110,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: 110,
-                    height: 110,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.skyBlue, width: 2),
+                      color: AppColors.navy.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Icon(Icons.delivery_dining, color: AppColors.navy, size: 40),
+                    child: const Text(
+                      'MediRuta - Domiciliario',
+                      style: TextStyle(
+                        color: AppColors.navy,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.navy.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'MediRuta - Domiciliario',
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Lleva salud a tu comunidad',
                     style: TextStyle(
                       color: AppColors.navy,
-                      fontSize: 12,
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Lleva salud a tu comunidad',
-                  style: TextStyle(
-                    color: AppColors.navy,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Conecta con personas que necesitan sus medicamentos y realiza entregas seguras.',
+                    style: TextStyle(
+                      color: AppColors.navy.withValues(alpha: 0.7),
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: 200,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Conecta con personas que necesitan sus medicamentos',
-                        style: TextStyle(
-                          color: AppColors.navy.withValues(alpha: 0.7),
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
-                      Text(
-                        'y realiza entregas seguras.',
-                        style: TextStyle(
-                          color: AppColors.navy.withValues(alpha: 0.7),
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            ClipOval(
+              child: Image.asset(
+                'assets/images/domiciliario.png',
+                width: 90,
+                height: 90,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.skyBlue, width: 2),
+                  ),
+                  child: const Icon(Icons.delivery_dining, color: AppColors.navy, size: 36),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
