@@ -18,6 +18,7 @@ import '../../domain/entities/rol_asignado.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/disponibilidad_domiciliario_provider.dart';
 import '../providers/perfil_providers.dart';
+import '../widgets/boton_cambiar_modo.dart';
 import '../widgets/main_bottom_bar.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -370,6 +371,10 @@ class _Encabezado extends StatelessWidget {
               ],
             ),
           ),
+          // HU-XX — selector de modo Paciente/Domiciliario para cuentas
+          // con los 2 roles; el propio widget se oculta si la cuenta
+          // tiene un solo rol (ver `BotonCambiarModo`).
+          const BotonCambiarModo(),
         ],
       ),
     );
