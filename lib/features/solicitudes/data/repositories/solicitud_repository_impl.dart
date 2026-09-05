@@ -1,5 +1,6 @@
 import '../../domain/entities/datos_solicitud.dart';
 import '../../domain/entities/documentos_paciente_para_recoger.dart';
+import '../../domain/entities/medicamento.dart';
 import '../../domain/entities/pedido_activo.dart';
 import '../../domain/entities/pedido_disponible.dart';
 import '../../domain/entities/pedido_historial.dart';
@@ -70,17 +71,38 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   }
 
   @override
-  Future<void> solicitarEdicionPedido(
+  Future<String> solicitarEdicionPedido(
     String solicitudId, {
     String? direccionEntrega,
     String? direccionFarmacia,
     String? detalle,
+    List<Medicamento>? medicamentos,
+    bool incluyeReceta = false,
   }) {
     return _datasource.solicitarEdicionPedido(
       solicitudId,
       direccionEntrega: direccionEntrega,
       direccionFarmacia: direccionFarmacia,
       detalle: detalle,
+      medicamentos: medicamentos,
+      incluyeReceta: incluyeReceta,
+    );
+  }
+
+  @override
+  Future<void> adjuntarRecetaPropuestaEdicion({
+    required String solicitudId,
+    required String novedadId,
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  }) {
+    return _datasource.adjuntarRecetaPropuestaEdicion(
+      solicitudId: solicitudId,
+      novedadId: novedadId,
+      bytes: bytes,
+      nombreArchivo: nombreArchivo,
+      contentType: contentType,
     );
   }
 

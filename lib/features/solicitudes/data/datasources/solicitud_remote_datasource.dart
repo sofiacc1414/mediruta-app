@@ -1,5 +1,6 @@
 import '../../../../shared/core/network/api_client.dart';
 import '../../domain/entities/datos_solicitud.dart';
+import '../../domain/entities/medicamento.dart';
 
 /// Traduce las operaciones de solicitudes (HU-03) a requests concretos
 /// contra `mediruta-api` — única capa que conoce las rutas/forma del JSON.
@@ -72,21 +73,46 @@ class SolicitudRemoteDatasource {
     );
   }
 
-  /// HU-07 (ronda 3) — pide corregir dirección de entrega y/o farmacia
-  /// de un pedido ya enviado. Solo manda los campos no nulos.
-  Future<void> solicitarEdicionPedido(
+  /// HU-07 (ronda 3/4) — pide corregir dirección de entrega, de
+  /// farmacia y/o medicamentos de un pedido ya enviado. Solo manda los
+  /// campos no nulos. Devuelve el id de la novedad creada (lo necesita
+  /// [adjuntarRecetaPropuestaEdicion] si además se propone una foto).
+  Future<String> solicitarEdicionPedido(
     String solicitudId, {
     String? direccionEntrega,
     String? direccionFarmacia,
     String? detalle,
-  }) {
-    return _apiClient.post(
+    List<Medicamento>? medicamentos,
+    bool incluyeReceta = false,
+  }) async {
+    final respuesta = await _apiClient.post(
       '/solicitudes/$solicitudId/solicitar-edicion',
       body: {
         if (direccionEntrega != null) 'direccionEntrega': direccionEntrega,
         if (direccionFarmacia != null) 'direccionFarmacia': direccionFarmacia,
         if (detalle != null) 'detalle': detalle,
+        if (medicamentos != null) 'medicamentos': medicamentos.map((m) => m.toJson()).toList(),
+        if (incluyeReceta) 'incluyeReceta': true,
       },
+      autenticado: true,
+    );
+    return (respuesta as Map<String, dynamic>)['id'] as String;
+  }
+
+  /// HU-07 (ronda 4) — adjunta la foto de receta propuesta a una
+  /// novedad de edición ya creada.
+  Future<void> adjuntarRecetaPropuestaEdicion({
+    required String solicitudId,
+    required String novedadId,
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  }) {
+    return _apiClient.postMultipart(
+      '/solicitudes/$solicitudId/solicitar-edicion/$novedadId/receta',
+      bytes: bytes,
+      nombreArchivo: nombreArchivo,
+      contentType: contentType,
       autenticado: true,
     );
   }

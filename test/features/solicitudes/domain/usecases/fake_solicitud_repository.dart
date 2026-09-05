@@ -1,5 +1,6 @@
 import 'package:mediruta_app/features/solicitudes/domain/entities/datos_solicitud.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/documentos_paciente_para_recoger.dart';
+import 'package:mediruta_app/features/solicitudes/domain/entities/medicamento.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_activo.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_disponible.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_historial.dart';
@@ -12,6 +13,7 @@ import 'package:mediruta_app/features/solicitudes/domain/repositories/solicitud_
 class FakeSolicitudRepository implements SolicitudRepository {
   Object? errorALanzar;
   String idARetornar = 'solicitud-uuid';
+  String novedadIdARetornar = 'novedad-uuid';
   String codigoPedidoARetornar = 'MR-000123';
   List<SolicitudResumen> listaARetornar = const [];
   Solicitud? solicitudARetornar;
@@ -140,17 +142,40 @@ class FakeSolicitudRepository implements SolicitudRepository {
   }
 
   @override
-  Future<void> solicitarEdicionPedido(
+  Future<String> solicitarEdicionPedido(
     String solicitudId, {
     String? direccionEntrega,
     String? direccionFarmacia,
     String? detalle,
+    List<Medicamento>? medicamentos,
+    bool incluyeReceta = false,
   }) async {
     _registrar('solicitarEdicionPedido', {
       'solicitudId': solicitudId,
       'direccionEntrega': direccionEntrega,
       'direccionFarmacia': direccionFarmacia,
       'detalle': detalle,
+      'medicamentos': medicamentos,
+      'incluyeReceta': incluyeReceta,
+    });
+    _lanzarSiCorresponde();
+    return novedadIdARetornar;
+  }
+
+  @override
+  Future<void> adjuntarRecetaPropuestaEdicion({
+    required String solicitudId,
+    required String novedadId,
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  }) async {
+    _registrar('adjuntarRecetaPropuestaEdicion', {
+      'solicitudId': solicitudId,
+      'novedadId': novedadId,
+      'bytes': bytes,
+      'nombreArchivo': nombreArchivo,
+      'contentType': contentType,
     });
     _lanzarSiCorresponde();
   }
