@@ -119,6 +119,176 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     }
   }
 
+  /// HU-07 (ronda 3) — punto de entrada único para "algo pasa con mi
+  /// pedido": abre una hoja con las 3 opciones (editar datos / código
+  /// no visible / otra pregunta) y despacha a cada handler. "Editar
+  /// datos" y "código" no aplican en Borrador (el pedido todavía no se
+  /// envió — la API los rechaza igual, pero no tiene sentido ofrecerlos).
+  Future<void> _reportarAlgo(Solicitud solicitud) async {
+    final opcion = await showModalBottomSheet<_OpcionReporte>(
+      context: context,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => _HojaOpcionesReporte(
+        mostrarEdicionYCodigo: solicitud.estado != 'borrador',
+      ),
+    );
+    if (opcion == null || !mounted) return;
+
+    switch (opcion) {
+      case _OpcionReporte.edicion:
+        await _solicitarEdicion(solicitud);
+      case _OpcionReporte.codigo:
+        await _reportarCodigoNoGenerado();
+      case _OpcionReporte.pregunta:
+        await _reportarNovedad();
+    }
+  }
+
+  /// HU-07 (ronda 3) — pide corregir dirección de entrega y/o farmacia.
+  /// Precarga los valores actuales; al menos uno debe quedar distinto
+  /// de vacío para poder enviar (mismo mínimo que exige la API).
+  Future<void> _solicitarEdicion(Solicitud solicitud) async {
+    final entregaController = TextEditingController(text: solicitud.direccionEntrega ?? '');
+    final farmaciaController = TextEditingController(text: solicitud.direccionFarmacia ?? '');
+    final comentarioController = TextEditingController();
+
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Pedir corrección de datos'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Un administrador revisa el cambio antes de aplicarlo.'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: entregaController,
+                decoration: const InputDecoration(labelText: 'Dirección de entrega'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: farmaciaController,
+                decoration: const InputDecoration(labelText: 'Dirección de la farmacia'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: comentarioController,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Comentario (opcional)',
+                  hintText: 'Ej.: me mudé de casa',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+
+    final nuevaEntrega = entregaController.text.trim();
+    final nuevaFarmacia = farmaciaController.text.trim();
+    final entregaCambio = nuevaEntrega.isNotEmpty && nuevaEntrega != (solicitud.direccionEntrega ?? '');
+    final farmaciaCambio =
+        nuevaFarmacia.isNotEmpty && nuevaFarmacia != (solicitud.direccionFarmacia ?? '');
+
+    if (!entregaCambio && !farmaciaCambio) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Indicá al menos un dato para corregir.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _procesando = true;
+      _error = null;
+    });
+    try {
+      await ref.read(solicitarEdicionPedidoUseCaseProvider).execute(
+            widget.solicitudId,
+            direccionEntrega: entregaCambio ? nuevaEntrega : null,
+            direccionFarmacia: farmaciaCambio ? nuevaFarmacia : null,
+            detalle: comentarioController.text.trim().isEmpty
+                ? null
+                : comentarioController.text.trim(),
+          );
+      await _cargar();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tu solicitud de corrección fue enviada — el administrador la revisa.'),
+          ),
+        );
+      }
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } on ApiSinConexionException catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _procesando = false);
+    }
+  }
+
+  /// HU-07 (ronda 3) — reporta que el código de entrega no se generó o
+  /// no se ve en la app. Sin formulario: solo confirma la acción.
+  Future<void> _reportarCodigoNoGenerado() async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('No veo mi código de entrega'),
+        content: const Text(
+          'Le avisamos a un administrador para que te lo genere de nuevo o te lo reenvíe por correo.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Avisar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+
+    setState(() {
+      _procesando = true;
+      _error = null;
+    });
+    try {
+      await ref.read(reportarCodigoNoGeneradoUseCaseProvider).execute(widget.solicitudId);
+      await _cargar();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reportamos el problema — el administrador te lo va a enviar de nuevo.')),
+        );
+      }
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } on ApiSinConexionException catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _procesando = false);
+    }
+  }
+
   Future<void> _reportarNovedad() async {
     final controller = TextEditingController();
     final detalle = await showDialog<String>(
@@ -397,8 +567,9 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                             solicitud.novedadAbierta == null) ...[
                           const SizedBox(height: 8),
                           _BotonGrisClaro(
-                            onPressed: _procesando ? null : _reportarNovedad,
-                            etiqueta: 'Reportar novedad',
+                            onPressed:
+                                _procesando ? null : () => _reportarAlgo(solicitud),
+                            etiqueta: 'Algo pasa con mi pedido',
                           ),
                         ],
                       ],
@@ -484,6 +655,120 @@ class _BotonGrisClaro extends StatelessWidget {
                 etiqueta,
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
+      ),
+    );
+  }
+}
+
+/// HU-07 (ronda 3) — las 3 opciones que ofrece `_reportarAlgo`.
+enum _OpcionReporte { edicion, codigo, pregunta }
+
+/// Hoja de opciones de "Algo pasa con mi pedido" — mismo patrón visual
+/// (`showModalBottomSheet` + handle + título) que `_HojaDocumentosPaciente`
+/// en `mi_pedido_activo_screen.dart` (Domiciliario), para consistencia
+/// entre las dos pantallas que ya usan hojas inferiores.
+class _HojaOpcionesReporte extends StatelessWidget {
+  const _HojaOpcionesReporte({required this.mostrarEdicionYCodigo});
+
+  final bool mostrarEdicionYCodigo;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.skyBlue,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              '¿Qué pasa con tu pedido?',
+              style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+            if (mostrarEdicionYCodigo) ...[
+              _OpcionReporteTile(
+                icono: Icons.edit_location_alt_outlined,
+                titulo: 'Pedir corrección de datos',
+                subtitulo: 'Dirección de entrega o de la farmacia',
+                onTap: () => Navigator.of(context).pop(_OpcionReporte.edicion),
+              ),
+              const SizedBox(height: 8),
+              _OpcionReporteTile(
+                icono: Icons.pin_outlined,
+                titulo: 'No veo mi código de entrega',
+                subtitulo: 'Te lo generamos de nuevo o te lo reenviamos',
+                onTap: () => Navigator.of(context).pop(_OpcionReporte.codigo),
+              ),
+              const SizedBox(height: 8),
+            ],
+            _OpcionReporteTile(
+              icono: Icons.chat_bubble_outline,
+              titulo: 'Otra pregunta',
+              subtitulo: 'Contanos qué pasó',
+              onTap: () => Navigator.of(context).pop(_OpcionReporte.pregunta),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OpcionReporteTile extends StatelessWidget {
+  const _OpcionReporteTile({
+    required this.icono,
+    required this.titulo,
+    required this.subtitulo,
+    required this.onTap,
+  });
+
+  final IconData icono;
+  final String titulo;
+  final String subtitulo;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.beige,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Icon(icono, color: AppColors.navy),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titulo,
+                    style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700),
+                  ),
+                  Text(subtitulo, style: const TextStyle(color: AppColors.teal, fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.teal),
+          ],
+        ),
       ),
     );
   }
