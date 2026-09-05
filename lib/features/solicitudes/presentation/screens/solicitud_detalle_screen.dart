@@ -8,6 +8,7 @@ import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
+import '../../domain/entities/novedad_resumen.dart';
 import '../../domain/entities/solicitud.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
@@ -30,6 +31,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
   bool _cargando = true;
   bool _procesando = false;
   Solicitud? _solicitud;
+  List<NovedadResumen> _novedades = const [];
   String? _error;
 
   @override
@@ -44,11 +46,15 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
       _error = null;
     });
     try {
-      final solicitud = await ref
-          .read(obtenerSolicitudUseCaseProvider)
-          .execute(widget.solicitudId);
+      final resultados = await Future.wait([
+        ref.read(obtenerSolicitudUseCaseProvider).execute(widget.solicitudId),
+        ref.read(listarNovedadesSolicitudUseCaseProvider).execute(widget.solicitudId),
+      ]);
       if (!mounted) return;
-      setState(() => _solicitud = solicitud);
+      setState(() {
+        _solicitud = resultados[0] as Solicitud;
+        _novedades = resultados[1] as List<NovedadResumen>;
+      });
     } on ApiException catch (error) {
       setState(() => _error = error.message);
     } on ApiSinConexionException catch (error) {
@@ -335,30 +341,20 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                             ],
                           ),
                         ),
-                        if (solicitud.novedadAbierta != null) ...[
+                        if (_novedades.isNotEmpty) ...[
                           const SizedBox(height: 16),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(Icons.info_outline, color: Colors.red),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    'Hay una novedad sobre tu pedido: ${solicitud.novedadAbierta!.detalle}',
-                                    style: const TextStyle(color: AppColors.navy),
-                                  ),
-                                ),
-                              ],
+                          const Text(
+                            'Tus reportes sobre este pedido',
+                            style: TextStyle(
+                              color: AppColors.navy,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
                             ),
                           ),
+                          for (final novedad in _novedades) ...[
+                            const SizedBox(height: 8),
+                            _TarjetaNovedad(novedad: novedad),
+                          ],
                         ],
                         if (solicitud.codigoEntrega != null) ...[
                           const SizedBox(height: 16),
@@ -480,8 +476,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                           ),
 
                         if (solicitud.estado != 'cancelada' &&
-                            solicitud.estado != 'entregado' &&
-                            solicitud.novedadAbierta == null) ...[
+                            solicitud.estado != 'entregado') ...[
                           const SizedBox(height: 8),
                           _BotonGrisClaro(
                             onPressed:
@@ -900,6 +895,83 @@ class _Miniatura extends StatelessWidget {
                       const Icon(Icons.image_not_supported_outlined, color: AppColors.navy, size: 20),
                 ),
         ),
+      ),
+    );
+  }
+}
+
+/// HU-07 (ronda 5) — una fila de "Tus reportes sobre este pedido", con
+/// su estado. El color se reserva a la paleta oficial (context.md
+/// Parte A, §4) — la diferencia entre "aprobada"/"rechazada" se marca
+/// con el ícono y el texto, no con verde/rojo fuera de paleta.
+class _TarjetaNovedad extends StatelessWidget {
+  const _TarjetaNovedad({required this.novedad});
+
+  final NovedadResumen novedad;
+
+  String get _etiquetaTipo => switch (novedad.tipo) {
+    'edicion' => 'Corrección de datos',
+    'codigo' => 'Código de entrega',
+    _ => 'Pregunta',
+  };
+
+  (IconData, String) get _estado {
+    if (!novedad.resuelta) {
+      return (Icons.hourglass_top_outlined, 'En revisión por un administrador.');
+    }
+    if (novedad.tipo == 'edicion') {
+      if (novedad.accionEdicion == 'aprobada') {
+        return (Icons.check_circle_outline, 'Aprobada — el cambio ya se aplicó a tu pedido.');
+      }
+      if (novedad.accionEdicion == 'rechazada') {
+        if (novedad.incluyeMedicamentosOReceta) {
+          return (
+            Icons.cancel_outlined,
+            'Rechazada. Si todavía necesitás este cambio, cancelá el pedido y creá uno nuevo — '
+                'si el domiciliario ya llegó a la farmacia, cancelar puede generar un cobro por el desplazamiento.',
+          );
+        }
+        return (Icons.cancel_outlined, 'Rechazada.');
+      }
+    }
+    return (Icons.check_circle_outline, 'Resuelta.');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (icono, mensaje) = _estado;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _etiquetaTipo,
+            style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          Text(novedad.detalle, style: const TextStyle(color: AppColors.teal, fontSize: 13)),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icono, size: 16, color: AppColors.navy),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  mensaje,
+                  style: const TextStyle(color: AppColors.navy, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

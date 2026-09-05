@@ -1,6 +1,7 @@
 import '../entities/datos_solicitud.dart';
 import '../entities/documentos_paciente_para_recoger.dart';
 import '../entities/medicamento.dart';
+import '../entities/novedad_resumen.dart';
 import '../entities/pedido_activo.dart';
 import '../entities/pedido_disponible.dart';
 import '../entities/pedido_historial.dart';
@@ -80,6 +81,11 @@ abstract class SolicitudRepository {
   /// se generó o no lo ve en su pantalla. El admin lo regenera o lo
   /// reenvía por correo directo sobre el pedido.
   Future<void> reportarCodigoNoGenerado(String solicitudId, {String? detalle});
+
+  /// HU-07 (ronda 5) — todas las novedades reportadas sobre este
+  /// pedido, resueltas o no (a diferencia de `Solicitud.novedadAbierta`,
+  /// que solo trae la última sin resolver).
+  Future<List<NovedadResumen>> listarNovedadesSolicitud(String solicitudId);
 
   // --- Domiciliario (HU-09/HU-07) ---
 

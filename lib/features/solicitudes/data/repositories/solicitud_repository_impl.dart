@@ -1,6 +1,7 @@
 import '../../domain/entities/datos_solicitud.dart';
 import '../../domain/entities/documentos_paciente_para_recoger.dart';
 import '../../domain/entities/medicamento.dart';
+import '../../domain/entities/novedad_resumen.dart';
 import '../../domain/entities/pedido_activo.dart';
 import '../../domain/entities/pedido_disponible.dart';
 import '../../domain/entities/pedido_historial.dart';
@@ -109,6 +110,14 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   @override
   Future<void> reportarCodigoNoGenerado(String solicitudId, {String? detalle}) {
     return _datasource.reportarCodigoNoGenerado(solicitudId, detalle: detalle);
+  }
+
+  @override
+  Future<List<NovedadResumen>> listarNovedadesSolicitud(String solicitudId) async {
+    final respuesta = await _datasource.listarNovedadesSolicitud(solicitudId);
+    return respuesta
+        .map((e) => NovedadResumen.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   @override
