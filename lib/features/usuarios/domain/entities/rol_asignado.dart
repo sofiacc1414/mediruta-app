@@ -14,3 +14,16 @@ class RolAsignado {
     );
   }
 }
+
+/// `estadoDe('DOMICILIARIO')` — el estado de asignación de ese rol
+/// (`habilitado`/`pendiente_validacion`/`rechazado`), o `null` si la
+/// cuenta ni siquiera lo tiene. Se usa en cualquier pantalla que exige
+/// el rol habilitado (el `RolesGuard` de la API lo exige igual) para
+/// avisar "en proceso de validación" en vez de dejar que la llamada
+/// falle con un error de rol confuso.
+extension RolesAsignadosEstado on List<RolAsignado> {
+  String? estadoDe(String codigo) {
+    final rol = where((r) => r.codigo == codigo);
+    return rol.isEmpty ? null : rol.first.estado;
+  }
+}

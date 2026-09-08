@@ -20,6 +20,7 @@ import '../providers/disponibilidad_domiciliario_provider.dart';
 import '../providers/perfil_providers.dart';
 import '../widgets/boton_cambiar_modo.dart';
 import '../widgets/main_bottom_bar.dart';
+import '../widgets/tarjeta_estado_validacion_domiciliario.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -79,8 +80,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String? _estadoRolDomiciliario() {
     final estado = ref.read(authSessionProvider);
     final usuario = estado is AuthAutenticado ? estado.usuario : null;
-    final roles = usuario?.roles.where((r) => r.codigo == 'DOMICILIARIO') ?? const <RolAsignado>[];
-    return roles.isEmpty ? null : roles.first.estado;
+    return (usuario?.roles ?? const <RolAsignado>[]).estadoDe('DOMICILIARIO');
   }
 
   Future<void> _cargarSegunModo() async {
@@ -282,7 +282,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // confuso — el rol existe, solo falta la aprobación).
     final estadoRol = _estadoRolDomiciliario();
     if (estadoRol != 'habilitado') {
-      return [_TarjetaEstadoValidacionDomiciliario(estado: estadoRol)];
+      return [TarjetaEstadoValidacionDomiciliario(estado: estadoRol)];
     }
 
     final disponibilidad = ref.watch(disponibilidadDomiciliarioProvider);
@@ -982,58 +982,6 @@ class _TarjetaHero extends StatelessWidget {
 }
 
 // TARJETA DE DISPONIBILIDAD (CON EL MISMO ESTILO QUE _TarjetaHero)
-/// Home del Domiciliario mientras el rol todavía no está habilitado —
-/// reemplaza toda la tarjeta de disponibilidad/pedidos (context.md
-/// Parte A, §4: la diferencia entre "pendiente" y "rechazado" se marca
-/// con ícono/texto, no con un color nuevo).
-class _TarjetaEstadoValidacionDomiciliario extends StatelessWidget {
-  const _TarjetaEstadoValidacionDomiciliario({required this.estado});
-
-  final String? estado;
-
-  @override
-  Widget build(BuildContext context) {
-    final rechazado = estado == 'rechazado';
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            rechazado ? Icons.cancel_outlined : Icons.hourglass_top_outlined,
-            color: AppColors.navy,
-            size: 28,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            rechazado ? 'Solicitud rechazada' : 'Cuenta en proceso de validación',
-            style: const TextStyle(
-              color: AppColors.navy,
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            rechazado
-                ? 'Un administrador rechazó tu solicitud para ser Domiciliario. '
-                    'Revisá el motivo y tus datos desde tu Perfil.'
-                : 'Un administrador está revisando tus datos y documentos. '
-                    'Vas a poder recibir pedidos apenas se apruebe tu cuenta.',
-            style: const TextStyle(color: AppColors.teal, fontSize: 14, height: 1.4),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _TarjetaDisponibilidad extends StatelessWidget {
   const _TarjetaDisponibilidad({
     required this.disponible,
