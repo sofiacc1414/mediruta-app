@@ -22,7 +22,11 @@ class FakeSolicitudRepository implements SolicitudRepository {
   PedidoActivo? pedidoActivoARetornar;
   List<PedidoHistorial> historialPedidosARetornar = const [];
   DocumentosPacienteParaRecoger documentosPacienteParaRecogerARetornar =
-      const DocumentosPacienteParaRecoger(cedulaFrenteUrl: null, cedulaReversoUrl: null);
+      const DocumentosPacienteParaRecoger(
+        cedulaFrenteUrl: null,
+        cedulaReversoUrl: null,
+        recetaUrl: null,
+      );
   List<NovedadResumen> novedadesSolicitudARetornar = const [];
 
   Map<String, dynamic>? ultimaLlamada;

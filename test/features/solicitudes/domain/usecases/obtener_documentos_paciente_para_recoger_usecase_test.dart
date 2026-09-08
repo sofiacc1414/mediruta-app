@@ -11,6 +11,7 @@ void main() {
       const documentos = DocumentosPacienteParaRecoger(
         cedulaFrenteUrl: 'https://firmada.test/cedula_frente.jpg',
         cedulaReversoUrl: 'https://firmada.test/cedula_reverso.jpg',
+        recetaUrl: 'https://firmada.test/receta.jpg',
       );
       final repo = FakeSolicitudRepository()
         ..documentosPacienteParaRecogerARetornar = documentos;

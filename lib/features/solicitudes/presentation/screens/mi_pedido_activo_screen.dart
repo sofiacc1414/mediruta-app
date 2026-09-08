@@ -210,6 +210,10 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
 
     await showModalBottomSheet<void>(
       context: context,
+      // Sin esto, el `DraggableScrollableSheet` de adentro no puede
+      // usar más que el alto por defecto del modal (~la mitad de la
+      // pantalla) — con 3 documentos ya no entraba.
+      isScrollControlled: true,
       backgroundColor: AppColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -649,62 +653,75 @@ class _HojaDocumentosPaciente extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.skyBlue,
-                  borderRadius: BorderRadius.circular(999),
+      // Antes esto era un Column suelto, sin scroll — con la cédula
+      // (2 fotos) ya se podía cortar en pantallas chicas, y ahora que
+      // se suma la fórmula médica, sin esto quedaba directamente
+      // inalcanzable.
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.75,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.skyBlue,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.skyBlue.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(10),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.skyBlue.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.credit_card_outlined,
+                      color: AppColors.teal,
+                      size: 20,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.credit_card_outlined,
-                    color: AppColors.teal,
-                    size: 20,
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Documentos del paciente',
+                    style: TextStyle(
+                      color: AppColors.navy,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Cédula del paciente',
-                  style: TextStyle(
-                    color: AppColors.navy,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                  ),
-                ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Mostrá la cédula en la farmacia y verificá el pedido contra la fórmula médica.',
+                style: TextStyle(color: AppColors.teal, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              if (error != null)
+                AppErrorBanner(mensaje: error!)
+              else ...[
+                _FotoDocumento(label: 'Cédula — Frente', url: documentos?.cedulaFrenteUrl),
+                const SizedBox(height: 16),
+                _FotoDocumento(label: 'Cédula — Reverso', url: documentos?.cedulaReversoUrl),
+                const SizedBox(height: 16),
+                _FotoDocumento(label: 'Fórmula médica', url: documentos?.recetaUrl),
               ],
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Mostrala en la farmacia para retirar el medicamento a su nombre.',
-              style: TextStyle(color: AppColors.teal, fontSize: 13),
-            ),
-            const SizedBox(height: 20),
-            if (error != null)
-              AppErrorBanner(mensaje: error!)
-            else ...[
-              _FotoDocumento(label: 'Frente', url: documentos?.cedulaFrenteUrl),
-              const SizedBox(height: 16),
-              _FotoDocumento(label: 'Reverso', url: documentos?.cedulaReversoUrl),
             ],
-          ],
+          ),
         ),
       ),
     );
