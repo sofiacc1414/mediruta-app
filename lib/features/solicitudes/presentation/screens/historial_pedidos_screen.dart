@@ -6,7 +6,10 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_order_card.dart';
 import '../../../../shared/widgets/app_segmented_tabs.dart';
+import '../../../usuarios/domain/entities/rol_asignado.dart';
+import '../../../usuarios/presentation/providers/auth_session_provider.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
+import '../../../usuarios/presentation/widgets/tarjeta_estado_validacion_domiciliario.dart';
 import '../../domain/entities/pedido_historial.dart';
 import '../providers/solicitud_providers.dart';
 import 'mi_pedido_activo_screen.dart';
@@ -39,7 +42,21 @@ class _HistorialPedidosScreenState extends ConsumerState<HistorialPedidosScreen>
     _cargar();
   }
 
+  /// Mismo criterio que Home: los endpoints de esta pantalla exigen el
+  /// rol DOMICILIARIO habilitado, no solo asignado — sin este chequeo,
+  /// una cuenta todavía pendiente terminaba viendo "Tu cuenta no tiene
+  /// ese rol asignado" en vez de un aviso claro.
+  String? _estadoRolDomiciliario() {
+    final estado = ref.read(authSessionProvider);
+    final usuario = estado is AuthAutenticado ? estado.usuario : null;
+    return (usuario?.roles ?? const <RolAsignado>[]).estadoDe('DOMICILIARIO');
+  }
+
   Future<void> _cargar() async {
+    if (_estadoRolDomiciliario() != 'habilitado') {
+      setState(() => _cargando = false);
+      return;
+    }
     setState(() {
       _cargando = true;
       _error = null;
@@ -59,6 +76,7 @@ class _HistorialPedidosScreenState extends ConsumerState<HistorialPedidosScreen>
 
   @override
   Widget build(BuildContext context) {
+    final estadoRol = _estadoRolDomiciliario();
     final todos = _pedidos ?? const <PedidoHistorial>[];
     final esHistorial = _tab == 1;
     final visibles =
@@ -84,7 +102,17 @@ class _HistorialPedidosScreenState extends ConsumerState<HistorialPedidosScreen>
         backgroundColor: Colors.transparent,
       ),
       bottomNavigationBar: const MainBottomBar(),
-      body: _cargando
+      body: estadoRol != 'habilitado'
+          ? Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: TarjetaEstadoValidacionDomiciliario(estado: estadoRol),
+                ),
+              ),
+            )
+          : _cargando
           ? const Center(child: CircularProgressIndicator())
           : Center(
               child: ConstrainedBox(
