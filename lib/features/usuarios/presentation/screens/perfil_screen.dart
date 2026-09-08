@@ -1,10 +1,12 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
+import '../../../../shared/core/theme/modo_adulto_mayor_provider.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
@@ -16,6 +18,28 @@ import '../providers/perfil_providers.dart';
 import '../providers/usuario_providers.dart';
 import '../widgets/main_bottom_bar.dart';
 import 'cambiar_contrasena_screen.dart';
+
+/// Capitaliza cada palabra del nombre completo ("juan pérez" ->
+/// "Juan Pérez") — se aplica al guardar, así queda consistente en
+/// todos lados donde se muestra sin tener que tocar cada pantalla.
+/// La placa siempre se guarda/muestra en mayúsculas — se aplica
+/// mientras se escribe (no solo al guardar) para que el usuario vea
+/// de una lo que está quedando.
+class _MayusculasTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
+  }
+}
+
+String _capitalizarNombre(String nombre) {
+  return nombre
+      .split(' ')
+      .map((palabra) => palabra.isEmpty
+          ? palabra
+          : palabra[0].toUpperCase() + palabra.substring(1).toLowerCase())
+      .join(' ');
+}
 
 class PerfilScreen extends ConsumerStatefulWidget {
   const PerfilScreen({super.key});
@@ -46,7 +70,6 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
 
   bool _guardandoCambios = false;
   bool _notificacionesActivas = true;
-  bool _modoAdultoMayor = false;
 
   @override
   void initState() {
@@ -188,7 +211,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       await ref
           .read(actualizarDatosComunesUseCaseProvider)
           .execute(
-            nombreCompleto: _nombreController.text.trim(),
+            nombreCompleto: _capitalizarNombre(_nombreController.text.trim()),
             telefono: _telefonoController.text.trim(),
           );
       if (esPaciente) {
@@ -207,7 +230,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             .execute(
               direccion: _domiciliarioDireccionController.text.trim(),
               vehiculoTipo: _vehiculoTipoController.text.trim(),
-              vehiculoPlaca: _vehiculoPlacaController.text.trim(),
+              vehiculoPlaca: _vehiculoPlacaController.text.trim().toUpperCase(),
             );
       }
       if (!mounted) return;
@@ -425,8 +448,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                         iconColor: AppColors.navy,
                         titulo: 'Modo adulto mayor',
                         subtitulo: 'Texto y botones más grandes',
-                        valor: _modoAdultoMayor,
-                        onChanged: (val) => setState(() => _modoAdultoMayor = val),
+                        valor: ref.watch(modoAdultoMayorProvider),
+                        onChanged: (val) => ref.read(modoAdultoMayorProvider.notifier).cambiar(val),
                       ),
                       
                       const SizedBox(height: 40),
@@ -691,11 +714,12 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             enabled: !_guardandoCambios,
           ),
           const SizedBox(height: 12),
-          _CampoPerfil(
+          _CampoPerfilDropdown(
             label: 'Tipo de vehículo',
             icono: Icons.two_wheeler_outlined,
             controller: _vehiculoTipoController,
             enabled: !_guardandoCambios,
+            opciones: const ['Moto', 'Bicicleta'],
           ),
           const SizedBox(height: 12),
           _CampoPerfil(
@@ -703,6 +727,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             icono: Icons.pin_outlined,
             controller: _vehiculoPlacaController,
             enabled: !_guardandoCambios,
+            inputFormatters: [_MayusculasTextFormatter()],
           ),
           const SizedBox(height: 16),
           const Divider(color: AppColors.skyBlue, height: 1),
@@ -825,7 +850,12 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
     } on ApiException catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+      // "La documentación está incompleta" sin más no dice qué falta —
+      // si la API mandó el detalle (`faltantes`), se lista.
+      final detalle = error.faltantes != null && error.faltantes!.isNotEmpty
+          ? '${error.message}\nFalta: ${error.faltantes!.join(', ')}.'
+          : error.message;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(detalle)));
     } finally {
       if (mounted) setState(() => _guardandoCambios = false);
     }
@@ -1074,6 +1104,23 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
     return 'image/jpeg';
   }
 
+  /// Sin foto (o mientras falla cargarla): la primera letra del
+  /// nombre en mayúscula, mismo criterio que ya usa el avatar de
+  /// `home_screen.dart`.
+  Widget _iniciales() {
+    final letra = widget.nombre.trim().isNotEmpty
+        ? widget.nombre.trim()[0].toUpperCase()
+        : '?';
+    return Container(
+      color: AppColors.skyBlue,
+      alignment: Alignment.center,
+      child: Text(
+        letra,
+        style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 26),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Fondo BLANCO PURO con borde fino para que sea casi invisible
@@ -1102,10 +1149,9 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
                     ? Image.network(
                         widget.fotoPerfilUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.person, size: 40, color: AppColors.teal),
+                        errorBuilder: (context, error, stackTrace) => _iniciales(),
                       )
-                    : const Icon(Icons.person, size: 40, color: AppColors.teal),
+                    : _iniciales(),
               ),
               Positioned(
                 right: -2,
@@ -1325,7 +1371,16 @@ class _EditarPerfilBottomSheet extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          // El teclado no achica este bottom sheet solo — hay que sumarle
+          // `viewInsets.bottom` a mano, si no tapa los campos de abajo
+          // apenas se abre el teclado (más notorio en Domiciliario, que
+          // tiene más campos que Paciente).
+          padding: EdgeInsets.fromLTRB(
+            20,
+            20,
+            20,
+            20 + MediaQuery.of(context).viewInsets.bottom,
+          ),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1509,6 +1564,7 @@ class _CampoPerfil extends StatelessWidget {
     required this.controller,
     required this.enabled,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   final String label;
@@ -1516,6 +1572,7 @@ class _CampoPerfil extends StatelessWidget {
   final TextEditingController controller;
   final bool enabled;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -1529,10 +1586,72 @@ class _CampoPerfil extends StatelessWidget {
         controller: controller,
         enabled: enabled,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         style: const TextStyle(
           fontSize: 15,
           color: AppColors.navy,
         ),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+            color: Colors.grey.withValues(alpha: 0.8),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+          prefixIcon: Icon(icono, color: AppColors.teal, size: 20),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.15)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.teal, width: 2),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Mismo look de `_CampoPerfil`, pero como desplegable — para campos con
+/// un set fijo de opciones (ej. tipo de vehículo) en vez de texto libre.
+class _CampoPerfilDropdown extends StatelessWidget {
+  const _CampoPerfilDropdown({
+    required this.label,
+    required this.icono,
+    required this.controller,
+    required this.enabled,
+    required this.opciones,
+  });
+
+  final String label;
+  final IconData icono;
+  final TextEditingController controller;
+  final bool enabled;
+  final List<String> opciones;
+
+  @override
+  Widget build(BuildContext context) {
+    final valorActual = opciones.contains(controller.text) ? controller.text : null;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      child: DropdownButtonFormField<String>(
+        initialValue: valorActual,
+        onChanged: enabled ? (valor) => controller.text = valor ?? '' : null,
+        items: opciones
+            .map((opcion) => DropdownMenuItem(value: opcion, child: Text(opcion)))
+            .toList(),
+        style: const TextStyle(fontSize: 15, color: AppColors.navy),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(
@@ -1740,6 +1859,12 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
     final archivo = await ImagePicker().pickImage(
       source: origen == _OrigenDocumento.camara ? ImageSource.camera : ImageSource.gallery,
       imageQuality: 85,
+      // Sin esto, una foto de cámara moderna sale a resolución completa
+      // (varios MB) — lenta para subir y, después, lenta para renderizar
+      // acá mismo como miniatura. 1600px de lado más largo sigue siendo
+      // legible para un documento, sin el peso innecesario.
+      maxWidth: 1600,
+      maxHeight: 1600,
     );
     if (archivo == null) return null;
 
@@ -1871,6 +1996,12 @@ class _Miniatura extends StatelessWidget {
             : Image.network(
                 url!,
                 fit: BoxFit.cover,
+                // Sin esto, Flutter decodifica la imagen a su resolución
+                // completa solo para achicarla visualmente a 40px — con
+                // varios documentos en pantalla a la vez, eso es lo que
+                // se sentía como "renderizado lento". `cacheWidth` hace
+                // que decodifique directo a un tamaño chico.
+                cacheWidth: (tamano * 3).round(),
                 loadingBuilder: (context, child, progress) {
                   if (progress == null) return child;
                   return const Center(

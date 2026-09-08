@@ -11,6 +11,7 @@ import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field_glass.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/usuario_providers.dart';
+import 'perfil_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -116,6 +117,71 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       ref.read(authSessionProvider.notifier).sesionIniciada(usuario);
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
     } on ApiException catch (error) {
+      if (error.cuentaDesactivada) {
+        // La contraseña ya se verificó del lado de la API (por eso
+        // distingue este caso del error genérico) — se ofrece
+        // reactivar en vez de mostrar el error tal cual.
+        if (mounted) await _ofrecerReactivar();
+        return;
+      }
+      // La contraseña se limpia sola (no el correo) — así el usuario no
+      // tiene que borrarla a mano para reintentar, y no queda una
+      // contraseña mal escrita visible en pantalla.
+      _passwordController.clear();
+      setState(() => _error = error.message);
+    } on ApiSinConexionException catch (error) {
+      setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
+  }
+
+  /// HU-05 (ronda 9) — pop-up ante `ApiException.cuentaDesactivada`.
+  /// Reactivar reusa el mismo correo/contraseña que ya se tipearon acá
+  /// (la API los vuelve a validar del lado de `/auth/reactivar`, no se
+  /// asume nada) y, si funciona, entra directo a Perfil — no a Home —
+  /// para que la persona repase/actualice sus datos antes de seguir.
+  Future<void> _ofrecerReactivar() async {
+    final reactivar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Cuenta desactivada', style: TextStyle(color: AppColors.navy)),
+        content: const Text(
+          'Esta cuenta está desactivada. ¿Querés reactivarla? '
+          'Vas a poder revisar y actualizar tus datos de perfil apenas entres.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Ahora no', style: TextStyle(color: AppColors.navy)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Reactivar cuenta', style: TextStyle(color: AppColors.teal)),
+          ),
+        ],
+      ),
+    );
+    if (reactivar != true || !mounted) return;
+
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
+    try {
+      final usuario = await ref
+          .read(reactivarCuentaUseCaseProvider)
+          .execute(
+            correo: _correoController.text,
+            password: _passwordController.text,
+          );
+      if (!mounted) return;
+      ref.read(authSessionProvider.notifier).sesionIniciada(usuario);
+      Navigator.of(context).pushNamedAndRemoveUntil(PerfilScreen.routeName, (_) => false);
+    } on ApiException catch (error) {
+      _passwordController.clear();
       setState(() => _error = error.message);
     } on ApiSinConexionException catch (error) {
       setState(() => _error = error.toString());

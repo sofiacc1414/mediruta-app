@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
+import '../../../../shared/widgets/app_status_pill.dart';
 import '../../../usuarios/presentation/providers/perfil_providers.dart';
 import '../../../usuarios/presentation/screens/perfil_screen.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
@@ -309,21 +310,8 @@ class _TarjetaSolicitud extends StatelessWidget {
   final String estado;
   final VoidCallback onTap;
 
-  // Convierte el estado de la API a un texto visible y una lógica booleana
-  (String, bool) _textoYEstado() {
-    if (estado == 'entregado' || estado == 'completado' || estado == 'aceptado' || estado == 'asignado') {
-      return ('Asignado', true);
-    } else if (estado == 'cancelada' || estado == 'rechazado') {
-      return ('Asignación pendiente', false);
-    } else {
-      return ('Asignación pendiente', false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final (textoEstado, esAsignado) = _textoYEstado();
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -381,22 +369,13 @@ class _TarjetaSolicitud extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            // Botón tipo píldora gris claro con letra azul oscuro
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF2F4F7),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Text(
-                textoEstado,
-                style: TextStyle(
-                  color: AppColors.navy,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+            // Antes esto era un pill armado a mano acá mismo, con su
+            // propia lógica de texto — que nunca contempló 'cancelada'/
+            // 'rechazado' como casos distintos de "pendiente", así que
+            // una solicitud cancelada seguía mostrando "Asignación
+            // pendiente". `AppStatusPill` ya tiene el mapeo completo y
+            // correcto de todos los estados (mismo que usa el detalle).
+            AppStatusPill(estado: estado),
           ],
         ),
       ),

@@ -21,17 +21,21 @@ class _CambiarContrasenaScreenState
     extends ConsumerState<CambiarContrasenaScreen> {
   final _passwordActualController = TextEditingController();
   final _nuevaPasswordController = TextEditingController();
+  final _confirmarPasswordController = TextEditingController();
   bool _cargando = false;
   String? _error;
   String? _errorPassword;
+  String? _errorConfirmacion;
 
   bool _ocultarActual = true;
   bool _ocultarNueva = true;
+  bool _ocultarConfirmacion = true;
 
   @override
   void dispose() {
     _passwordActualController.dispose();
     _nuevaPasswordController.dispose();
+    _confirmarPasswordController.dispose();
     super.dispose();
   }
 
@@ -39,11 +43,13 @@ class _CambiarContrasenaScreenState
     final errorPassword = PoliticaContrasena.validar(
       _nuevaPasswordController.text,
     );
+    final noCoincide = _nuevaPasswordController.text != _confirmarPasswordController.text;
     setState(() {
       _errorPassword = errorPassword;
+      _errorConfirmacion = noCoincide ? 'Las contraseñas no coinciden.' : null;
       _error = null;
     });
-    if (errorPassword != null) return;
+    if (errorPassword != null || noCoincide) return;
 
     setState(() => _cargando = true);
     try {
@@ -70,6 +76,9 @@ class _CambiarContrasenaScreenState
 
       Navigator.of(context).pop();
     } on ApiException catch (error) {
+      _passwordActualController.clear();
+      _nuevaPasswordController.clear();
+      _confirmarPasswordController.clear();
       setState(() => _error = error.message);
     } on ApiSinConexionException catch (error) {
       setState(() => _error = error.toString());
@@ -156,6 +165,18 @@ class _CambiarContrasenaScreenState
                   enabled: !_cargando,
                   autofillHints: const [AutofillHints.newPassword],
                   errorText: _errorPassword,
+                ),
+                const SizedBox(height: 16),
+
+                _CampoContrasena(
+                  label: 'Confirmar nueva contraseña',
+                  icono: Icons.enhanced_encryption_outlined,
+                  controller: _confirmarPasswordController,
+                  ocultar: _ocultarConfirmacion,
+                  onToggleOcultar: () => setState(() => _ocultarConfirmacion = !_ocultarConfirmacion),
+                  enabled: !_cargando,
+                  autofillHints: const [AutofillHints.newPassword],
+                  errorText: _errorConfirmacion,
                 ),
 
                 const SizedBox(height: 24),

@@ -56,6 +56,16 @@ class FakeUsuarioRepository implements UsuarioRepository {
   }
 
   @override
+  Future<Usuario> reactivarCuenta({
+    required String correo,
+    required String password,
+  }) async {
+    _registrar('reactivarCuenta', {'correo': correo, 'password': password});
+    _lanzarSiCorresponde();
+    return usuarioARetornar!;
+  }
+
+  @override
   Future<Usuario> obtenerSesionActual() async {
     _registrar('obtenerSesionActual', {});
     _lanzarSiCorresponde();

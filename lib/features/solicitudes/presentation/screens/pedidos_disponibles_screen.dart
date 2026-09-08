@@ -128,7 +128,12 @@ class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScr
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
-          onPressed: () => Navigator.of(context).pop(),
+          // No `Navigator.pop()`: esta pantalla siempre se llega desde
+          // `MainBottomBar` con `pushNamedAndRemoveUntil` (reemplaza toda
+          // la pila — "son destinos, no un volver", ver ese archivo), así
+          // que no queda ninguna ruta anterior a la que volver. Antes esto
+          // hacía que la flecha de atrás no tuviera ningún efecto visible.
+          onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
         ),
         title: const Text(
           'Pedidos disponibles',

@@ -9,6 +9,7 @@ import '../../domain/usecases/cambiar_contrasena_usecase.dart';
 import '../../domain/usecases/cerrar_sesion_usecase.dart';
 import '../../domain/usecases/hay_sesion_guardada_usecase.dart';
 import '../../domain/usecases/iniciar_sesion_usecase.dart';
+import '../../domain/usecases/reactivar_cuenta_usecase.dart';
 import '../../domain/usecases/obtener_sesion_actual_usecase.dart';
 import '../../domain/usecases/refrescar_sesion_usecase.dart';
 import '../../domain/usecases/registrar_usuario_usecase.dart';
@@ -46,6 +47,10 @@ final registrarUsuarioUseCaseProvider = Provider(
 
 final iniciarSesionUseCaseProvider = Provider(
   (ref) => IniciarSesionUseCase(ref.watch(usuarioRepositoryProvider)),
+);
+
+final reactivarCuentaUseCaseProvider = Provider(
+  (ref) => ReactivarCuentaUseCase(ref.watch(usuarioRepositoryProvider)),
 );
 
 final obtenerSesionActualUseCaseProvider = Provider(

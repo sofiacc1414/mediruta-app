@@ -99,6 +99,11 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
       );
       Navigator.of(context).pushNamedAndRemoveUntil('/perfil', (_) => false);
     } on ApiException catch (error) {
+      // Se limpian las contraseñas (no el correo) — típicamente el error
+      // acá es "correo ya registrado", no que la contraseña esté mal, así
+      // que no hace falta reescribirla, pero mejor no dejarla visible.
+      _passwordController.clear();
+      _confirmarController.clear();
       setState(() => _error = error.message);
     } on ApiSinConexionException catch (error) {
       setState(() => _error = error.toString());

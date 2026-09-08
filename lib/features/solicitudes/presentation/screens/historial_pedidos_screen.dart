@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_segmented_tabs.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/pedido_historial.dart';
 import '../providers/solicitud_providers.dart';
+import 'mi_pedido_activo_screen.dart';
 
 const _estadosHistorial = {'entregado', 'cancelada'};
 
@@ -291,8 +292,8 @@ class _PedidoHistorialCard extends StatelessWidget {
     final iconSize = _getIconSize();
     final esHistorial = _esEntregadoOCancelado();
     final borderRadius = esHistorial ? 12.0 : 16.0;
-    
-    return Container(
+
+    final tarjeta = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -396,6 +397,17 @@ class _PedidoHistorialCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    // El pedido activo (el mismo que ya se ve desde Home) también se
+    // puede abrir desde acá — antes solo se podía gestionar desde el
+    // hero de Home, y esta lista era de solo lectura para todos los
+    // casos (incluido el activo, que sí tiene a dónde ir).
+    if (esHistorial) return tarjeta;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => Navigator.of(context).pushNamed(MiPedidoActivoScreen.routeName),
+      child: tarjeta,
     );
   }
 }
