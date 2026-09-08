@@ -20,6 +20,13 @@ abstract class UsuarioRepository {
     required String password,
   });
 
+  /// HU-05 (ronda 9) — reactiva la propia cuenta desactivada; se llama
+  /// tras un `ApiException.cuentaDesactivada` de `iniciarSesion`.
+  Future<Usuario> reactivarCuenta({
+    required String correo,
+    required String password,
+  });
+
   /// GET /auth/me — sesión actual a partir del access token guardado.
   Future<Usuario> obtenerSesionActual();
 

@@ -37,6 +37,21 @@ class UsuarioRemoteDatasource {
     return respuesta as Map<String, dynamic>;
   }
 
+  /// HU-05 (ronda 9) — reactiva la propia cuenta desactivada; mismo
+  /// contrato que `iniciarSesion` (correo+password -> tokens+usuario),
+  /// la API vuelve a pedir la contraseña porque acá todavía no hay
+  /// sesión válida.
+  Future<Map<String, dynamic>> reactivarCuenta({
+    required String correo,
+    required String password,
+  }) async {
+    final respuesta = await _apiClient.post(
+      '/auth/reactivar',
+      body: {'correo': correo, 'password': password},
+    );
+    return respuesta as Map<String, dynamic>;
+  }
+
   Future<Map<String, dynamic>> obtenerSesionActual() async {
     final respuesta = await _apiClient.get('/auth/me', autenticado: true);
     return respuesta as Map<String, dynamic>;

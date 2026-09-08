@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
+import '../../../../shared/core/theme/modo_adulto_mayor_provider.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
@@ -69,7 +70,6 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
 
   bool _guardandoCambios = false;
   bool _notificacionesActivas = true;
-  bool _modoAdultoMayor = false;
 
   @override
   void initState() {
@@ -448,8 +448,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                         iconColor: AppColors.navy,
                         titulo: 'Modo adulto mayor',
                         subtitulo: 'Texto y botones más grandes',
-                        valor: _modoAdultoMayor,
-                        onChanged: (val) => setState(() => _modoAdultoMayor = val),
+                        valor: ref.watch(modoAdultoMayorProvider),
+                        onChanged: (val) => ref.read(modoAdultoMayorProvider.notifier).cambiar(val),
                       ),
                       
                       const SizedBox(height: 40),
@@ -1859,6 +1859,12 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
     final archivo = await ImagePicker().pickImage(
       source: origen == _OrigenDocumento.camara ? ImageSource.camera : ImageSource.gallery,
       imageQuality: 85,
+      // Sin esto, una foto de cámara moderna sale a resolución completa
+      // (varios MB) — lenta para subir y, después, lenta para renderizar
+      // acá mismo como miniatura. 1600px de lado más largo sigue siendo
+      // legible para un documento, sin el peso innecesario.
+      maxWidth: 1600,
+      maxHeight: 1600,
     );
     if (archivo == null) return null;
 
@@ -1990,6 +1996,12 @@ class _Miniatura extends StatelessWidget {
             : Image.network(
                 url!,
                 fit: BoxFit.cover,
+                // Sin esto, Flutter decodifica la imagen a su resolución
+                // completa solo para achicarla visualmente a 40px — con
+                // varios documentos en pantalla a la vez, eso es lo que
+                // se sentía como "renderizado lento". `cacheWidth` hace
+                // que decodifique directo a un tamaño chico.
+                cacheWidth: (tamano * 3).round(),
                 loadingBuilder: (context, child, progress) {
                   if (progress == null) return child;
                   return const Center(

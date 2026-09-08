@@ -19,6 +19,7 @@ import 'features/usuarios/presentation/screens/registro_screen.dart';
 import 'features/usuarios/presentation/screens/restablecer_contrasena_screen.dart';
 import 'shared/core/storage/shared_preferences_provider.dart';
 import 'shared/core/theme/app_theme.dart';
+import 'shared/core/theme/modo_adulto_mayor_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,15 +32,25 @@ void main() async {
   );
 }
 
-class MediRutaApp extends StatelessWidget {
+class MediRutaApp extends ConsumerWidget {
   const MediRutaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final modoAdultoMayor = ref.watch(modoAdultoMayorProvider);
     return MaterialApp(
       title: 'MediRuta',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
+      // "Modo adulto mayor" (Perfil) — antes el switch no hacía nada.
+      // Se aplica acá, en la raíz, para que agrande la letra en TODA
+      // la app (no solo en la pantalla donde se activa).
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(modoAdultoMayor ? escalaTextoAdultoMayor : 1.0),
+        ),
+        child: child!,
+      ),
       home: const AuthGate(),
       routes: {
         LoginScreen.routeName: (_) => const LoginScreen(),

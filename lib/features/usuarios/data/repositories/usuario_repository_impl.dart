@@ -47,6 +47,24 @@ class UsuarioRepositoryImpl implements UsuarioRepository {
   }
 
   @override
+  Future<Usuario> reactivarCuenta({
+    required String correo,
+    required String password,
+  }) async {
+    final respuesta = await _datasource.reactivarCuenta(
+      correo: correo,
+      password: password,
+    );
+
+    await _apiClient.saveTokens(
+      accessToken: respuesta['accessToken'] as String,
+      refreshToken: respuesta['refreshToken'] as String,
+    );
+
+    return Usuario.fromJson(respuesta['usuario'] as Map<String, dynamic>);
+  }
+
+  @override
   Future<Usuario> obtenerSesionActual() async {
     final respuesta = await _datasource.obtenerSesionActual();
     return Usuario.fromJson(respuesta['usuario'] as Map<String, dynamic>);

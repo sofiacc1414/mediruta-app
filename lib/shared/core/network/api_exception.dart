@@ -6,7 +6,12 @@
 /// API decidió mandar (DOCS/context.md, Parte B, sección 4.1 y 4.2 —
 /// mensajes genéricos anti-enumeración en login/recuperación).
 class ApiException implements Exception {
-  const ApiException({required this.statusCode, required this.message, this.faltantes});
+  const ApiException({
+    required this.statusCode,
+    required this.message,
+    this.faltantes,
+    this.cuentaDesactivada = false,
+  });
 
   final int statusCode;
   final String message;
@@ -16,6 +21,12 @@ class ApiException implements Exception {
   /// — qué campos concretos faltan, para mostrarlos en vez de solo el
   /// mensaje genérico.
   final List<String>? faltantes;
+
+  /// true solo en el 403 de `POST /auth/login` cuando la contraseña
+  /// coincidió pero la cuenta está desactivada (autoservicio, HU-05) —
+  /// la pantalla de login lo usa para ofrecer reactivarla en vez de
+  /// mostrar el error tal cual (ver `CuentaDesactivadaError` en la API).
+  final bool cuentaDesactivada;
 
   /// true si la API respondió 401 (sesión inválida/expirada).
   bool get esNoAutorizado => statusCode == 401;

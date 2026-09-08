@@ -8,8 +8,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:flutter_secure_storage/test/test_flutter_secure_storage_platform.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mediruta_app/main.dart';
+import 'package:mediruta_app/shared/core/storage/shared_preferences_provider.dart';
 
 void main() {
   setUp(() {
@@ -17,17 +19,27 @@ void main() {
     // de plataforma real de flutter_secure_storage, que no existe en el
     // entorno de test (MissingPluginException).
     FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform({});
+    // Sin esto, `modoAdultoMayorProvider` (usado directo en `MediRutaApp`
+    // para el escalado de texto) revienta con
+    // `sharedPreferencesProvider debe overridearse en main()`.
+    SharedPreferences.setMockInitialValues({});
   });
 
   testWidgets(
     'Sin sesión guardada, la app arranca en onboarding y pasa a login al tocar Comenzar',
     (WidgetTester tester) async {
+      final prefs = await SharedPreferences.getInstance();
       // No se usa pumpAndSettle acá: el onboarding tiene un pulso
       // (`AnimationController.repeat(reverse: true)`) que nunca termina,
       // así que pumpAndSettle esperaría para siempre. Se pumpea un tiempo
       // fijo, suficiente para que se resuelva el chequeo de sesión
       // guardada y la transición de ruta.
-      await tester.pumpWidget(const ProviderScope(child: MediRutaApp()));
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+          child: const MediRutaApp(),
+        ),
+      );
       // El botón "Comenzar" vive en la 2da slide del onboarding, a la
       // que se llega solo por auto-slide (`Future.delayed` de 10s) o
       // deslizando — se pumpea más de 10s simulados para llegar ahí.

@@ -215,6 +215,7 @@ class ApiClient {
       statusCode: respuesta.statusCode,
       message: _extraerMensaje(cuerpo),
       faltantes: _extraerFaltantes(cuerpo),
+      cuentaDesactivada: cuerpo is Map && cuerpo['cuentaDesactivada'] == true,
     );
   }
 
