@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -20,6 +21,16 @@ import 'cambiar_contrasena_screen.dart';
 /// Capitaliza cada palabra del nombre completo ("juan pérez" ->
 /// "Juan Pérez") — se aplica al guardar, así queda consistente en
 /// todos lados donde se muestra sin tener que tocar cada pantalla.
+/// La placa siempre se guarda/muestra en mayúsculas — se aplica
+/// mientras se escribe (no solo al guardar) para que el usuario vea
+/// de una lo que está quedando.
+class _MayusculasTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
+  }
+}
+
 String _capitalizarNombre(String nombre) {
   return nombre
       .split(' ')
@@ -219,7 +230,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             .execute(
               direccion: _domiciliarioDireccionController.text.trim(),
               vehiculoTipo: _vehiculoTipoController.text.trim(),
-              vehiculoPlaca: _vehiculoPlacaController.text.trim(),
+              vehiculoPlaca: _vehiculoPlacaController.text.trim().toUpperCase(),
             );
       }
       if (!mounted) return;
@@ -716,6 +727,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             icono: Icons.pin_outlined,
             controller: _vehiculoPlacaController,
             enabled: !_guardandoCambios,
+            inputFormatters: [_MayusculasTextFormatter()],
           ),
           const SizedBox(height: 16),
           const Divider(color: AppColors.skyBlue, height: 1),
@@ -838,7 +850,12 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
     } on ApiException catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+      // "La documentación está incompleta" sin más no dice qué falta —
+      // si la API mandó el detalle (`faltantes`), se lista.
+      final detalle = error.faltantes != null && error.faltantes!.isNotEmpty
+          ? '${error.message}\nFalta: ${error.faltantes!.join(', ')}.'
+          : error.message;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(detalle)));
     } finally {
       if (mounted) setState(() => _guardandoCambios = false);
     }
@@ -1547,6 +1564,7 @@ class _CampoPerfil extends StatelessWidget {
     required this.controller,
     required this.enabled,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   final String label;
@@ -1554,6 +1572,7 @@ class _CampoPerfil extends StatelessWidget {
   final TextEditingController controller;
   final bool enabled;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -1567,6 +1586,7 @@ class _CampoPerfil extends StatelessWidget {
         controller: controller,
         enabled: enabled,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         style: const TextStyle(
           fontSize: 15,
           color: AppColors.navy,

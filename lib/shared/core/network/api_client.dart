@@ -214,7 +214,15 @@ class ApiClient {
     throw ApiException(
       statusCode: respuesta.statusCode,
       message: _extraerMensaje(cuerpo),
+      faltantes: _extraerFaltantes(cuerpo),
     );
+  }
+
+  List<String>? _extraerFaltantes(dynamic cuerpo) {
+    if (cuerpo is Map && cuerpo['faltantes'] is List) {
+      return (cuerpo['faltantes'] as List).map((e) => e.toString()).toList();
+    }
+    return null;
   }
 
   String _extraerMensaje(dynamic cuerpo) {

@@ -116,6 +116,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       ref.read(authSessionProvider.notifier).sesionIniciada(usuario);
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
     } on ApiException catch (error) {
+      // La contraseña se limpia sola (no el correo) — así el usuario no
+      // tiene que borrarla a mano para reintentar, y no queda una
+      // contraseña mal escrita visible en pantalla.
+      _passwordController.clear();
       setState(() => _error = error.message);
     } on ApiSinConexionException catch (error) {
       setState(() => _error = error.toString());

@@ -6,10 +6,16 @@
 /// API decidió mandar (DOCS/context.md, Parte B, sección 4.1 y 4.2 —
 /// mensajes genéricos anti-enumeración en login/recuperación).
 class ApiException implements Exception {
-  const ApiException({required this.statusCode, required this.message});
+  const ApiException({required this.statusCode, required this.message, this.faltantes});
 
   final int statusCode;
   final String message;
+
+  /// Solo viene poblado en 422 de "documentación/datos incompletos" (ver
+  /// `DocumentacionIncompletaError`/`SolicitudIncompletaError` en la API)
+  /// — qué campos concretos faltan, para mostrarlos en vez de solo el
+  /// mensaje genérico.
+  final List<String>? faltantes;
 
   /// true si la API respondió 401 (sesión inválida/expirada).
   bool get esNoAutorizado => statusCode == 401;

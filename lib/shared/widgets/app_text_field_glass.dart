@@ -151,7 +151,18 @@ class _AppTextFieldGlassState extends State<AppTextFieldGlass>
                   );
                 },
               ),
+              // `border`/`disabledBorder` no estaban cubiertos acá — sin
+              // ellos, Flutter usa la línea gris por defecto en el primer
+              // frame (antes de resolver el estado real) y cuando el
+              // campo está deshabilitado, que se veía como una raya al
+              // final del campo al cargar la pantalla.
+              border: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.transparent),
+              ),
               enabledBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.transparent),
+              ),
+              disabledBorder: const UnderlineInputBorder(
                 borderSide: BorderSide(color: Colors.transparent),
               ),
               focusedBorder: const UnderlineInputBorder(
