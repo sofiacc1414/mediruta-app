@@ -69,13 +69,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return ref.read(modoActivoProvider) ?? (roles.isNotEmpty ? roles.first.codigo : null);
   }
 
+  /// El rol DOMICILIARIO existe apenas se solicita (HU-08), pero recién
+  /// queda "habilitado" cuando el admin lo aprueba — mientras tanto es
+  /// 'pendiente_validacion' (o 'rechazado'). Los endpoints que arman
+  /// esta pantalla exigen el rol habilitado (`RolesGuard`); sin este
+  /// chequeo, una cuenta todavía sin aprobar terminaba viendo "Tu
+  /// cuenta no tiene ese rol asignado" — cierto técnicamente, pero
+  /// confuso: el rol SÍ está, solo que no aprobado todavía.
+  String? _estadoRolDomiciliario() {
+    final estado = ref.read(authSessionProvider);
+    final usuario = estado is AuthAutenticado ? estado.usuario : null;
+    final roles = usuario?.roles.where((r) => r.codigo == 'DOMICILIARIO') ?? const <RolAsignado>[];
+    return roles.isEmpty ? null : roles.first.estado;
+  }
+
   Future<void> _cargarSegunModo() async {
     final modo = _modoActual();
     if (modo == _modoCargado) return;
     _modoCargado = modo;
     if (modo == 'PACIENTE') {
       await _cargarStatsPaciente();
-    } else if (modo == 'DOMICILIARIO') {
+    } else if (modo == 'DOMICILIARIO' && _estadoRolDomiciliario() == 'habilitado') {
       await _cargarPedidoActivoDomiciliario();
     }
   }
@@ -261,6 +275,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   List<Widget> _contenidoDomiciliario(BuildContext context) {
+    // Todo lo de acá (pedido activo, disponibilidad, historial) exige el
+    // rol DOMICILIARIO habilitado — mientras el admin no lo aprueba, ni
+    // siquiera se intenta: antes esto disparaba llamadas que la API
+    // rechazaba con "Tu cuenta no tiene ese rol asignado" (cierto, pero
+    // confuso — el rol existe, solo falta la aprobación).
+    final estadoRol = _estadoRolDomiciliario();
+    if (estadoRol != 'habilitado') {
+      return [_TarjetaEstadoValidacionDomiciliario(estado: estadoRol)];
+    }
+
     final disponibilidad = ref.watch(disponibilidadDomiciliarioProvider);
     return [
       _TarjetaDisponibilidad(
@@ -958,6 +982,58 @@ class _TarjetaHero extends StatelessWidget {
 }
 
 // TARJETA DE DISPONIBILIDAD (CON EL MISMO ESTILO QUE _TarjetaHero)
+/// Home del Domiciliario mientras el rol todavía no está habilitado —
+/// reemplaza toda la tarjeta de disponibilidad/pedidos (context.md
+/// Parte A, §4: la diferencia entre "pendiente" y "rechazado" se marca
+/// con ícono/texto, no con un color nuevo).
+class _TarjetaEstadoValidacionDomiciliario extends StatelessWidget {
+  const _TarjetaEstadoValidacionDomiciliario({required this.estado});
+
+  final String? estado;
+
+  @override
+  Widget build(BuildContext context) {
+    final rechazado = estado == 'rechazado';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            rechazado ? Icons.cancel_outlined : Icons.hourglass_top_outlined,
+            color: AppColors.navy,
+            size: 28,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            rechazado ? 'Solicitud rechazada' : 'Cuenta en proceso de validación',
+            style: const TextStyle(
+              color: AppColors.navy,
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            rechazado
+                ? 'Un administrador rechazó tu solicitud para ser Domiciliario. '
+                    'Revisá el motivo y tus datos desde tu Perfil.'
+                : 'Un administrador está revisando tus datos y documentos. '
+                    'Vas a poder recibir pedidos apenas se apruebe tu cuenta.',
+            style: const TextStyle(color: AppColors.teal, fontSize: 14, height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _TarjetaDisponibilidad extends StatelessWidget {
   const _TarjetaDisponibilidad({
     required this.disponible,
