@@ -17,6 +17,18 @@ import '../providers/usuario_providers.dart';
 import '../widgets/main_bottom_bar.dart';
 import 'cambiar_contrasena_screen.dart';
 
+/// Capitaliza cada palabra del nombre completo ("juan pérez" ->
+/// "Juan Pérez") — se aplica al guardar, así queda consistente en
+/// todos lados donde se muestra sin tener que tocar cada pantalla.
+String _capitalizarNombre(String nombre) {
+  return nombre
+      .split(' ')
+      .map((palabra) => palabra.isEmpty
+          ? palabra
+          : palabra[0].toUpperCase() + palabra.substring(1).toLowerCase())
+      .join(' ');
+}
+
 class PerfilScreen extends ConsumerStatefulWidget {
   const PerfilScreen({super.key});
 
@@ -188,7 +200,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       await ref
           .read(actualizarDatosComunesUseCaseProvider)
           .execute(
-            nombreCompleto: _nombreController.text.trim(),
+            nombreCompleto: _capitalizarNombre(_nombreController.text.trim()),
             telefono: _telefonoController.text.trim(),
           );
       if (esPaciente) {
@@ -691,11 +703,12 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             enabled: !_guardandoCambios,
           ),
           const SizedBox(height: 12),
-          _CampoPerfil(
+          _CampoPerfilDropdown(
             label: 'Tipo de vehículo',
             icono: Icons.two_wheeler_outlined,
             controller: _vehiculoTipoController,
             enabled: !_guardandoCambios,
+            opciones: const ['Moto', 'Bicicleta'],
           ),
           const SizedBox(height: 12),
           _CampoPerfil(
@@ -1074,6 +1087,23 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
     return 'image/jpeg';
   }
 
+  /// Sin foto (o mientras falla cargarla): la primera letra del
+  /// nombre en mayúscula, mismo criterio que ya usa el avatar de
+  /// `home_screen.dart`.
+  Widget _iniciales() {
+    final letra = widget.nombre.trim().isNotEmpty
+        ? widget.nombre.trim()[0].toUpperCase()
+        : '?';
+    return Container(
+      color: AppColors.skyBlue,
+      alignment: Alignment.center,
+      child: Text(
+        letra,
+        style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 26),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Fondo BLANCO PURO con borde fino para que sea casi invisible
@@ -1102,10 +1132,9 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
                     ? Image.network(
                         widget.fotoPerfilUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.person, size: 40, color: AppColors.teal),
+                        errorBuilder: (context, error, stackTrace) => _iniciales(),
                       )
-                    : const Icon(Icons.person, size: 40, color: AppColors.teal),
+                    : _iniciales(),
               ),
               Positioned(
                 right: -2,
@@ -1325,7 +1354,16 @@ class _EditarPerfilBottomSheet extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          // El teclado no achica este bottom sheet solo — hay que sumarle
+          // `viewInsets.bottom` a mano, si no tapa los campos de abajo
+          // apenas se abre el teclado (más notorio en Domiciliario, que
+          // tiene más campos que Paciente).
+          padding: EdgeInsets.fromLTRB(
+            20,
+            20,
+            20,
+            20 + MediaQuery.of(context).viewInsets.bottom,
+          ),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1533,6 +1571,67 @@ class _CampoPerfil extends StatelessWidget {
           fontSize: 15,
           color: AppColors.navy,
         ),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+            color: Colors.grey.withValues(alpha: 0.8),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+          prefixIcon: Icon(icono, color: AppColors.teal, size: 20),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.15)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.teal, width: 2),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Mismo look de `_CampoPerfil`, pero como desplegable — para campos con
+/// un set fijo de opciones (ej. tipo de vehículo) en vez de texto libre.
+class _CampoPerfilDropdown extends StatelessWidget {
+  const _CampoPerfilDropdown({
+    required this.label,
+    required this.icono,
+    required this.controller,
+    required this.enabled,
+    required this.opciones,
+  });
+
+  final String label;
+  final IconData icono;
+  final TextEditingController controller;
+  final bool enabled;
+  final List<String> opciones;
+
+  @override
+  Widget build(BuildContext context) {
+    final valorActual = opciones.contains(controller.text) ? controller.text : null;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      child: DropdownButtonFormField<String>(
+        initialValue: valorActual,
+        onChanged: enabled ? (valor) => controller.text = valor ?? '' : null,
+        items: opciones
+            .map((opcion) => DropdownMenuItem(value: opcion, child: Text(opcion)))
+            .toList(),
+        style: const TextStyle(fontSize: 15, color: AppColors.navy),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(
