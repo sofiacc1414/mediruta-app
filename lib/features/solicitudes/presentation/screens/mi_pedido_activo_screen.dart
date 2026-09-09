@@ -149,6 +149,28 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     await _ejecutarPaso(
       (id) => ref.read(entregarPedidoUseCaseProvider).execute(id, codigo),
     );
+    // `_ejecutarPaso` recarga el pedido activo apenas se confirma la
+    // entrega, así que ya pasó a `entregado` y desaparece de esta
+    // pantalla (vuelve al estado "No tenés ningún pedido en curso") sin
+    // dejar rastro — sin este aviso, quedaba la sensación de que la
+    // entrega no se había registrado.
+    if (mounted && _error == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Entrega confirmada con éxito',
+            style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: Colors.white,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+          ),
+          elevation: 4,
+        ),
+      );
+    }
   }
 
   Future<void> _reportarNovedad() async {

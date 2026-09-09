@@ -460,10 +460,11 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                             border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                           ),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               const Text(
                                 'Medicamentos',
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
@@ -482,6 +483,15 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                                 style: TextStyle(color: AppColors.teal, fontSize: 13),
                               ),
                               const SizedBox(height: 12),
+                              for (var i = 0; i < _medicamentos.length; i++) ...[
+                                FilaResumenMedicamento(
+                                  medicamento: _medicamentos[i],
+                                  enabled: !_guardando,
+                                  onEditar: () => _abrirDialogoMedicamento(indice: i),
+                                  onQuitar: () => _quitarMedicamento(i),
+                                ),
+                                const SizedBox(height: 8),
+                              ],
                               // Botón gris claro con letra azul oscuro
                               Center(
                                 child: InkWell(
