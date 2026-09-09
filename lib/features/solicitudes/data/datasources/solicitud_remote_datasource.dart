@@ -196,6 +196,12 @@ class SolicitudRemoteDatasource {
     return respuesta as List<dynamic>;
   }
 
+  /// Detalle de un pedido puntual del Historial (entregado o cancelado).
+  Future<Map<String, dynamic>> obtenerPedidoPorId(String solicitudId) async {
+    final respuesta = await _apiClient.get('/pedidos/$solicitudId', autenticado: true);
+    return respuesta as Map<String, dynamic>;
+  }
+
   /// HU-07/HU-09 — cédula del Paciente (ambos lados), para mostrar en
   /// la farmacia al reclamar el medicamento. La API solo la devuelve
   /// mientras el pedido está `asignado_en_camino_farmacia` (404 fuera

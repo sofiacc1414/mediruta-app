@@ -179,6 +179,12 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   }
 
   @override
+  Future<PedidoActivo> obtenerPedidoPorId(String solicitudId) async {
+    final respuesta = await _datasource.obtenerPedidoPorId(solicitudId);
+    return PedidoActivo.fromJson(respuesta);
+  }
+
+  @override
   Future<DocumentosPacienteParaRecoger> obtenerDocumentosPacienteParaRecoger(
     String solicitudId,
   ) async {

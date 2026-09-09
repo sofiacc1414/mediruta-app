@@ -13,6 +13,7 @@ import '../../../usuarios/presentation/widgets/tarjeta_estado_validacion_domicil
 import '../../domain/entities/pedido_historial.dart';
 import '../providers/solicitud_providers.dart';
 import 'mi_pedido_activo_screen.dart';
+import 'pedido_completado_screen.dart';
 
 const _estadosHistorial = {'entregado', 'cancelada'};
 
@@ -429,12 +430,16 @@ class _PedidoHistorialCard extends StatelessWidget {
 
     // El pedido activo (el mismo que ya se ve desde Home) también se
     // puede abrir desde acá — antes solo se podía gestionar desde el
-    // hero de Home, y esta lista era de solo lectura para todos los
-    // casos (incluido el activo, que sí tiene a dónde ir).
-    if (esHistorial) return tarjeta;
+    // hero de Home. Los del Historial abren un detalle de solo lectura
+    // (antes no llevaban a ningún lado).
     return InkWell(
       borderRadius: BorderRadius.circular(16),
-      onTap: () => Navigator.of(context).pushNamed(MiPedidoActivoScreen.routeName),
+      onTap: () => esHistorial
+          ? Navigator.of(context).pushNamed(
+              PedidoCompletadoScreen.routeName,
+              arguments: pedido.id,
+            )
+          : Navigator.of(context).pushNamed(MiPedidoActivoScreen.routeName),
       child: tarjeta,
     );
   }
