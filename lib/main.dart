@@ -6,6 +6,7 @@ import 'features/solicitudes/presentation/screens/historial_pedidos_screen.dart'
 import 'features/solicitudes/presentation/screens/mi_pedido_activo_screen.dart';
 import 'features/solicitudes/presentation/screens/mis_solicitudes_screen.dart';
 import 'features/solicitudes/presentation/screens/nueva_solicitud_screen.dart';
+import 'features/solicitudes/presentation/screens/pedido_completado_screen.dart';
 import 'features/solicitudes/presentation/screens/pedidos_disponibles_screen.dart';
 import 'features/solicitudes/presentation/screens/solicitud_detalle_screen.dart';
 import 'features/usuarios/presentation/providers/auth_session_provider.dart';
@@ -76,6 +77,12 @@ class MediRutaApp extends ConsumerWidget {
           final solicitudId = settings.arguments as String;
           return MaterialPageRoute(
             builder: (_) => SolicitudDetalleScreen(solicitudId: solicitudId),
+          );
+        }
+        if (settings.name == PedidoCompletadoScreen.routeName) {
+          final solicitudId = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (_) => PedidoCompletadoScreen(solicitudId: solicitudId),
           );
         }
         return null;

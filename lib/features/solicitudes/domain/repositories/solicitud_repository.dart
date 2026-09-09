@@ -124,6 +124,11 @@ abstract class SolicitudRepository {
   /// "Mis pedidos" del Domiciliario — todos los que aceptó alguna vez.
   Future<List<PedidoHistorial>> listarHistorialPedidos();
 
+  /// Detalle de solo lectura de un pedido puntual del Historial
+  /// (entregado o cancelado) — mismo shape que [obtenerPedidoActivo],
+  /// por id y sin restricción de estado.
+  Future<PedidoActivo> obtenerPedidoPorId(String solicitudId);
+
   /// HU-07/HU-09 — cédula del Paciente (ambos lados), para mostrar en
   /// la farmacia al reclamar el medicamento. La API la niega (404)
   /// fuera de la ventana `asignado_en_camino_farmacia`.
