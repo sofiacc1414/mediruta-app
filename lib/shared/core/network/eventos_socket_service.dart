@@ -42,7 +42,13 @@ class EventosSocketService {
       AppConfig.apiBaseUrl,
       socket_io.OptionBuilder()
           .setPath('/ws')
-          .setTransports(['websocket'])
+          // Sin restringir transportes a solo 'websocket': el cliente
+          // arranca con polling HTTP (que ya sabemos que pasa por el
+          // proxy de Render sin problema) y recién ahí sube a
+          // websocket — el default de socket.io. Forzar 'websocket'
+          // desde el arranque salta ese handshake inicial y en la
+          // práctica no conecta en varias redes móviles (NAT/proxies
+          // que no dejan pasar un upgrade a WS como primer request).
           .setAuth({'token': token})
           .disableAutoConnect()
           .build(),
@@ -50,6 +56,9 @@ class EventosSocketService {
 
     socket.onConnectError((error) {
       debugPrint('EventosSocketService: error de conexión ($error)');
+    });
+    socket.onDisconnect((reason) {
+      debugPrint('EventosSocketService: desconectado ($reason)');
     });
     // `onConnect` dispara tanto en la primera conexión como en cada
     // reconexión automática — en ambos casos vale la pena refrescar.

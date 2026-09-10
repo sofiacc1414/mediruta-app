@@ -49,6 +49,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   String? _modoCargado;
   StreamSubscription<void>? _suscripcionSocket;
+  bool _sincronizoDisponibilidadInicial = false;
 
   @override
   void initState() {
@@ -186,6 +187,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final pedido = await ref.read(obtenerPedidoActivoUseCaseProvider).execute();
       if (!mounted) return;
       setState(() => _pedidoActivo = pedido);
+      _sincronizarDisponibilidadInicial(pedido);
     } on ApiException catch (error) {
       setState(() => _errorDomiciliario = error.message);
     } on ApiSinConexionException catch (error) {
@@ -193,6 +195,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     } finally {
       if (mounted) setState(() => _cargandoDomiciliario = false);
     }
+  }
+
+  /// El toggle "Disponible" arranca apagado en cada apertura de la app
+  /// (ver doc de `DisponibilidadDomiciliarioNotifier`) — pero si ya hay
+  /// un pedido activo, mostrarlo apagado es confuso: el domiciliario
+  /// está claramente trabajando, no "fuera de línea". Una sola vez, en
+  /// la primera carga de esta pantalla, se sincroniza el toggle (local
+  /// y en la API) con esa realidad. No se repite en cargas siguientes
+  /// (retorno de navegación, refresco por WebSocket) para no pisar un
+  /// apagado manual que el domiciliario haga después a propósito.
+  void _sincronizarDisponibilidadInicial(PedidoActivo? pedido) {
+    if (_sincronizoDisponibilidadInicial) return;
+    _sincronizoDisponibilidadInicial = true;
+    if (pedido == null) return;
+    if (ref.read(disponibilidadDomiciliarioProvider).disponible) return;
+    ref.read(disponibilidadDomiciliarioProvider.notifier).cambiar(true);
   }
 
   Future<void> _cargarTodo() => Future.wait([_cargarPerfil(), _cargarSegunModo()]);
