@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,8 +12,10 @@ import '../../../usuarios/presentation/providers/perfil_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/datos_solicitud.dart';
 import '../../domain/entities/medicamento.dart';
+import '../../domain/entities/precio_pedido.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/campos_solicitud.dart';
+import '../widgets/tarjeta_precio_pedido.dart';
 
 /// G01/G04 — HU-03. Crear una solicitud nueva o editar una existente en Borrador.
 class NuevaSolicitudScreen extends ConsumerStatefulWidget {
@@ -44,17 +48,30 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
   bool _guardando = false;
   String? _error;
 
+  // Estimado en vivo del precio (copago + domicilio) mientras se arma
+  // el pedido — antes, el paciente solo se enteraba del costo después
+  // de haberlo enviado. Con debounce: geocodificar pega contra
+  // Nominatim (rate-limited del lado de la API), no tiene sentido
+  // disparar un request por cada tecla.
+  static const _debouncePrecioDuracion = Duration(milliseconds: 900);
+  PrecioPedido? _precioEstimado;
+  bool _cargandoPrecio = false;
+  Timer? _debouncePrecio;
+
   @override
   void initState() {
     super.initState();
     _solicitudIdRemoto = widget.solicitudId;
     _direccionEntrega.addListener(_onCambioCampo);
     _direccionFarmacia.addListener(_onCambioCampo);
+    _direccionEntrega.addListener(_onCambioDireccionParaPrecio);
+    _direccionFarmacia.addListener(_onCambioDireccionParaPrecio);
     _inicializar();
   }
 
   @override
   void dispose() {
+    _debouncePrecio?.cancel();
     _direccionEntrega.dispose();
     _direccionFarmacia.dispose();
     super.dispose();
@@ -93,6 +110,10 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     }
 
     if (mounted) setState(() => _cargandoInicial = false);
+    // Por si se precargaron ambas direcciones (editando un borrador, o
+    // la dirección de entrega vino sola del perfil) — sin esto, el
+    // estimado recién aparecía tras la primera tecla que se tocara.
+    _onCambioDireccionParaPrecio();
   }
 
   void _rellenar(DatosSolicitud datos) {
@@ -170,6 +191,51 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
   void _onCambioCampo() {
     if (_editandoExistente || _cargandoInicial) return;
     ref.read(borradorLocalRepositoryProvider).guardar(_datosActuales());
+  }
+
+  /// Separado de `_onCambioCampo()` a propósito: ese solo corre para un
+  /// borrador nuevo (no editando uno existente), mientras que el
+  /// estimado de precio tiene que funcionar en los dos casos.
+  void _onCambioDireccionParaPrecio() {
+    if (_cargandoInicial) return;
+    _debouncePrecio?.cancel();
+
+    final farmacia = _direccionFarmacia.text.trim();
+    final entrega = _direccionEntrega.text.trim();
+    if (farmacia.isEmpty || entrega.isEmpty) {
+      if (_precioEstimado != null) setState(() => _precioEstimado = null);
+      return;
+    }
+
+    _debouncePrecio = Timer(
+      _debouncePrecioDuracion,
+      () => _estimarPrecio(farmacia, entrega),
+    );
+  }
+
+  Future<void> _estimarPrecio(String farmacia, String entrega) async {
+    setState(() => _cargandoPrecio = true);
+    try {
+      final precio = await ref
+          .read(estimarPrecioPedidoUseCaseProvider)
+          .execute(direccionFarmacia: farmacia, direccionEntrega: entrega);
+      if (!mounted) return;
+      // El usuario pudo haber seguido escribiendo mientras este
+      // request estaba en vuelo — no pisar un cambio más nuevo con una
+      // respuesta vieja.
+      if (_direccionFarmacia.text.trim() != farmacia ||
+          _direccionEntrega.text.trim() != entrega) {
+        return;
+      }
+      setState(() => _precioEstimado = precio);
+    } on ApiException {
+      // Un estimado que falla (ej. Nominatim caído) no debe
+      // interrumpir armar el pedido — simplemente no se muestra.
+    } on ApiSinConexionException {
+      // ídem
+    } finally {
+      if (mounted) setState(() => _cargandoPrecio = false);
+    }
   }
 
   bool _huboCambiosSinGuardar() {
@@ -563,6 +629,33 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                           enabled: !_guardando,
                         ),
                         const SizedBox(height: 24),
+
+                        // Estimado en vivo — recién aparece cuando hay
+                        // algo que calcular (ambas direcciones
+                        // completas); mientras se está geocodificando,
+                        // un indicador chico en vez de tapar la
+                        // tarjeta anterior con un spinner.
+                        if (_cargandoPrecio && _precioEstimado == null) ...[
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(strokeWidth: 2.4),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ] else if (_precioEstimado != null) ...[
+                          TarjetaPrecioPedido(
+                            precio: _precioEstimado!,
+                            titulo: 'Precio estimado',
+                            mensajeSinUbicaciones:
+                                'No pudimos ubicar alguna de las dos direcciones — revisalas.',
+                          ),
+                          const SizedBox(height: 24),
+                        ],
 
                         AppLoadingButton(
                           label: 'Guardar borrador',

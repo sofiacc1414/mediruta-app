@@ -5,6 +5,7 @@ import 'package:mediruta_app/features/solicitudes/domain/entities/novedad_resume
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_activo.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_disponible.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_historial.dart';
+import 'package:mediruta_app/features/solicitudes/domain/entities/precio_pedido.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/solicitud.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/solicitud_resumen.dart';
 import 'package:mediruta_app/features/solicitudes/domain/repositories/solicitud_repository.dart';
@@ -28,6 +29,7 @@ class FakeSolicitudRepository implements SolicitudRepository {
         recetaUrl: null,
       );
   List<NovedadResumen> novedadesSolicitudARetornar = const [];
+  PrecioPedido precioEstimadoARetornar = PrecioPedido.noDisponible('sin_ubicaciones');
 
   Map<String, dynamic>? ultimaLlamada;
 
@@ -90,6 +92,19 @@ class FakeSolicitudRepository implements SolicitudRepository {
     _registrar('enviar', {'solicitudId': solicitudId});
     _lanzarSiCorresponde();
     return codigoPedidoARetornar;
+  }
+
+  @override
+  Future<PrecioPedido> estimarPrecio({
+    required String direccionFarmacia,
+    required String direccionEntrega,
+  }) async {
+    _registrar('estimarPrecio', {
+      'direccionFarmacia': direccionFarmacia,
+      'direccionEntrega': direccionEntrega,
+    });
+    _lanzarSiCorresponde();
+    return precioEstimadoARetornar;
   }
 
   @override

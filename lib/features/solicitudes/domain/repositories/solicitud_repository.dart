@@ -5,6 +5,7 @@ import '../entities/novedad_resumen.dart';
 import '../entities/pedido_activo.dart';
 import '../entities/pedido_disponible.dart';
 import '../entities/pedido_historial.dart';
+import '../entities/precio_pedido.dart';
 import '../entities/solicitud.dart';
 import '../entities/solicitud_resumen.dart';
 
@@ -37,6 +38,12 @@ abstract class SolicitudRepository {
   /// G05. Devuelve el código de pedido recién generado (`MR-000001`,
   /// ...) — no existía hasta este momento, un Borrador no es un pedido.
   Future<String> enviar(String solicitudId);
+
+  /// Estimado en vivo mientras se arma el borrador, antes de enviar.
+  Future<PrecioPedido> estimarPrecio({
+    required String direccionFarmacia,
+    required String direccionEntrega,
+  });
 
   /// G06.
   Future<void> cancelar(String solicitudId);
