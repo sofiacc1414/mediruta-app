@@ -9,6 +9,7 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
+import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/novedad_resumen.dart';
 import '../../domain/entities/precio_pedido.dart';
@@ -32,10 +33,9 @@ class SolicitudDetalleScreen extends ConsumerStatefulWidget {
 }
 
 class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen> {
-  // Sin WebSocket/Supabase Realtime en la App todavía — mismo criterio
-  // que PedidosDisponiblesScreen/MiPedidoActivoScreen. El Domiciliario
-  // avanza el pedido desde su propia pantalla; sin esto, el Paciente
-  // seguía viendo acá el paso anterior hasta recargar a mano.
+  // Red de seguridad del WebSocket (ver EventosSocketService, wireado
+  // más abajo en initState) — si el socket se cae, esto sigue
+  // refrescando solo.
   static const _intervaloPoll = Duration(seconds: 15);
 
   bool _cargando = true;
@@ -44,17 +44,23 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
   List<NovedadResumen> _novedades = const [];
   String? _error;
   Timer? _timer;
+  StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
     _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+    _suscripcionSocket = ref
+        .read(eventosSocketServiceProvider)
+        .pedidoActualizado
+        .listen((_) => _cargarSilencioso());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _suscripcionSocket?.cancel();
     super.dispose();
   }
 

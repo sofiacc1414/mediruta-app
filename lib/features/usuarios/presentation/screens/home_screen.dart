@@ -20,6 +20,7 @@ import '../../domain/entities/rol_asignado.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/disponibilidad_domiciliario_provider.dart';
 import '../providers/perfil_providers.dart';
+import '../providers/usuario_providers.dart';
 import '../widgets/boton_cambiar_modo.dart';
 import '../widgets/main_bottom_bar.dart';
 import '../widgets/tarjeta_estado_validacion_domiciliario.dart';
@@ -34,12 +35,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  // Sin WebSocket/Supabase Realtime en la App todavía — mismo criterio
-  // que PedidosDisponiblesScreen/MiPedidoActivoScreen/
-  // SolicitudDetalleScreen. La tarjeta de "pedido en curso" (Paciente)
-  // o "pedido activo" (Domiciliario) de Home es lo primero que se ve
-  // al abrir la app — sin esto, quedaba mostrando el paso anterior
-  // hasta salir y volver a entrar.
+  // Red de seguridad del WebSocket (ver EventosSocketService, wireado
+  // más abajo en initState) — si el socket se cae, esto sigue
+  // refrescando solo.
   static const _intervaloPoll = Duration(seconds: 15);
 
   Perfil? _perfil;
@@ -56,6 +54,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   String? _modoCargado;
   Timer? _timer;
+  StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
@@ -63,11 +62,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _cargarPerfil();
     WidgetsBinding.instance.addPostFrameCallback((_) => _cargarSegunModo());
     _timer = Timer.periodic(_intervaloPoll, (_) => _refrescarSilencioso());
+    _suscripcionSocket = ref
+        .read(eventosSocketServiceProvider)
+        .pedidoActualizado
+        .listen((_) => _refrescarSilencioso());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _suscripcionSocket?.cancel();
     super.dispose();
   }
 

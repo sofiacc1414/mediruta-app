@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
+import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/documentos_paciente_para_recoger.dart';
 import '../../domain/entities/novedad_resumen.dart';
@@ -31,10 +32,9 @@ class MiPedidoActivoScreen extends ConsumerStatefulWidget {
 }
 
 class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
-  // Sin WebSocket/Supabase Realtime en la App todavía — mismo criterio
-  // que PedidosDisponiblesScreen. El paciente puede reportar una
-  // novedad, o el pedido puede avanzar de estado por otra vía, sin que
-  // esta pantalla se entere sola.
+  // Red de seguridad del WebSocket (ver EventosSocketService, wireado
+  // más abajo en initState) — si el socket se cae, esto sigue
+  // refrescando solo.
   static const _intervaloPoll = Duration(seconds: 15);
 
   bool _cargando = true;
@@ -43,17 +43,26 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
   List<NovedadResumen> _novedades = const [];
   String? _error;
   Timer? _timer;
+  StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
     _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+    // Además del poll (que queda como red de seguridad), refresca apenas
+    // la API avisa por WebSocket que algo cambió — ver
+    // EventosSocketService.
+    _suscripcionSocket = ref
+        .read(eventosSocketServiceProvider)
+        .pedidoActualizado
+        .listen((_) => _cargarSilencioso());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _suscripcionSocket?.cancel();
     super.dispose();
   }
 
