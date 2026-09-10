@@ -1,6 +1,7 @@
 import 'evento_historial.dart';
 import 'medicamento.dart';
 import 'novedad_del_paciente.dart';
+import 'precio_pedido.dart';
 
 /// Detalle completo de una solicitud (G03): medicamentos, receta y
 /// cédula del paciente (URLs firmadas) + historial de estados.
@@ -22,6 +23,7 @@ class Solicitud {
     required this.historial,
     required this.codigoEntrega,
     required this.novedadAbierta,
+    required this.precio,
   });
 
   final String id;
@@ -61,6 +63,9 @@ class Solicitud {
   /// acá; no reemplaza `estado`.
   final NovedadDelPaciente? novedadAbierta;
 
+  /// Precio del pedido (copago + domicilio) — ver `PrecioPedido`.
+  final PrecioPedido? precio;
+
   bool get esBorrador => estado == 'borrador';
 
   factory Solicitud.fromJson(Map<String, dynamic> json) {
@@ -86,6 +91,9 @@ class Solicitud {
       codigoEntrega: json['codigoEntrega'] as String?,
       novedadAbierta: json['novedadAbierta'] != null
           ? NovedadDelPaciente.fromJson(json['novedadAbierta'] as Map<String, dynamic>)
+          : null,
+      precio: json['precio'] != null
+          ? PrecioPedido.fromJson(json['precio'] as Map<String, dynamic>)
           : null,
     );
   }

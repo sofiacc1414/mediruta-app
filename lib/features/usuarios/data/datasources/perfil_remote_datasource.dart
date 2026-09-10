@@ -120,4 +120,17 @@ class PerfilRemoteDatasource {
       autenticado: true,
     );
   }
+
+  Future<List<dynamic>> listarNivelesCopago() async {
+    final respuesta = await _apiClient.get('/perfil/niveles-copago', autenticado: true);
+    return respuesta as List<dynamic>;
+  }
+
+  Future<void> actualizarNivelCopagoPaciente(String nivelCopagoId) {
+    return _apiClient.patch(
+      '/perfil/paciente/nivel-copago',
+      body: {'nivelCopagoId': nivelCopagoId},
+      autenticado: true,
+    );
+  }
 }

@@ -10,6 +10,7 @@ import '../../../../shared/core/theme/modo_adulto_mayor_provider.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
+import '../../domain/entities/nivel_copago.dart';
 import '../../domain/entities/perfil.dart';
 import '../../domain/value-objects/lado_documento.dart';
 import '../../domain/value-objects/tipo_documento_domiciliario.dart';
@@ -585,6 +586,13 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             label: 'Fecha de nacimiento',
             fecha: _pacienteFechaNacimiento,
             onTap: !_guardandoCambios ? _elegirFechaNacimiento : null,
+          ),
+          const SizedBox(height: 16),
+          const Divider(color: AppColors.skyBlue, height: 1),
+          const SizedBox(height: 12),
+          _SelectorNivelCopago(
+            nivelActualId: _perfil?.paciente?.nivelCopagoId,
+            onCambio: _recargarSoloPerfil,
           ),
           const SizedBox(height: 16),
           const Divider(color: AppColors.skyBlue, height: 1),
@@ -1727,6 +1735,175 @@ class _CampoFechaPerfil extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// El Paciente autodeclara su nivel de copago acá — no es el copago
+/// real de EPS (un % de una tarifa privada EPS-IPS que no tenemos
+/// forma de conocer), es un catálogo propio de MediRuta con valor fijo
+/// en COP por nivel. Se guarda apenas se elige uno (sin esperar al
+/// botón "Guardar cambios" del resto del formulario) — mismo criterio
+/// que `_DocumentoUploadRow`, que también sube apenas se elige un
+/// archivo.
+class _SelectorNivelCopago extends ConsumerStatefulWidget {
+  const _SelectorNivelCopago({
+    required this.nivelActualId,
+    required this.onCambio,
+  });
+
+  final String? nivelActualId;
+  final Future<void> Function() onCambio;
+
+  @override
+  ConsumerState<_SelectorNivelCopago> createState() => _SelectorNivelCopagoState();
+}
+
+class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
+  bool _cargando = true;
+  bool _guardando = false;
+  List<NivelCopago> _niveles = const [];
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
+    try {
+      final niveles = await ref.read(listarNivelesCopagoUseCaseProvider).execute();
+      if (!mounted) return;
+      setState(() => _niveles = niveles);
+    } on ApiException catch (error) {
+      setState(() => _error = error.message);
+    } on ApiSinConexionException catch (error) {
+      setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
+  }
+
+  Future<void> _elegir(NivelCopago nivel) async {
+    if (nivel.id == widget.nivelActualId || _guardando) return;
+    setState(() {
+      _guardando = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(actualizarNivelCopagoPacienteUseCaseProvider)
+          .execute(nivel.id);
+      await widget.onCambio();
+    } on ApiException catch (error) {
+      setState(() => _error = error.message);
+    } on ApiSinConexionException catch (error) {
+      setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
+  String _formatearCopago(num copago) {
+    final texto = copago.round().toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < texto.length; i++) {
+      if (i > 0 && (texto.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(texto[i]);
+    }
+    return '\$$buffer';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Nivel de copago',
+          style: TextStyle(
+            color: AppColors.navy,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Vos elegís el que te aplica — se suma al costo del domicilio.',
+          style: TextStyle(color: AppColors.teal, fontSize: 12),
+        ),
+        const SizedBox(height: 8),
+        if (_cargando)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else ...[
+          if (_error != null) ...[
+            AppErrorBanner(mensaje: _error!),
+            const SizedBox(height: 8),
+          ],
+          for (final nivel in _niveles)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: InkWell(
+                onTap: _guardando ? null : () => _elegir(nivel),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: nivel.id == widget.nivelActualId
+                        ? AppColors.skyBlue.withValues(alpha: 0.25)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: nivel.id == widget.nivelActualId
+                          ? AppColors.teal
+                          : Colors.grey.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        nivel.id == widget.nivelActualId
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
+                        color: nivel.id == widget.nivelActualId
+                            ? AppColors.teal
+                            : Colors.grey,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          nivel.nombre,
+                          style: const TextStyle(
+                            color: AppColors.navy,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        _formatearCopago(nivel.copago),
+                        style: const TextStyle(
+                          color: AppColors.navy,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ],
     );
   }
 }
