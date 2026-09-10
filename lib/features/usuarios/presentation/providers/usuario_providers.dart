@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/config/app_config.dart';
 import '../../../../shared/core/network/api_client.dart';
+import '../../../../shared/core/network/eventos_socket_service.dart';
 import '../../data/datasources/usuario_remote_datasource.dart';
 import '../../data/repositories/usuario_repository_impl.dart';
 import '../../domain/repositories/usuario_repository.dart';
@@ -109,3 +110,13 @@ final Provider<void> apiClientRefreshWiringProvider = Provider<void>((ref) {
   final client = ref.watch(apiClientProvider);
   client.onSesionExpirada = () => ref.read(refrescarSesionUseCaseProvider).execute();
 });
+
+/// Instancia única para toda la app — `AuthSessionNotifier` la conecta al
+/// autenticarse y la desconecta al cerrar sesión (ver
+/// `EventosSocketService`).
+final Provider<EventosSocketService> eventosSocketServiceProvider =
+    Provider<EventosSocketService>((ref) {
+      final service = EventosSocketService();
+      ref.onDispose(service.desconectar);
+      return service;
+    });

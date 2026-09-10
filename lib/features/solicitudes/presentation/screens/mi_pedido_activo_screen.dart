@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
+import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/documentos_paciente_para_recoger.dart';
 import '../../domain/entities/novedad_resumen.dart';
@@ -31,29 +32,29 @@ class MiPedidoActivoScreen extends ConsumerStatefulWidget {
 }
 
 class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
-  // Sin WebSocket/Supabase Realtime en la App todavía — mismo criterio
-  // que PedidosDisponiblesScreen. El paciente puede reportar una
-  // novedad, o el pedido puede avanzar de estado por otra vía, sin que
-  // esta pantalla se entere sola.
-  static const _intervaloPoll = Duration(seconds: 15);
-
   bool _cargando = true;
   bool _procesando = false;
   PedidoActivo? _pedido;
   List<NovedadResumen> _novedades = const [];
   String? _error;
-  Timer? _timer;
+  StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
-    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+    // Refresca apenas la API avisa por WebSocket que algo cambió — ver
+    // EventosSocketService (también se dispara al reconectar, así que
+    // no hace falta un poll fijo de respaldo).
+    _suscripcionSocket = ref
+        .read(eventosSocketServiceProvider)
+        .pedidoActualizado
+        .listen((_) => _cargarSilencioso());
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _suscripcionSocket?.cancel();
     super.dispose();
   }
 
@@ -83,10 +84,10 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     }
   }
 
-  /// Refresco del poll automático: nunca mientras hay una acción propia
-  /// en curso (`_procesando`, ej. confirmando la entrega) para no pisar
-  /// ese flujo, y sin tocar `_error` ni prender el spinner de pantalla
-  /// completa — un hiccup de red pasajero cada 15s no debe interrumpir
+  /// Refresco disparado por el WebSocket: nunca mientras hay una acción
+  /// propia en curso (`_procesando`, ej. confirmando la entrega) para no
+  /// pisar ese flujo, y sin tocar `_error` ni prender el spinner de
+  /// pantalla completa — un hiccup de red pasajero no debe interrumpir
   /// lo que ya se ve.
   Future<void> _cargarSilencioso() async {
     if (_procesando) return;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +8,7 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
 import '../../../usuarios/presentation/providers/perfil_providers.dart';
+import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/screens/perfil_screen.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/solicitud_resumen.dart';
@@ -30,11 +33,38 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
   List<SolicitudResumen>? _solicitudes;
   String? _error;
   int _tab = 0;
+  StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
+    // Ver EventosSocketService — se refresca en silencio, ej. cuando el
+    // domiciliario avanza uno de estos pedidos desde su propia app.
+    _suscripcionSocket = ref
+        .read(eventosSocketServiceProvider)
+        .pedidoActualizado
+        .listen((_) => _cargarSilencioso());
+  }
+
+  @override
+  void dispose() {
+    _suscripcionSocket?.cancel();
+    super.dispose();
+  }
+
+  /// Igual que `_cargar()` pero sin pisar el spinner de pantalla
+  /// completa ni `_error` con un hiccup de red pasajero.
+  Future<void> _cargarSilencioso() async {
+    try {
+      final solicitudes = await ref.read(listarSolicitudesUseCaseProvider).execute();
+      if (!mounted) return;
+      setState(() => _solicitudes = solicitudes);
+    } on ApiException {
+      // silencioso a propósito, ver doc del método
+    } on ApiSinConexionException {
+      // silencioso a propósito, ver doc del método
+    }
   }
 
   Future<void> _onNuevaSolicitud() async {

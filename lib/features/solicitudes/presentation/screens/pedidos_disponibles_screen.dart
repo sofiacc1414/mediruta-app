@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
+import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/pedido_disponible.dart';
 import '../providers/solicitud_providers.dart';
@@ -27,28 +28,24 @@ class PedidosDisponiblesScreen extends ConsumerStatefulWidget {
 }
 
 class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScreen> {
-  // Sin WebSocket/Supabase Realtime en la App todavía (alcance acordado:
-  // "sin mapa visual, 100% open source pero simple") — un pedido nuevo
-  // no tiene forma de avisar solo. Poll cada 15s mientras la pantalla
-  // está abierta es la forma más simple de que el pool se actualice sin
-  // que el Domiciliario tenga que salir y volver a entrar.
-  static const _intervaloPoll = Duration(seconds: 15);
-
   bool _cargando = true;
   List<PedidoDisponible>? _pedidos;
   String? _error;
-  Timer? _timer;
+  StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
-    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+    _suscripcionSocket = ref
+        .read(eventosSocketServiceProvider)
+        .pedidoActualizado
+        .listen((_) => _cargarSilencioso());
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _suscripcionSocket?.cancel();
     super.dispose();
   }
 
@@ -70,11 +67,11 @@ class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScr
     }
   }
 
-  /// Refresco del poll automático: solo actualiza la lista si sale bien
-  /// — nunca toca `_cargando` (no tapa la lista con el spinner de
-  /// pantalla completa) ni `_error` (un hiccup de red pasajero cada 15s
-  /// no debería interrumpir lo que ya se ve; "pull to refresh" sigue
-  /// disponible para un chequeo explícito).
+  /// Refresco disparado por el WebSocket: solo actualiza la lista si
+  /// sale bien — nunca toca `_cargando` (no tapa la lista con el
+  /// spinner de pantalla completa) ni `_error` (un hiccup de red
+  /// pasajero no debería interrumpir lo que ya se ve; "pull to refresh"
+  /// sigue disponible para un chequeo explícito).
   Future<void> _cargarSilencioso() async {
     try {
       final pedidos = await ref.read(listarPedidosDisponiblesUseCaseProvider).execute();

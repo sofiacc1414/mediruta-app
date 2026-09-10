@@ -9,6 +9,7 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
+import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/novedad_resumen.dart';
 import '../../domain/entities/precio_pedido.dart';
@@ -32,29 +33,26 @@ class SolicitudDetalleScreen extends ConsumerStatefulWidget {
 }
 
 class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen> {
-  // Sin WebSocket/Supabase Realtime en la App todavía — mismo criterio
-  // que PedidosDisponiblesScreen/MiPedidoActivoScreen. El Domiciliario
-  // avanza el pedido desde su propia pantalla; sin esto, el Paciente
-  // seguía viendo acá el paso anterior hasta recargar a mano.
-  static const _intervaloPoll = Duration(seconds: 15);
-
   bool _cargando = true;
   bool _procesando = false;
   Solicitud? _solicitud;
   List<NovedadResumen> _novedades = const [];
   String? _error;
-  Timer? _timer;
+  StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
-    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+    _suscripcionSocket = ref
+        .read(eventosSocketServiceProvider)
+        .pedidoActualizado
+        .listen((_) => _cargarSilencioso());
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _suscripcionSocket?.cancel();
     super.dispose();
   }
 
@@ -82,8 +80,8 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     }
   }
 
-  /// Refresco del poll automático: nunca mientras hay una acción propia
-  /// en curso (`_procesando`), y sin tocar `_error` ni prender el
+  /// Refresco disparado por el WebSocket: nunca mientras hay una acción
+  /// propia en curso (`_procesando`), y sin tocar `_error` ni prender el
   /// spinner de pantalla completa — ver doc del mismo patrón en
   /// MiPedidoActivoScreen/PedidosDisponiblesScreen.
   Future<void> _cargarSilencioso() async {

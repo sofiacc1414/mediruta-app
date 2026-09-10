@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +10,7 @@ import '../../../../shared/widgets/app_order_card.dart';
 import '../../../../shared/widgets/app_segmented_tabs.dart';
 import '../../../usuarios/domain/entities/rol_asignado.dart';
 import '../../../usuarios/presentation/providers/auth_session_provider.dart';
+import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../../usuarios/presentation/widgets/tarjeta_estado_validacion_domiciliario.dart';
 import '../../domain/entities/pedido_historial.dart';
@@ -36,11 +39,39 @@ class _HistorialPedidosScreenState extends ConsumerState<HistorialPedidosScreen>
   List<PedidoHistorial>? _pedidos;
   String? _error;
   int _tab = 0;
+  StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
+    // Ver EventosSocketService — cubre, por ejemplo, que este pedido se
+    // marque "entregado" mientras esta pantalla está abierta.
+    _suscripcionSocket = ref
+        .read(eventosSocketServiceProvider)
+        .pedidoActualizado
+        .listen((_) => _cargarSilencioso());
+  }
+
+  @override
+  void dispose() {
+    _suscripcionSocket?.cancel();
+    super.dispose();
+  }
+
+  /// Igual que `_cargar()` pero sin pisar el spinner de pantalla
+  /// completa ni `_error` con un hiccup de red pasajero.
+  Future<void> _cargarSilencioso() async {
+    if (_estadoRolDomiciliario() != 'habilitado') return;
+    try {
+      final pedidos = await ref.read(listarHistorialPedidosUseCaseProvider).execute();
+      if (!mounted) return;
+      setState(() => _pedidos = pedidos);
+    } on ApiException {
+      // silencioso a propósito, ver doc del método
+    } on ApiSinConexionException {
+      // silencioso a propósito, ver doc del método
+    }
   }
 
   /// Mismo criterio que Home: los endpoints de esta pantalla exigen el

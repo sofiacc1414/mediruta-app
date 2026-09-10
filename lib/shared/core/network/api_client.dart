@@ -37,6 +37,25 @@ class ApiClient {
   /// original una sola vez).
   Future<bool> Function()? onSesionExpirada;
 
+  /// Refresh en vuelo compartido entre requests concurrentes — el
+  /// refresh token de la API es de un solo uso (rota en cada llamada a
+  /// `/auth/refrescar`), así que si dos pantallas piden datos al mismo
+  /// tiempo y ambas reciben 401 porque el access token venció (típico
+  /// al abrir Home, que dispara varios requests autenticados a la vez),
+  /// sin esto cada una llamaría a `onSesionExpirada` por su cuenta con
+  /// el mismo refresh token viejo: la primera gana y rota el token, la
+  /// segunda llega con el token ya usado y la API la rechaza con 401 —
+  /// un "No autorizado." visible pese a que la sesión sigue siendo
+  /// válida. Con esto, todas esperan el mismo resultado de la única
+  /// renovación en curso.
+  Future<bool>? _renovacionEnCurso;
+
+  Future<bool> _renovarSesion() {
+    return _renovacionEnCurso ??= onSesionExpirada!().whenComplete(() {
+      _renovacionEnCurso = null;
+    });
+  }
+
   Future<String?> get accessToken => _secureStorage.read(key: _accessTokenKey);
 
   Future<String?> get refreshToken => _secureStorage.read(key: _refreshTokenKey);
@@ -129,7 +148,7 @@ class ApiClient {
         autenticado &&
         !esReintento &&
         onSesionExpirada != null) {
-      final renovada = await onSesionExpirada!();
+      final renovada = await _renovarSesion();
       if (renovada) {
         return postMultipart(
           path,
@@ -187,7 +206,7 @@ class ApiClient {
         autenticado &&
         !esReintento &&
         onSesionExpirada != null) {
-      final renovada = await onSesionExpirada!();
+      final renovada = await _renovarSesion();
       if (renovada) {
         return _request(
           metodo,

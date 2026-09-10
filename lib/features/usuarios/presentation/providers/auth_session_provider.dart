@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../shared/core/network/api_client.dart';
+import '../../../../shared/core/network/eventos_socket_service.dart';
 import '../../domain/entities/usuario.dart';
 import '../../domain/usecases/cerrar_sesion_usecase.dart';
 import '../../domain/usecases/hay_sesion_guardada_usecase.dart';
@@ -31,9 +35,13 @@ class AuthSessionNotifier extends StateNotifier<AuthEstado> {
     required HaySesionGuardadaUseCase haySesionGuardada,
     required ObtenerSesionActualUseCase obtenerSesionActual,
     required CerrarSesionUseCase cerrarSesion,
+    required ApiClient apiClient,
+    required EventosSocketService eventosSocket,
   }) : _haySesionGuardada = haySesionGuardada,
        _obtenerSesionActual = obtenerSesionActual,
        _cerrarSesion = cerrarSesion,
+       _apiClient = apiClient,
+       _eventosSocket = eventosSocket,
        super(const AuthCargando()) {
     _restaurar();
   }
@@ -41,6 +49,8 @@ class AuthSessionNotifier extends StateNotifier<AuthEstado> {
   final HaySesionGuardadaUseCase _haySesionGuardada;
   final ObtenerSesionActualUseCase _obtenerSesionActual;
   final CerrarSesionUseCase _cerrarSesion;
+  final ApiClient _apiClient;
+  final EventosSocketService _eventosSocket;
 
   Future<void> _restaurar() async {
     final haySesion = await _haySesionGuardada.execute();
@@ -52,6 +62,7 @@ class AuthSessionNotifier extends StateNotifier<AuthEstado> {
     try {
       final usuario = await _obtenerSesionActual.execute();
       state = AuthAutenticado(usuario);
+      unawaited(_eventosSocket.conectar(_apiClient));
     } catch (_) {
       // Sin sesión válida (tokens vencidos/revocados y el refresh
       // automático del ApiClient tampoco pudo renovarlos).
@@ -63,6 +74,7 @@ class AuthSessionNotifier extends StateNotifier<AuthEstado> {
   /// terminar G03 con éxito.
   void sesionIniciada(Usuario usuario) {
     state = AuthAutenticado(usuario);
+    unawaited(_eventosSocket.conectar(_apiClient));
   }
 
   /// G07 — cierre de sesión desde `home_screen`.
@@ -74,6 +86,7 @@ class AuthSessionNotifier extends StateNotifier<AuthEstado> {
       // la revocación remota falle (p. ej. sin conexión) — igual se saca
       // a la persona de la sesión local.
     }
+    _eventosSocket.desconectar();
     state = const AuthAnonimo();
   }
 }
@@ -99,5 +112,7 @@ final authSessionProvider =
         haySesionGuardada: ref.watch(haySesionGuardadaUseCaseProvider),
         obtenerSesionActual: ref.watch(obtenerSesionActualUseCaseProvider),
         cerrarSesion: ref.watch(cerrarSesionUseCaseProvider),
+        apiClient: ref.watch(apiClientProvider),
+        eventosSocket: ref.watch(eventosSocketServiceProvider),
       );
     });

@@ -20,6 +20,7 @@ import '../../domain/entities/rol_asignado.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/disponibilidad_domiciliario_provider.dart';
 import '../providers/perfil_providers.dart';
+import '../providers/usuario_providers.dart';
 import '../widgets/boton_cambiar_modo.dart';
 import '../widgets/main_bottom_bar.dart';
 import '../widgets/tarjeta_estado_validacion_domiciliario.dart';
@@ -34,14 +35,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  // Sin WebSocket/Supabase Realtime en la App todavía — mismo criterio
-  // que PedidosDisponiblesScreen/MiPedidoActivoScreen/
-  // SolicitudDetalleScreen. La tarjeta de "pedido en curso" (Paciente)
-  // o "pedido activo" (Domiciliario) de Home es lo primero que se ve
-  // al abrir la app — sin esto, quedaba mostrando el paso anterior
-  // hasta salir y volver a entrar.
-  static const _intervaloPoll = Duration(seconds: 15);
-
   Perfil? _perfil;
 
   bool _cargandoPaciente = false;
@@ -55,26 +48,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String? _errorDomiciliario;
 
   String? _modoCargado;
-  Timer? _timer;
+  StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargarPerfil();
     WidgetsBinding.instance.addPostFrameCallback((_) => _cargarSegunModo());
-    _timer = Timer.periodic(_intervaloPoll, (_) => _refrescarSilencioso());
+    _suscripcionSocket = ref
+        .read(eventosSocketServiceProvider)
+        .pedidoActualizado
+        .listen((_) => _refrescarSilencioso());
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _suscripcionSocket?.cancel();
     super.dispose();
   }
 
-  /// Refresco del poll automático — solo re-pide lo que ya está
+  /// Refresco disparado por el WebSocket — solo re-pide lo que ya está
   /// cargado para el modo actual, sin prender ningún spinner ni pisar
   /// `_errorPaciente`/`_errorDomiciliario` (un hiccup de red pasajero
-  /// cada 15s no debe interrumpir lo que ya se ve).
+  /// no debe interrumpir lo que ya se ve).
   Future<void> _refrescarSilencioso() async {
     final modo = _modoActual();
     if (modo == 'PACIENTE') {
