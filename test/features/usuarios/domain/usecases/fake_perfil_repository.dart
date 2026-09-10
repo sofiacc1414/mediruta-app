@@ -1,3 +1,4 @@
+import 'package:mediruta_app/features/usuarios/domain/entities/nivel_copago.dart';
 import 'package:mediruta_app/features/usuarios/domain/entities/perfil.dart';
 import 'package:mediruta_app/features/usuarios/domain/entities/perfil_domiciliario.dart';
 import 'package:mediruta_app/features/usuarios/domain/entities/perfil_paciente.dart';
@@ -20,6 +21,7 @@ class FakePerfilRepository implements PerfilRepository {
       fotoCedulaReversoUrl: null,
       departamento: null,
       ciudad: null,
+      nivelCopagoId: null,
     ),
     domiciliario: PerfilDomiciliario(
       direccion: null,
@@ -32,6 +34,8 @@ class FakePerfilRepository implements PerfilRepository {
       tecnicomecanicaUrl: null,
     ),
   );
+
+  List<NivelCopago> nivelesCopagoARetornar = const [];
 
   Map<String, dynamic>? ultimaLlamada;
 
@@ -157,6 +161,21 @@ class FakePerfilRepository implements PerfilRepository {
       'disponible': disponible,
       'lat': lat,
       'lng': lng,
+    });
+    _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<List<NivelCopago>> listarNivelesCopago() async {
+    _registrar('listarNivelesCopago', {});
+    _lanzarSiCorresponde();
+    return nivelesCopagoARetornar;
+  }
+
+  @override
+  Future<void> actualizarNivelCopagoPaciente(String nivelCopagoId) async {
+    _registrar('actualizarNivelCopagoPaciente', {
+      'nivelCopagoId': nivelCopagoId,
     });
     _lanzarSiCorresponde();
   }

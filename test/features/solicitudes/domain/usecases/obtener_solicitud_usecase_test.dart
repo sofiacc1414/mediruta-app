@@ -26,6 +26,7 @@ void main() {
         historial: [],
         codigoEntrega: 'AB23CD',
         novedadAbierta: null,
+        precio: null,
       );
       final repo = FakeSolicitudRepository()..solicitudARetornar = solicitud;
       final useCase = ObtenerSolicitudUseCase(repo);

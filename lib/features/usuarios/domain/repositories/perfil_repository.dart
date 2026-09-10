@@ -1,3 +1,4 @@
+import '../entities/nivel_copago.dart';
 import '../entities/perfil.dart';
 import '../value-objects/lado_documento.dart';
 import '../value-objects/tipo_documento_domiciliario.dart';
@@ -65,4 +66,11 @@ abstract class PerfilRepository {
     double? lat,
     double? lng,
   });
+
+  /// Catálogo de niveles de copago — lo necesita el Paciente para
+  /// elegir el suyo.
+  Future<List<NivelCopago>> listarNivelesCopago();
+
+  /// El Paciente autodeclara su nivel de copago — sin aprobación.
+  Future<void> actualizarNivelCopagoPaciente(String nivelCopagoId);
 }

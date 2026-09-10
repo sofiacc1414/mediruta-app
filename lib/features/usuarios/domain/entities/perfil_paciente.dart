@@ -7,6 +7,7 @@ class PerfilPaciente {
     required this.fotoCedulaReversoUrl,
     required this.departamento,
     required this.ciudad,
+    required this.nivelCopagoId,
   });
 
   final String? direccion;
@@ -24,6 +25,10 @@ class PerfilPaciente {
   final String? departamento;
   final String? ciudad;
 
+  /// Nivel de copago autodeclarado (ver `NivelCopago`) — `null` hasta
+  /// que el Paciente lo elige.
+  final String? nivelCopagoId;
+
   factory PerfilPaciente.fromJson(Map<String, dynamic> json) {
     return PerfilPaciente(
       direccion: json['direccion'] as String?,
@@ -32,6 +37,7 @@ class PerfilPaciente {
       fotoCedulaReversoUrl: json['fotoCedulaReversoUrl'] as String?,
       departamento: json['departamento'] as String?,
       ciudad: json['ciudad'] as String?,
+      nivelCopagoId: json['nivelCopagoId'] as String?,
     );
   }
 }

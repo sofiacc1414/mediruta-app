@@ -5,8 +5,10 @@ import '../../data/repositories/perfil_repository_impl.dart';
 import '../../domain/repositories/perfil_repository.dart';
 import '../../domain/usecases/actualizar_datos_comunes_usecase.dart';
 import '../../domain/usecases/actualizar_disponibilidad_domiciliario_usecase.dart';
+import '../../domain/usecases/actualizar_nivel_copago_paciente_usecase.dart';
 import '../../domain/usecases/actualizar_perfil_domiciliario_usecase.dart';
 import '../../domain/usecases/actualizar_perfil_paciente_usecase.dart';
+import '../../domain/usecases/listar_niveles_copago_usecase.dart';
 import '../../domain/usecases/desactivar_cuenta_usecase.dart';
 import '../../domain/usecases/obtener_perfil_usecase.dart';
 import '../../domain/usecases/subir_documento_domiciliario_usecase.dart';
@@ -62,4 +64,13 @@ final actualizarDisponibilidadDomiciliarioUseCaseProvider = Provider(
   (ref) => ActualizarDisponibilidadDomiciliarioUseCase(
     ref.watch(perfilRepositoryProvider),
   ),
+);
+
+final listarNivelesCopagoUseCaseProvider = Provider(
+  (ref) => ListarNivelesCopagoUseCase(ref.watch(perfilRepositoryProvider)),
+);
+
+final actualizarNivelCopagoPacienteUseCaseProvider = Provider(
+  (ref) =>
+      ActualizarNivelCopagoPacienteUseCase(ref.watch(perfilRepositoryProvider)),
 );

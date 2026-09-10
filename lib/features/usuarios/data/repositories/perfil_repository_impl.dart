@@ -1,3 +1,4 @@
+import '../../domain/entities/nivel_copago.dart';
 import '../../domain/entities/perfil.dart';
 import '../../domain/repositories/perfil_repository.dart';
 import '../../domain/value-objects/lado_documento.dart';
@@ -113,5 +114,18 @@ class PerfilRepositoryImpl implements PerfilRepository {
       lat: lat,
       lng: lng,
     );
+  }
+
+  @override
+  Future<List<NivelCopago>> listarNivelesCopago() async {
+    final respuesta = await _datasource.listarNivelesCopago();
+    return respuesta
+        .map((e) => NivelCopago.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<void> actualizarNivelCopagoPaciente(String nivelCopagoId) {
+    return _datasource.actualizarNivelCopagoPaciente(nivelCopagoId);
   }
 }
