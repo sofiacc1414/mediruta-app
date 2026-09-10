@@ -9,6 +9,7 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
+import '../../../../shared/widgets/entrega_confirmada_screen.dart';
 import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/novedad_resumen.dart';
@@ -86,6 +87,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
   /// MiPedidoActivoScreen/PedidosDisponiblesScreen.
   Future<void> _cargarSilencioso() async {
     if (_procesando) return;
+    final estadoAnterior = _solicitud?.estado;
     try {
       final resultados = await Future.wait([
         ref.read(obtenerSolicitudUseCaseProvider).execute(widget.solicitudId),
@@ -96,6 +98,23 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
         _solicitud = resultados[0] as Solicitud;
         _novedades = resultados[1] as List<NovedadResumen>;
       });
+      // Cierra el ciclo del pedido con una pantalla completa, no solo
+      // el cambio de color del estado en el timeline — solo dispara
+      // ante una transición real (recién pasó a "entregado" en este
+      // refresco), nunca al abrir un pedido que ya estaba entregado
+      // de antes.
+      if (estadoAnterior != null &&
+          estadoAnterior != 'entregado' &&
+          _solicitud?.estado == 'entregado') {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => EntregaConfirmadaScreen(
+              codigoPedido: _solicitud?.codigoPedido,
+              mensaje: 'Gracias por confiar en MediRuta para cuidar tu salud.',
+            ),
+          ),
+        );
+      }
     } on ApiException {
       // silencioso a propósito, ver doc del método
     } on ApiSinConexionException {

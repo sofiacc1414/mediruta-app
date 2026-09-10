@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
+import '../../../../shared/widgets/entrega_confirmada_screen.dart';
 import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/documentos_paciente_para_recoger.dart';
@@ -189,28 +190,24 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     );
     if (codigo == null || !mounted) return;
 
+    final codigoPedido = pedido.codigoPedido;
     await _ejecutarPaso(
       (id) => ref.read(entregarPedidoUseCaseProvider).execute(id, codigo),
     );
     // `_ejecutarPaso` recarga el pedido activo apenas se confirma la
     // entrega, así que ya pasó a `entregado` y desaparece de esta
     // pantalla (vuelve al estado "No tenés ningún pedido en curso") sin
-    // dejar rastro — sin este aviso, quedaba la sensación de que la
-    // entrega no se había registrado.
+    // dejar rastro — antes solo quedaba un SnackBar que pasaba en un
+    // instante, dejando la sensación de que la entrega no se había
+    // registrado. Ahora es una pantalla completa, a propósito: cierra
+    // el ciclo del pedido en vez de ser un aviso menor.
     if (mounted && _error == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Entrega confirmada con éxito',
-            style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => EntregaConfirmadaScreen(
+            codigoPedido: codigoPedido,
+            mensaje: 'Gracias por tu trabajo llevando salud a la comunidad.',
           ),
-          backgroundColor: Colors.white,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
-          ),
-          elevation: 4,
         ),
       );
     }
