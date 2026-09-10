@@ -34,17 +34,26 @@ class SolicitudDetalleScreen extends ConsumerStatefulWidget {
 }
 
 class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen> {
+  // Red de seguridad además del WebSocket: en algunas redes (datos
+  // móviles con NAT/proxies restrictivos) el socket no llega a
+  // conectar y ahí no queda ningún otro mecanismo que refresque solo
+  // — sin este poll, un cambio real (ej. "entregado") podía tardar
+  // minutos en verse, o no verse hasta recargar a mano.
+  static const _intervaloPoll = Duration(seconds: 15);
+
   bool _cargando = true;
   bool _procesando = false;
   Solicitud? _solicitud;
   List<NovedadResumen> _novedades = const [];
   String? _error;
+  Timer? _timer;
   StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
+    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
     _suscripcionSocket = ref
         .read(eventosSocketServiceProvider)
         .pedidoActualizado
@@ -53,6 +62,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
 
   @override
   void dispose() {
+    _timer?.cancel();
     _suscripcionSocket?.cancel();
     super.dispose();
   }

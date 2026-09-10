@@ -33,20 +33,26 @@ class MiPedidoActivoScreen extends ConsumerStatefulWidget {
 }
 
 class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
+  // Red de seguridad además del WebSocket — ver el mismo comentario en
+  // SolicitudDetalleScreen: en algunas redes el socket no conecta, y
+  // sin esto no queda ningún otro mecanismo que refresque solo.
+  static const _intervaloPoll = Duration(seconds: 15);
+
   bool _cargando = true;
   bool _procesando = false;
   PedidoActivo? _pedido;
   List<NovedadResumen> _novedades = const [];
   String? _error;
+  Timer? _timer;
   StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
-    // Refresca apenas la API avisa por WebSocket que algo cambió — ver
-    // EventosSocketService (también se dispara al reconectar, así que
-    // no hace falta un poll fijo de respaldo).
+    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+    // Además del poll (que queda como red de seguridad), refresca
+    // apenas la API avisa por WebSocket que algo cambió.
     _suscripcionSocket = ref
         .read(eventosSocketServiceProvider)
         .pedidoActualizado
@@ -55,6 +61,7 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
 
   @override
   void dispose() {
+    _timer?.cancel();
     _suscripcionSocket?.cancel();
     super.dispose();
   }

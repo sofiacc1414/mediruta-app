@@ -35,17 +35,25 @@ class HistorialPedidosScreen extends ConsumerStatefulWidget {
 }
 
 class _HistorialPedidosScreenState extends ConsumerState<HistorialPedidosScreen> {
+  // Red de seguridad además del WebSocket — ver el mismo comentario en
+  // SolicitudDetalleScreen: en algunas redes el socket no conecta, y
+  // sin esto no queda ningún otro mecanismo que refresque solo.
+  static const _intervaloPoll = Duration(seconds: 15);
+
   bool _cargando = true;
   List<PedidoHistorial>? _pedidos;
   String? _error;
   int _tab = 0;
+  Timer? _timer;
   StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
-    // Ver EventosSocketService — cubre, por ejemplo, que este pedido se
+    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+    // Además del poll (que queda como red de seguridad), ver
+    // EventosSocketService — cubre, por ejemplo, que este pedido se
     // marque "entregado" mientras esta pantalla está abierta.
     _suscripcionSocket = ref
         .read(eventosSocketServiceProvider)
@@ -55,6 +63,7 @@ class _HistorialPedidosScreenState extends ConsumerState<HistorialPedidosScreen>
 
   @override
   void dispose() {
+    _timer?.cancel();
     _suscripcionSocket?.cancel();
     super.dispose();
   }
