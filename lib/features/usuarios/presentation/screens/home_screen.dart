@@ -7,6 +7,7 @@ import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
+import '../../../../shared/widgets/diagnostico_conexion_card.dart';
 import '../../../solicitudes/domain/entities/pedido_activo.dart';
 import '../../../solicitudes/domain/entities/solicitud_resumen.dart';
 import '../../../solicitudes/presentation/providers/solicitud_providers.dart';
@@ -264,7 +265,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ? 'Estás en modo Domiciliario'
                         : (esPaciente ? 'Estás en modo Paciente' : null),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
+                  // TEMPORAL — ver doc de DiagnosticoConexionCard.
+                  DiagnosticoConexionCard(servicio: ref.watch(eventosSocketServiceProvider)),
+                  const SizedBox(height: 12),
 
                   // Tarjeta Hero personalizada según el rol
                   if (esDomiciliario)
