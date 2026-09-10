@@ -51,6 +51,24 @@ class SolicitudRemoteDatasource {
     );
   }
 
+  /// Estimado en vivo mientras se arma el borrador, antes de enviar —
+  /// ver `EstimarPrecioPedidoUseCase` del lado de la API. Devuelve el
+  /// mismo shape que el `precio` de `obtener()`.
+  Future<Map<String, dynamic>> estimarPrecio({
+    required String direccionFarmacia,
+    required String direccionEntrega,
+  }) async {
+    final respuesta = await _apiClient.post(
+      '/solicitudes/estimar-precio',
+      body: {
+        'direccionFarmacia': direccionFarmacia,
+        'direccionEntrega': direccionEntrega,
+      },
+      autenticado: true,
+    );
+    return respuesta as Map<String, dynamic>;
+  }
+
   Future<Map<String, dynamic>> enviar(String solicitudId) async {
     final respuesta = await _apiClient.post(
       '/solicitudes/$solicitudId/enviar',

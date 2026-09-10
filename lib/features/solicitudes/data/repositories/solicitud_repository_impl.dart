@@ -5,6 +5,7 @@ import '../../domain/entities/novedad_resumen.dart';
 import '../../domain/entities/pedido_activo.dart';
 import '../../domain/entities/pedido_disponible.dart';
 import '../../domain/entities/pedido_historial.dart';
+import '../../domain/entities/precio_pedido.dart';
 import '../../domain/entities/solicitud.dart';
 import '../../domain/entities/solicitud_resumen.dart';
 import '../../domain/repositories/solicitud_repository.dart';
@@ -59,6 +60,18 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   Future<String> enviar(String solicitudId) async {
     final respuesta = await _datasource.enviar(solicitudId);
     return respuesta['codigoPedido'] as String;
+  }
+
+  @override
+  Future<PrecioPedido> estimarPrecio({
+    required String direccionFarmacia,
+    required String direccionEntrega,
+  }) async {
+    final respuesta = await _datasource.estimarPrecio(
+      direccionFarmacia: direccionFarmacia,
+      direccionEntrega: direccionEntrega,
+    );
+    return PrecioPedido.fromJson(respuesta);
   }
 
   @override
