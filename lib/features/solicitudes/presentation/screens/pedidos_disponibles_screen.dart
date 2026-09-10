@@ -28,15 +28,22 @@ class PedidosDisponiblesScreen extends ConsumerStatefulWidget {
 }
 
 class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScreen> {
+  // Red de seguridad además del WebSocket — ver el mismo comentario en
+  // SolicitudDetalleScreen: en algunas redes el socket no conecta, y
+  // sin esto no queda ningún otro mecanismo que refresque solo.
+  static const _intervaloPoll = Duration(seconds: 15);
+
   bool _cargando = true;
   List<PedidoDisponible>? _pedidos;
   String? _error;
+  Timer? _timer;
   StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
+    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
     _suscripcionSocket = ref
         .read(eventosSocketServiceProvider)
         .pedidoActualizado
@@ -45,6 +52,7 @@ class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScr
 
   @override
   void dispose() {
+    _timer?.cancel();
     _suscripcionSocket?.cancel();
     super.dispose();
   }

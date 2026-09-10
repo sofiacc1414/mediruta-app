@@ -28,18 +28,25 @@ class MisSolicitudesScreen extends ConsumerStatefulWidget {
 
 class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
   static const _estadosHistorial = {'entregado', 'cancelada'};
+  // Red de seguridad además del WebSocket — ver el mismo comentario en
+  // SolicitudDetalleScreen: en algunas redes el socket no conecta, y
+  // sin esto no queda ningún otro mecanismo que refresque solo.
+  static const _intervaloPoll = Duration(seconds: 15);
 
   bool _cargando = true;
   List<SolicitudResumen>? _solicitudes;
   String? _error;
   int _tab = 0;
+  Timer? _timer;
   StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
-    // Ver EventosSocketService — se refresca en silencio, ej. cuando el
+    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+    // Además del poll (que queda como red de seguridad), ver
+    // EventosSocketService — se refresca en silencio, ej. cuando el
     // domiciliario avanza uno de estos pedidos desde su propia app.
     _suscripcionSocket = ref
         .read(eventosSocketServiceProvider)
@@ -49,6 +56,7 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
 
   @override
   void dispose() {
+    _timer?.cancel();
     _suscripcionSocket?.cancel();
     super.dispose();
   }
