@@ -1,10 +1,24 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import '../config/app_config.dart';
 import 'api_client.dart';
+
+/// "timeout"/"xhr poll error" son mensajes genéricos de socket.io — acá
+/// abajo casi siempre hay una `SocketException` de Dart con el error
+/// real del sistema operativo (`osError`: "Connection timed out",
+/// "Network is unreachable", un fallo de TLS, etc.), que es lo que de
+/// verdad ayuda a diagnosticar. Temporal, ver doc de [FaseSocket].
+String _detalleCompletoDe(Object error) {
+  final base = '${error.runtimeType}: $error';
+  if (error is SocketException && error.osError != null) {
+    return '$base (osError: ${error.osError})';
+  }
+  return base;
+}
 
 /// Fase de la conexión — ver [EventosSocketService.diagnostico].
 /// Temporal, para diagnosticar en vivo por qué el WebSocket no conecta
@@ -87,22 +101,22 @@ class EventosSocketService {
           // que no dejan pasar un upgrade a WS como primer request).
           .setAuth({'token': token})
           .disableAutoConnect()
-          // Render (plan free) duerme el servicio tras ~15min sin
-          // requests y puede tardar 30-50s en despertar en el primer
-          // request — un request HTTP normal simplemente se siente
-          // lento, pero el handshake del WS tiene su propio timeout
-          // (20s por defecto) y expiraba antes de que el servicio
-          // terminara de levantar, viéndose como "timeout" repetido.
-          // Se sube a 45s para darle margen a ese arranque en frío.
+          // 45s en vez del default de 20s — se probó por sospecha de
+          // cold start de Render, DESCARTADA (el poll de 15s, que es
+          // REST al mismo servidor, sigue andando bien en paralelo, y
+          // falla igual en wifi y en datos móviles). Queda igual por
+          // las dudas, sin ser ya la explicación principal — ver
+          // `_detalleCompletoDe` para lo que sí se está investigando.
           .setTimeout(45000)
           .build(),
     );
 
     socket.onConnectError((error) {
-      debugPrint('EventosSocketService: error de conexión ($error)');
+      final detalle = error is Object ? _detalleCompletoDe(error) : '$error';
+      debugPrint('EventosSocketService: error de conexión ($detalle)');
       diagnostico.value = DiagnosticoSocket(
         fase: FaseSocket.error,
-        detalle: 'connect_error: $error',
+        detalle: 'connect_error: $detalle',
         intentos: diagnostico.value.intentos + 1,
       );
     });
