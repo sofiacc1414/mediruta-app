@@ -35,11 +35,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  // Red de seguridad del WebSocket (ver EventosSocketService, wireado
-  // más abajo en initState) — si el socket se cae, esto sigue
-  // refrescando solo.
-  static const _intervaloPoll = Duration(seconds: 15);
-
   Perfil? _perfil;
 
   bool _cargandoPaciente = false;
@@ -53,7 +48,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String? _errorDomiciliario;
 
   String? _modoCargado;
-  Timer? _timer;
   StreamSubscription<void>? _suscripcionSocket;
 
   @override
@@ -61,7 +55,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     _cargarPerfil();
     WidgetsBinding.instance.addPostFrameCallback((_) => _cargarSegunModo());
-    _timer = Timer.periodic(_intervaloPoll, (_) => _refrescarSilencioso());
     _suscripcionSocket = ref
         .read(eventosSocketServiceProvider)
         .pedidoActualizado
@@ -70,15 +63,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
-    _timer?.cancel();
     _suscripcionSocket?.cancel();
     super.dispose();
   }
 
-  /// Refresco del poll automático — solo re-pide lo que ya está
+  /// Refresco disparado por el WebSocket — solo re-pide lo que ya está
   /// cargado para el modo actual, sin prender ningún spinner ni pisar
   /// `_errorPaciente`/`_errorDomiciliario` (un hiccup de red pasajero
-  /// cada 15s no debe interrumpir lo que ya se ve).
+  /// no debe interrumpir lo que ya se ve).
   Future<void> _refrescarSilencioso() async {
     final modo = _modoActual();
     if (modo == 'PACIENTE') {

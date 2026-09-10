@@ -33,24 +33,17 @@ class SolicitudDetalleScreen extends ConsumerStatefulWidget {
 }
 
 class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen> {
-  // Red de seguridad del WebSocket (ver EventosSocketService, wireado
-  // más abajo en initState) — si el socket se cae, esto sigue
-  // refrescando solo.
-  static const _intervaloPoll = Duration(seconds: 15);
-
   bool _cargando = true;
   bool _procesando = false;
   Solicitud? _solicitud;
   List<NovedadResumen> _novedades = const [];
   String? _error;
-  Timer? _timer;
   StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
-    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
     _suscripcionSocket = ref
         .read(eventosSocketServiceProvider)
         .pedidoActualizado
@@ -59,7 +52,6 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
 
   @override
   void dispose() {
-    _timer?.cancel();
     _suscripcionSocket?.cancel();
     super.dispose();
   }
@@ -88,8 +80,8 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     }
   }
 
-  /// Refresco del poll automático: nunca mientras hay una acción propia
-  /// en curso (`_procesando`), y sin tocar `_error` ni prender el
+  /// Refresco disparado por el WebSocket: nunca mientras hay una acción
+  /// propia en curso (`_procesando`), y sin tocar `_error` ni prender el
   /// spinner de pantalla completa — ver doc del mismo patrón en
   /// MiPedidoActivoScreen/PedidosDisponiblesScreen.
   Future<void> _cargarSilencioso() async {

@@ -32,27 +32,20 @@ class MiPedidoActivoScreen extends ConsumerStatefulWidget {
 }
 
 class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
-  // Red de seguridad del WebSocket (ver EventosSocketService, wireado
-  // más abajo en initState) — si el socket se cae, esto sigue
-  // refrescando solo.
-  static const _intervaloPoll = Duration(seconds: 15);
-
   bool _cargando = true;
   bool _procesando = false;
   PedidoActivo? _pedido;
   List<NovedadResumen> _novedades = const [];
   String? _error;
-  Timer? _timer;
   StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
-    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
-    // Además del poll (que queda como red de seguridad), refresca apenas
-    // la API avisa por WebSocket que algo cambió — ver
-    // EventosSocketService.
+    // Refresca apenas la API avisa por WebSocket que algo cambió — ver
+    // EventosSocketService (también se dispara al reconectar, así que
+    // no hace falta un poll fijo de respaldo).
     _suscripcionSocket = ref
         .read(eventosSocketServiceProvider)
         .pedidoActualizado
@@ -61,7 +54,6 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
 
   @override
   void dispose() {
-    _timer?.cancel();
     _suscripcionSocket?.cancel();
     super.dispose();
   }
@@ -92,10 +84,10 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     }
   }
 
-  /// Refresco del poll automático: nunca mientras hay una acción propia
-  /// en curso (`_procesando`, ej. confirmando la entrega) para no pisar
-  /// ese flujo, y sin tocar `_error` ni prender el spinner de pantalla
-  /// completa — un hiccup de red pasajero cada 15s no debe interrumpir
+  /// Refresco disparado por el WebSocket: nunca mientras hay una acción
+  /// propia en curso (`_procesando`, ej. confirmando la entrega) para no
+  /// pisar ese flujo, y sin tocar `_error` ni prender el spinner de
+  /// pantalla completa — un hiccup de red pasajero no debe interrumpir
   /// lo que ya se ve.
   Future<void> _cargarSilencioso() async {
     if (_procesando) return;

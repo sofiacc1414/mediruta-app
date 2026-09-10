@@ -28,22 +28,15 @@ class PedidosDisponiblesScreen extends ConsumerStatefulWidget {
 }
 
 class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScreen> {
-  // Red de seguridad del WebSocket (ver EventosSocketService, wireado
-  // más abajo en initState) — si el socket se cae, esto sigue
-  // refrescando solo.
-  static const _intervaloPoll = Duration(seconds: 15);
-
   bool _cargando = true;
   List<PedidoDisponible>? _pedidos;
   String? _error;
-  Timer? _timer;
   StreamSubscription<void>? _suscripcionSocket;
 
   @override
   void initState() {
     super.initState();
     _cargar();
-    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
     _suscripcionSocket = ref
         .read(eventosSocketServiceProvider)
         .pedidoActualizado
@@ -52,7 +45,6 @@ class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScr
 
   @override
   void dispose() {
-    _timer?.cancel();
     _suscripcionSocket?.cancel();
     super.dispose();
   }
@@ -75,11 +67,11 @@ class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScr
     }
   }
 
-  /// Refresco del poll automático: solo actualiza la lista si sale bien
-  /// — nunca toca `_cargando` (no tapa la lista con el spinner de
-  /// pantalla completa) ni `_error` (un hiccup de red pasajero cada 15s
-  /// no debería interrumpir lo que ya se ve; "pull to refresh" sigue
-  /// disponible para un chequeo explícito).
+  /// Refresco disparado por el WebSocket: solo actualiza la lista si
+  /// sale bien — nunca toca `_cargando` (no tapa la lista con el
+  /// spinner de pantalla completa) ni `_error` (un hiccup de red
+  /// pasajero no debería interrumpir lo que ya se ve; "pull to refresh"
+  /// sigue disponible para un chequeo explícito).
   Future<void> _cargarSilencioso() async {
     try {
       final pedidos = await ref.read(listarPedidosDisponiblesUseCaseProvider).execute();
