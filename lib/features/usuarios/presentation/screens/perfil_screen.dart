@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1765,6 +1767,16 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
   List<NivelCopago> _niveles = const [];
   String? _error;
 
+  // El bottom sheet donde vive este selector se arma una sola vez al
+  // abrirse — `widget.nivelActualId` queda congelado en el valor de
+  // ese momento, así que después de guardar un cambio acá adentro
+  // `_PerfilScreenState` sí actualiza su propio `_perfil`, pero eso no
+  // reconstruye este subárbol ya montado. Por eso la selección se
+  // trackea con estado propio (inicializado desde `widget` una sola
+  // vez, actualizado apenas se guarda con éxito) en vez de leer
+  // `widget.nivelActualId` directo en cada build.
+  late String? _seleccionadoId = widget.nivelActualId;
+
   @override
   void initState() {
     super.initState();
@@ -1790,7 +1802,7 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
   }
 
   Future<void> _elegir(NivelCopago nivel) async {
-    if (nivel.id == widget.nivelActualId || _guardando) return;
+    if (nivel.id == _seleccionadoId || _guardando) return;
     setState(() {
       _guardando = true;
       _error = null;
@@ -1799,7 +1811,29 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
       await ref
           .read(actualizarNivelCopagoPacienteUseCaseProvider)
           .execute(nivel.id);
-      await widget.onCambio();
+      if (mounted) {
+        setState(() => _seleccionadoId = nivel.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Nivel actualizado a "${nivel.nombre}"',
+              style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.white,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+            ),
+            elevation: 4,
+          ),
+        );
+      }
+      // No se espera esto para reflejar la selección (ver comentario
+      // en el campo `_seleccionadoId`) — solo mantiene sincronizado
+      // el resto de la pantalla (`_PerfilScreenState._perfil`) por si
+      // se necesita en otro lado.
+      unawaited(widget.onCambio());
     } on ApiException catch (error) {
       setState(() => _error = error.message);
     } on ApiSinConexionException catch (error) {
@@ -1857,12 +1891,12 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: nivel.id == widget.nivelActualId
+                    color: nivel.id == _seleccionadoId
                         ? AppColors.skyBlue.withValues(alpha: 0.25)
                         : Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: nivel.id == widget.nivelActualId
+                      color: nivel.id == _seleccionadoId
                           ? AppColors.teal
                           : Colors.grey.withValues(alpha: 0.25),
                     ),
@@ -1870,10 +1904,10 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
                   child: Row(
                     children: [
                       Icon(
-                        nivel.id == widget.nivelActualId
+                        nivel.id == _seleccionadoId
                             ? Icons.radio_button_checked
                             : Icons.radio_button_off,
-                        color: nivel.id == widget.nivelActualId
+                        color: nivel.id == _seleccionadoId
                             ? AppColors.teal
                             : Colors.grey,
                         size: 20,
