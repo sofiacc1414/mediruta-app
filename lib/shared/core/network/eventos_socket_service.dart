@@ -92,21 +92,18 @@ class EventosSocketService {
       AppConfig.apiBaseUrl,
       socket_io.OptionBuilder()
           .setPath('/ws')
-          // Sin restringir transportes a solo 'websocket': el cliente
-          // arranca con polling HTTP (que ya sabemos que pasa por el
-          // proxy de Render sin problema) y recién ahí sube a
-          // websocket — el default de socket.io. Forzar 'websocket'
-          // desde el arranque salta ese handshake inicial y en la
-          // práctica no conecta en varias redes móviles (NAT/proxies
-          // que no dejan pasar un upgrade a WS como primer request).
+          // Transporte 'websocket' puro, sin el polling HTTP inicial
+          // de socket.io — confirmado en vivo (Redmi Note 15/HyperOS,
+          // logcat + comparación con Chrome) que el polling del
+          // paquete `socket_io_client` de Dart nunca completaba el
+          // handshake en ese dispositivo (timeout puro, sin excepción
+          // de red por debajo — ver `_detalleCompletoDe`), mientras
+          // que Chrome (otro motor HTTP) sí conectaba al toque al
+          // mismo endpoint. Saltar el polling y usar WebSocket.connect()
+          // nativo de dart:io resolvió la conexión en esa prueba.
+          .setTransports(['websocket'])
           .setAuth({'token': token})
           .disableAutoConnect()
-          // 45s en vez del default de 20s — se probó por sospecha de
-          // cold start de Render, DESCARTADA (el poll de 15s, que es
-          // REST al mismo servidor, sigue andando bien en paralelo, y
-          // falla igual en wifi y en datos móviles). Queda igual por
-          // las dudas, sin ser ya la explicación principal — ver
-          // `_detalleCompletoDe` para lo que sí se está investigando.
           .setTimeout(45000)
           .build(),
     );
