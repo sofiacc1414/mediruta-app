@@ -87,6 +87,14 @@ class EventosSocketService {
           // que no dejan pasar un upgrade a WS como primer request).
           .setAuth({'token': token})
           .disableAutoConnect()
+          // Render (plan free) duerme el servicio tras ~15min sin
+          // requests y puede tardar 30-50s en despertar en el primer
+          // request — un request HTTP normal simplemente se siente
+          // lento, pero el handshake del WS tiene su propio timeout
+          // (20s por defecto) y expiraba antes de que el servicio
+          // terminara de levantar, viéndose como "timeout" repetido.
+          // Se sube a 45s para darle margen a ese arranque en frío.
+          .setTimeout(45000)
           .build(),
     );
 
