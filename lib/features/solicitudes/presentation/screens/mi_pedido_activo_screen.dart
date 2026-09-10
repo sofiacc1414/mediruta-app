@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -29,16 +31,30 @@ class MiPedidoActivoScreen extends ConsumerStatefulWidget {
 }
 
 class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
+  // Sin WebSocket/Supabase Realtime en la App todavía — mismo criterio
+  // que PedidosDisponiblesScreen. El paciente puede reportar una
+  // novedad, o el pedido puede avanzar de estado por otra vía, sin que
+  // esta pantalla se entere sola.
+  static const _intervaloPoll = Duration(seconds: 15);
+
   bool _cargando = true;
   bool _procesando = false;
   PedidoActivo? _pedido;
   List<NovedadResumen> _novedades = const [];
   String? _error;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _cargar();
+    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   Future<void> _cargar() async {
@@ -64,6 +80,32 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
       setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _cargando = false);
+    }
+  }
+
+  /// Refresco del poll automático: nunca mientras hay una acción propia
+  /// en curso (`_procesando`, ej. confirmando la entrega) para no pisar
+  /// ese flujo, y sin tocar `_error` ni prender el spinner de pantalla
+  /// completa — un hiccup de red pasajero cada 15s no debe interrumpir
+  /// lo que ya se ve.
+  Future<void> _cargarSilencioso() async {
+    if (_procesando) return;
+    try {
+      final pedido = await ref.read(obtenerPedidoActivoUseCaseProvider).execute();
+      final novedades = pedido == null
+          ? const <NovedadResumen>[]
+          : await ref
+              .read(listarNovedadesSolicitudDomiciliarioUseCaseProvider)
+              .execute(pedido.id);
+      if (!mounted) return;
+      setState(() {
+        _pedido = pedido;
+        _novedades = novedades;
+      });
+    } on ApiException {
+      // silencioso a propósito, ver doc del método
+    } on ApiSinConexionException {
+      // silencioso a propósito, ver doc del método
     }
   }
 

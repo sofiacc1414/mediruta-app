@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,16 +31,30 @@ class SolicitudDetalleScreen extends ConsumerStatefulWidget {
 }
 
 class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen> {
+  // Sin WebSocket/Supabase Realtime en la App todavía — mismo criterio
+  // que PedidosDisponiblesScreen/MiPedidoActivoScreen. El Domiciliario
+  // avanza el pedido desde su propia pantalla; sin esto, el Paciente
+  // seguía viendo acá el paso anterior hasta recargar a mano.
+  static const _intervaloPoll = Duration(seconds: 15);
+
   bool _cargando = true;
   bool _procesando = false;
   Solicitud? _solicitud;
   List<NovedadResumen> _novedades = const [];
   String? _error;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _cargar();
+    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   Future<void> _cargar() async {
@@ -62,6 +78,29 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
       setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _cargando = false);
+    }
+  }
+
+  /// Refresco del poll automático: nunca mientras hay una acción propia
+  /// en curso (`_procesando`), y sin tocar `_error` ni prender el
+  /// spinner de pantalla completa — ver doc del mismo patrón en
+  /// MiPedidoActivoScreen/PedidosDisponiblesScreen.
+  Future<void> _cargarSilencioso() async {
+    if (_procesando) return;
+    try {
+      final resultados = await Future.wait([
+        ref.read(obtenerSolicitudUseCaseProvider).execute(widget.solicitudId),
+        ref.read(listarNovedadesSolicitudUseCaseProvider).execute(widget.solicitudId),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _solicitud = resultados[0] as Solicitud;
+        _novedades = resultados[1] as List<NovedadResumen>;
+      });
+    } on ApiException {
+      // silencioso a propósito, ver doc del método
+    } on ApiSinConexionException {
+      // silencioso a propósito, ver doc del método
     }
   }
 

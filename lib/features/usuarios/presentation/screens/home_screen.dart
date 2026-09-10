@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -32,6 +34,14 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  // Sin WebSocket/Supabase Realtime en la App todavía — mismo criterio
+  // que PedidosDisponiblesScreen/MiPedidoActivoScreen/
+  // SolicitudDetalleScreen. La tarjeta de "pedido en curso" (Paciente)
+  // o "pedido activo" (Domiciliario) de Home es lo primero que se ve
+  // al abrir la app — sin esto, quedaba mostrando el paso anterior
+  // hasta salir y volver a entrar.
+  static const _intervaloPoll = Duration(seconds: 15);
+
   Perfil? _perfil;
 
   bool _cargandoPaciente = false;
@@ -45,12 +55,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String? _errorDomiciliario;
 
   String? _modoCargado;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _cargarPerfil();
     WidgetsBinding.instance.addPostFrameCallback((_) => _cargarSegunModo());
+    _timer = Timer.periodic(_intervaloPoll, (_) => _refrescarSilencioso());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  /// Refresco del poll automático — solo re-pide lo que ya está
+  /// cargado para el modo actual, sin prender ningún spinner ni pisar
+  /// `_errorPaciente`/`_errorDomiciliario` (un hiccup de red pasajero
+  /// cada 15s no debe interrumpir lo que ya se ve).
+  Future<void> _refrescarSilencioso() async {
+    final modo = _modoActual();
+    if (modo == 'PACIENTE') {
+      try {
+        final solicitudes = await ref.read(listarSolicitudesUseCaseProvider).execute();
+        if (!mounted) return;
+        final ahora = DateTime.now();
+        const estadosTerminales = {'entregado', 'cancelada', 'borrador'};
+        setState(() {
+          final activas = solicitudes.where((s) => !estadosTerminales.contains(s.estado)).toList();
+          _activas = activas.length;
+          _solicitudActiva = activas.isEmpty ? null : activas.first;
+          _entregadosMes = solicitudes.where((s) {
+            if (s.estado != 'entregado') return false;
+            final fecha = DateTime.tryParse(s.creadoEn)?.toLocal();
+            return fecha != null && fecha.year == ahora.year && fecha.month == ahora.month;
+          }).length;
+        });
+      } on ApiException {
+        // silencioso a propósito, ver doc del método
+      } on ApiSinConexionException {
+        // silencioso a propósito, ver doc del método
+      }
+    } else if (modo == 'DOMICILIARIO' && _estadoRolDomiciliario() == 'habilitado') {
+      try {
+        final pedido = await ref.read(obtenerPedidoActivoUseCaseProvider).execute();
+        if (!mounted) return;
+        setState(() => _pedidoActivo = pedido);
+      } on ApiException {
+        // silencioso a propósito, ver doc del método
+      } on ApiSinConexionException {
+        // silencioso a propósito, ver doc del método
+      }
+    }
   }
 
   Future<void> _cargarPerfil() async {
