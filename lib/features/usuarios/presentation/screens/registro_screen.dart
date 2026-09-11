@@ -191,18 +191,17 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                       icono: Icons.email_outlined,
                       controller: _correoController,
                       keyboardType: TextInputType.emailAddress,
-                      autofillHints: const [AutofillHints.email],
+                      // Sin autofillHints a propósito — ver login_screen.
                       enabled: !_cargando,
                     ),
-                    
+
                     const SizedBox(height: 10),
-                    
+
                     AppTextFieldGlass(
                       label: 'Contraseña',
                       icono: Icons.lock_outline,
                       esPassword: true,
                       controller: _passwordController,
-                      autofillHints: const [AutofillHints.newPassword],
                       enabled: !_cargando,
                       errorText: _errorPassword,
                     ),
@@ -227,7 +226,6 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                       icono: Icons.lock_outline,
                       esPassword: true,
                       controller: _confirmarController,
-                      autofillHints: const [AutofillHints.newPassword],
                       enabled: !_cargando,
                       errorText: _errorConfirmacion,
                     ),

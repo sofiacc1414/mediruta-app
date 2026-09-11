@@ -300,7 +300,7 @@ class _RestablecerContrasenaScreenState
                               icono: Icons.lock_outline,
                               esPassword: true,
                               controller: _nuevaPasswordController,
-                              autofillHints: const [AutofillHints.newPassword],
+                              // Sin autofillHints a propósito — ver login_screen.
                               enabled: !_cargando,
                               errorText: _errorPassword,
                             ),
