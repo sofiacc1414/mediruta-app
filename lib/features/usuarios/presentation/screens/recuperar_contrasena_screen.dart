@@ -238,7 +238,7 @@ class _RecuperarContrasenaScreenState
                                 icono: Icons.email_outlined,
                                 controller: _correoController,
                                 keyboardType: TextInputType.emailAddress,
-                                autofillHints: const [AutofillHints.email],
+                                // Sin autofillHints a propósito — ver login_screen.
                                 enabled: !_cargando,
                               ),
                               

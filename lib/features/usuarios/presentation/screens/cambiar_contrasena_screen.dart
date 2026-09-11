@@ -163,7 +163,6 @@ class _CambiarContrasenaScreenState
                   ocultar: _ocultarNueva,
                   onToggleOcultar: () => setState(() => _ocultarNueva = !_ocultarNueva),
                   enabled: !_cargando,
-                  autofillHints: const [AutofillHints.newPassword],
                   errorText: _errorPassword,
                 ),
                 const SizedBox(height: 16),
@@ -175,7 +174,6 @@ class _CambiarContrasenaScreenState
                   ocultar: _ocultarConfirmacion,
                   onToggleOcultar: () => setState(() => _ocultarConfirmacion = !_ocultarConfirmacion),
                   enabled: !_cargando,
-                  autofillHints: const [AutofillHints.newPassword],
                   errorText: _errorConfirmacion,
                 ),
 

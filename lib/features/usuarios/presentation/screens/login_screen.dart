@@ -290,19 +290,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               icono: Icons.email_outlined,
                               controller: _correoController,
                               keyboardType: TextInputType.emailAddress,
-                              autofillHints: const [AutofillHints.email],
+                              // Sin autofillHints a propósito: Android
+                              // pinta el campo con el color propio del
+                              // autocompletar (Google Password Manager),
+                              // fuera de nuestra paleta y sin forma de
+                              // controlarlo desde la app.
                               enabled: !_cargando,
                             ),
-                            
+
                             const SizedBox(height: 12),
-                            
+
                             // --- Campo Contraseña ---
                             AppTextFieldGlass(
                               label: 'Contraseña',
                               icono: Icons.lock_outline,
                               esPassword: true,
                               controller: _passwordController,
-                              autofillHints: const [AutofillHints.password],
                               enabled: !_cargando,
                             ),
                             
