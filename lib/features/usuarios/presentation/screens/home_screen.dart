@@ -7,7 +7,7 @@ import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
-import '../../../../shared/widgets/diagnostico_conexion_card.dart';
+import '../../../../shared/widgets/indicador_conexion.dart';
 import '../../../solicitudes/domain/entities/pedido_activo.dart';
 import '../../../solicitudes/domain/entities/solicitud_resumen.dart';
 import '../../../solicitudes/presentation/providers/solicitud_providers.dart';
@@ -85,18 +85,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final modo = _modoActual();
     if (modo == 'PACIENTE') {
       try {
-        final solicitudes = await ref.read(listarSolicitudesUseCaseProvider).execute();
+        final solicitudes = await ref
+            .read(listarSolicitudesUseCaseProvider)
+            .execute();
         if (!mounted) return;
         final ahora = DateTime.now();
         const estadosTerminales = {'entregado', 'cancelada', 'borrador'};
         setState(() {
-          final activas = solicitudes.where((s) => !estadosTerminales.contains(s.estado)).toList();
+          final activas = solicitudes
+              .where((s) => !estadosTerminales.contains(s.estado))
+              .toList();
           _activas = activas.length;
           _solicitudActiva = activas.isEmpty ? null : activas.first;
           _entregadosMes = solicitudes.where((s) {
             if (s.estado != 'entregado') return false;
             final fecha = DateTime.tryParse(s.creadoEn)?.toLocal();
-            return fecha != null && fecha.year == ahora.year && fecha.month == ahora.month;
+            return fecha != null &&
+                fecha.year == ahora.year &&
+                fecha.month == ahora.month;
           }).length;
         });
       } on ApiException {
@@ -104,9 +110,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       } on ApiSinConexionException {
         // silencioso a propósito, ver doc del método
       }
-    } else if (modo == 'DOMICILIARIO' && _estadoRolDomiciliario() == 'habilitado') {
+    } else if (modo == 'DOMICILIARIO' &&
+        _estadoRolDomiciliario() == 'habilitado') {
       try {
-        final pedido = await ref.read(obtenerPedidoActivoUseCaseProvider).execute();
+        final pedido = await ref
+            .read(obtenerPedidoActivoUseCaseProvider)
+            .execute();
         if (!mounted) return;
         setState(() => _pedidoActivo = pedido);
       } on ApiException {
@@ -123,15 +132,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!mounted) return;
       setState(() => _perfil = perfil);
     } on ApiException {
-    } on ApiSinConexionException {
-    }
+    } on ApiSinConexionException {}
   }
 
   String? _modoActual() {
     final estado = ref.read(authSessionProvider);
     final usuario = estado is AuthAutenticado ? estado.usuario : null;
     final roles = usuario?.roles ?? const <RolAsignado>[];
-    return ref.read(modoActivoProvider) ?? (roles.isNotEmpty ? roles.first.codigo : null);
+    return ref.read(modoActivoProvider) ??
+        (roles.isNotEmpty ? roles.first.codigo : null);
   }
 
   /// El rol DOMICILIARIO existe apenas se solicita (HU-08), pero recién
@@ -153,7 +162,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _modoCargado = modo;
     if (modo == 'PACIENTE') {
       await _cargarStatsPaciente();
-    } else if (modo == 'DOMICILIARIO' && _estadoRolDomiciliario() == 'habilitado') {
+    } else if (modo == 'DOMICILIARIO' &&
+        _estadoRolDomiciliario() == 'habilitado') {
       await _cargarPedidoActivoDomiciliario();
     }
   }
@@ -164,18 +174,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _errorPaciente = null;
     });
     try {
-      final solicitudes = await ref.read(listarSolicitudesUseCaseProvider).execute();
+      final solicitudes = await ref
+          .read(listarSolicitudesUseCaseProvider)
+          .execute();
       if (!mounted) return;
       final ahora = DateTime.now();
       const estadosTerminales = {'entregado', 'cancelada', 'borrador'};
       setState(() {
-        final activas = solicitudes.where((s) => !estadosTerminales.contains(s.estado)).toList();
+        final activas = solicitudes
+            .where((s) => !estadosTerminales.contains(s.estado))
+            .toList();
         _activas = activas.length;
         _solicitudActiva = activas.isEmpty ? null : activas.first;
         _entregadosMes = solicitudes.where((s) {
           if (s.estado != 'entregado') return false;
           final fecha = DateTime.tryParse(s.creadoEn)?.toLocal();
-          return fecha != null && fecha.year == ahora.year && fecha.month == ahora.month;
+          return fecha != null &&
+              fecha.year == ahora.year &&
+              fecha.month == ahora.month;
         }).length;
       });
     } on ApiException catch (error) {
@@ -193,7 +209,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _errorDomiciliario = null;
     });
     try {
-      final pedido = await ref.read(obtenerPedidoActivoUseCaseProvider).execute();
+      final pedido = await ref
+          .read(obtenerPedidoActivoUseCaseProvider)
+          .execute();
       if (!mounted) return;
       setState(() => _pedidoActivo = pedido);
       _sincronizarDisponibilidadInicial(pedido);
@@ -222,7 +240,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.read(disponibilidadDomiciliarioProvider.notifier).cambiar(true);
   }
 
-  Future<void> _cargarTodo() => Future.wait([_cargarPerfil(), _cargarSegunModo()]);
+  Future<void> _cargarTodo() =>
+      Future.wait([_cargarPerfil(), _cargarSegunModo()]);
 
   String _saludoDelMomento() {
     final hora = DateTime.now().hour;
@@ -236,7 +255,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final estado = ref.watch(authSessionProvider);
     final usuario = estado is AuthAutenticado ? estado.usuario : null;
     final roles = usuario?.roles ?? const <RolAsignado>[];
-    final modo = ref.watch(modoActivoProvider) ?? (roles.isNotEmpty ? roles.first.codigo : null);
+    final modo =
+        ref.watch(modoActivoProvider) ??
+        (roles.isNotEmpty ? roles.first.codigo : null);
     final esPaciente = modo == 'PACIENTE';
     final esDomiciliario = modo == 'DOMICILIARIO';
 
@@ -248,45 +269,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       backgroundColor: Colors.white,
       bottomNavigationBar: const MainBottomBar(),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _cargarTodo,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                children: [
-                  _Encabezado(
-                    saludo: _saludoDelMomento(),
-                    nombre: _perfil?.nombreCompleto ?? usuario?.correo,
-                    fotoUrl: _perfil?.fotoPerfilUrl,
-                    modoEtiqueta: esDomiciliario
-                        ? 'Estás en modo Domiciliario'
-                        : (esPaciente ? 'Estás en modo Paciente' : null),
-                  ),
-                  const SizedBox(height: 12),
-                  // TEMPORAL — ver doc de DiagnosticoConexionCard.
-                  DiagnosticoConexionCard(servicio: ref.watch(eventosSocketServiceProvider)),
-                  const SizedBox(height: 12),
-
-                  // Tarjeta Hero personalizada según el rol
-                  if (esDomiciliario)
-                    const _TarjetaHeroBienvenidaDomiciliario()
-                  else
-                    const _TarjetaHeroBienvenida(
-                      titulo: 'Tu salud en movimiento',
-                      descripcion: 'Recibe tus medicamentos en la puerta de tu casa con MediRuta.',
-                      imagenAsset: 'assets/images/hero_delivery.png',
+        child: Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: _cargarTodo,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
                     ),
-                  const SizedBox(height: 24),
+                    children: [
+                      _Encabezado(
+                        saludo: _saludoDelMomento(),
+                        nombre: _perfil?.nombreCompleto ?? usuario?.correo,
+                        fotoUrl: _perfil?.fotoPerfilUrl,
+                        modoEtiqueta: esDomiciliario
+                            ? 'Estás en modo Domiciliario'
+                            : (esPaciente ? 'Estás en modo Paciente' : null),
+                      ),
+                      const SizedBox(height: 24),
 
-                  if (esPaciente) ..._contenidoPaciente(context),
-                  if (esDomiciliario) ..._contenidoDomiciliario(context),
-                ],
+                      // Tarjeta Hero personalizada según el rol
+                      if (esDomiciliario)
+                        const _TarjetaHeroBienvenidaDomiciliario()
+                      else
+                        const _TarjetaHeroBienvenida(
+                          titulo: 'Tu salud en movimiento',
+                          descripcion:
+                              'Recibe tus medicamentos en la puerta de tu casa con MediRuta.',
+                          imagenAsset: 'assets/images/hero_delivery.png',
+                        ),
+                      const SizedBox(height: 24),
+
+                      if (esPaciente) ..._contenidoPaciente(context),
+                      if (esDomiciliario) ..._contenidoDomiciliario(context),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: IndicadorConexion(
+                servicio: ref.watch(eventosSocketServiceProvider),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -311,7 +344,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         const SizedBox(height: 16),
       ],
       if (_cargandoPaciente)
-        const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+        const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: CircularProgressIndicator(),
+          ),
+        )
       else ...[
         if (solicitud != null) ...[
           _TarjetaHero(
@@ -329,9 +367,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           const SizedBox(height: 16),
         ],
-        
+
         _TarjetaPedirMedicamentos(
-          onTap: () => Navigator.of(context).pushNamed(MisSolicitudesScreen.routeName),
+          onTap: () =>
+              Navigator.of(context).pushNamed(MisSolicitudesScreen.routeName),
         ),
         const SizedBox(height: 16),
       ],
@@ -374,7 +413,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _TarjetaDisponibilidad(
         disponible: disponibilidad.disponible,
         actualizando: disponibilidad.actualizando,
-        onChanged: (valor) => ref.read(disponibilidadDomiciliarioProvider.notifier).cambiar(valor),
+        onChanged: (valor) => ref
+            .read(disponibilidadDomiciliarioProvider.notifier)
+            .cambiar(valor),
       ),
       if (disponibilidad.error != null) ...[
         const SizedBox(height: 12),
@@ -386,13 +427,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         const SizedBox(height: 16),
       ],
       if (_cargandoDomiciliario)
-        const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+        const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: CircularProgressIndicator(),
+          ),
+        )
       else ...[
         // Pedido activo (si existe)
         if (_pedidoActivo != null) ...[
           _TarjetaHero(
             onTap: () async {
-              await Navigator.of(context).pushNamed(MiPedidoActivoScreen.routeName);
+              await Navigator.of(
+                context,
+              ).pushNamed(MiPedidoActivoScreen.routeName);
               _cargarPedidoActivoDomiciliario();
             },
             eyebrow: 'Pedido activo',
@@ -403,12 +451,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(height: 16),
           // Tarjeta "Ver mis pedidos" SIEMPRE debajo del pedido activo
           _TarjetaVerPedidos(
-            onTap: () => Navigator.of(context).pushNamed(HistorialPedidosScreen.routeName),
+            onTap: () => Navigator.of(
+              context,
+            ).pushNamed(HistorialPedidosScreen.routeName),
           ),
         ] else if (disponibilidad.disponible) ...[
           // Si no hay pedido activo y está disponible, mostrar "Ver mis pedidos"
           _TarjetaVerPedidos(
-            onTap: () => Navigator.of(context).pushNamed(HistorialPedidosScreen.routeName),
+            onTap: () => Navigator.of(
+              context,
+            ).pushNamed(HistorialPedidosScreen.routeName),
           ),
         ] else ...[
           // Si no está disponible, mostrar mensaje
@@ -454,7 +506,10 @@ class _Encabezado extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(saludo, style: const TextStyle(color: AppColors.teal, fontSize: 14)),
+                Text(
+                  saludo,
+                  style: const TextStyle(color: AppColors.teal, fontSize: 14),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   nombre ?? 'Sesión activa',
@@ -526,7 +581,11 @@ class _Avatar extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         letra,
-        style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 20),
+        style: const TextStyle(
+          color: AppColors.navy,
+          fontWeight: FontWeight.w700,
+          fontSize: 20,
+        ),
       ),
     );
   }
@@ -569,11 +628,7 @@ class _TarjetaStats extends StatelessWidget {
                   color: Colors.white,
                   border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                 ),
-                child: Icon(
-                  icono,
-                  color: AppColors.navy,
-                  size: 20,
-                ),
+                child: Icon(icono, color: AppColors.navy, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
@@ -590,10 +645,7 @@ class _TarjetaStats extends StatelessWidget {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
       ),
@@ -629,10 +681,7 @@ class _TarjetaHeroBienvenida extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFE3EFFD),
-            Color(0xFFC0D9F5),
-          ],
+          colors: [Color(0xFFE3EFFD), Color(0xFFC0D9F5)],
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -647,7 +696,10 @@ class _TarjetaHeroBienvenida extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.navy.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -697,7 +749,11 @@ class _TarjetaHeroBienvenida extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.skyBlue, width: 2),
                   ),
-                  child: const Icon(Icons.local_shipping, color: AppColors.navy, size: 36),
+                  child: const Icon(
+                    Icons.local_shipping,
+                    color: AppColors.navy,
+                    size: 36,
+                  ),
                 ),
               ),
             ),
@@ -725,10 +781,7 @@ class _TarjetaHeroBienvenidaDomiciliario extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFE3EFFD),
-            Color(0xFFC0D9F5),
-          ],
+          colors: [Color(0xFFE3EFFD), Color(0xFFC0D9F5)],
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -743,7 +796,10 @@ class _TarjetaHeroBienvenidaDomiciliario extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.navy.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -793,7 +849,11 @@ class _TarjetaHeroBienvenidaDomiciliario extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.skyBlue, width: 2),
                   ),
-                  child: const Icon(Icons.delivery_dining, color: AppColors.navy, size: 36),
+                  child: const Icon(
+                    Icons.delivery_dining,
+                    color: AppColors.navy,
+                    size: 36,
+                  ),
                 ),
               ),
             ),
@@ -806,9 +866,7 @@ class _TarjetaHeroBienvenidaDomiciliario extends StatelessWidget {
 
 // TARJETA PARA PEDIR MEDICAMENTOS (PACIENTE)
 class _TarjetaPedirMedicamentos extends StatelessWidget {
-  const _TarjetaPedirMedicamentos({
-    required this.onTap,
-  });
+  const _TarjetaPedirMedicamentos({required this.onTap});
 
   final VoidCallback onTap;
 
@@ -860,11 +918,7 @@ class _TarjetaPedirMedicamentos extends StatelessWidget {
           const Text(
             'Realiza una nueva solicitud y te la llevamos a tu puerta.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey,
-              height: 1.4,
-            ),
+            style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.4),
           ),
           const SizedBox(height: 16),
           InkWell(
@@ -894,9 +948,7 @@ class _TarjetaPedirMedicamentos extends StatelessWidget {
 
 // TARJETA PARA VER PEDIDOS (DOMICILIARIO)
 class _TarjetaVerPedidos extends StatelessWidget {
-  const _TarjetaVerPedidos({
-    required this.onTap,
-  });
+  const _TarjetaVerPedidos({required this.onTap});
 
   final VoidCallback onTap;
 
@@ -948,11 +1000,7 @@ class _TarjetaVerPedidos extends StatelessWidget {
           const Text(
             'Visualiza tus pedidos pendientes por entregar.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey,
-              height: 1.4,
-            ),
+            style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.4),
           ),
           const SizedBox(height: 16),
           InkWell(
@@ -1009,10 +1057,7 @@ class _TarjetaHero extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFF5FAFF),
-              Color(0xFFEAF3FC),
-            ],
+            colors: [Color(0xFFF5FAFF), Color(0xFFEAF3FC)],
           ),
           border: Border.all(color: AppColors.skyBlue.withValues(alpha: 0.3)),
         ),
@@ -1032,7 +1077,7 @@ class _TarjetaHero extends StatelessWidget {
                     ),
                   ),
                 ),
-                trailing,
+                Flexible(child: trailing),
               ],
             ),
             const SizedBox(height: 10),
@@ -1055,7 +1100,11 @@ class _TarjetaHero extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Icon(Icons.arrow_forward, color: AppColors.navy, size: 16),
+                const Icon(
+                  Icons.arrow_forward,
+                  color: AppColors.navy,
+                  size: 16,
+                ),
               ],
             ),
           ],
@@ -1090,10 +1139,7 @@ class _TarjetaDisponibilidad extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFF5FAFF),
-              Color(0xFFEAF3FC),
-            ],
+            colors: [Color(0xFFF5FAFF), Color(0xFFEAF3FC)],
           ),
           border: Border.all(color: AppColors.skyBlue.withValues(alpha: 0.3)),
         ),
@@ -1104,8 +1150,8 @@ class _TarjetaDisponibilidad extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: disponible 
-                    ? AppColors.teal.withValues(alpha: 0.15) 
+                color: disponible
+                    ? AppColors.teal.withValues(alpha: 0.15)
                     : AppColors.skyBlue.withValues(alpha: 0.3),
               ),
               child: Icon(
@@ -1120,7 +1166,9 @@ class _TarjetaDisponibilidad extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    disponible ? 'Estás en línea' : 'Disponible para recibir pedidos',
+                    disponible
+                        ? 'Estás en línea'
+                        : 'Disponible para recibir pedidos',
                     style: const TextStyle(
                       color: AppColors.navy,
                       fontWeight: FontWeight.w700,
@@ -1129,8 +1177,8 @@ class _TarjetaDisponibilidad extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    disponible 
-                        ? 'Vas a aparecer en el pool de pedidos.' 
+                    disponible
+                        ? 'Vas a aparecer en el pool de pedidos.'
                         : 'Estás fuera de línea.',
                     style: TextStyle(
                       color: AppColors.navy.withValues(alpha: 0.6),
@@ -1154,7 +1202,9 @@ class _TarjetaDisponibilidad extends StatelessWidget {
                     onChanged: onChanged,
                     activeColor: AppColors.teal,
                     activeTrackColor: AppColors.teal.withValues(alpha: 0.4),
-                    inactiveTrackColor: AppColors.skyBlue.withValues(alpha: 0.3),
+                    inactiveTrackColor: AppColors.skyBlue.withValues(
+                      alpha: 0.3,
+                    ),
                   ),
           ],
         ),

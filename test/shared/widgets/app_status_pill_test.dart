@@ -38,4 +38,39 @@ void main() {
     await _pump(tester, 'pendiente_revision');
     expect(find.text('Pedido generado'), findsOneWidget);
   });
+
+  testWidgets(
+    'con texto a 1.3x (modo adulto mayor) y poco ancho, no desborda su Row — el label trunca',
+    (tester) async {
+      // Reproduce el layout real que rompía: un ícono/avatar fijo +
+      // un Expanded con otro texto + el pill sin envolver, en un
+      // ancho angosto — antes de envolverlo en `Flexible` (y del
+      // `Text` interno en otro `Flexible` con ellipsis), esto tiraba
+      // un RenderFlex overflow ("Buscando domiciliario" a 1.3x no
+      // entraba).
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
+            child: Scaffold(
+              body: SizedBox(
+                width: 220,
+                child: Row(
+                  children: [
+                    const SizedBox(width: 52, height: 52),
+                    const SizedBox(width: 14),
+                    const Expanded(child: Text('Farmacia Central')),
+                    const SizedBox(width: 8),
+                    Flexible(child: AppStatusPill(estado: 'en_asignacion')),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

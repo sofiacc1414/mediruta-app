@@ -450,7 +450,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                         ),
                       ),
                     ),
-                    AppStatusPill(estado: solicitud.estado),
+                    Flexible(child: AppStatusPill(estado: solicitud.estado)),
                   ],
                 ),
               ),

@@ -67,9 +67,9 @@ class AppOrderCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             if (trailing != null)
-              trailing!
+              Flexible(child: trailing!)
             else if (estado != null)
-              AppStatusPill(estado: estado!)
+              Flexible(child: AppStatusPill(estado: estado!))
             else
               const Icon(Icons.chevron_right, color: AppColors.navy),
           ],

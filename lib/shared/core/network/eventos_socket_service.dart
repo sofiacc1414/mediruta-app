@@ -20,10 +20,11 @@ String _detalleCompletoDe(Object error) {
   return base;
 }
 
-/// Fase de la conexión — ver [EventosSocketService.diagnostico].
-/// Temporal, para diagnosticar en vivo por qué el WebSocket no conecta
-/// en algunas redes (ver `DiagnosticoConexionCard`) — no es algo que
-/// vaya a quedar como feature permanente.
+/// Fase de la conexión — ver [EventosSocketService.diagnostico], que
+/// alimenta el punto de color de `IndicadorConexion` en Home (antes,
+/// mientras se investigaba el bug del transporte de polling, una
+/// tarjeta completa con el detalle técnico — ya no hace falta con la
+/// causa encontrada y corregida).
 enum FaseSocket { desconectado, conectando, conectado, error }
 
 class DiagnosticoSocket {
@@ -61,10 +62,8 @@ class EventosSocketService {
   socket_io.Socket? _socket;
   final _controller = StreamController<void>.broadcast();
 
-  /// Estado de la conexión en vivo — temporal, para diagnosticar por
-  /// qué el socket no conecta en ciertas redes (ver
-  /// `DiagnosticoConexionCard`, mostrada en Home mientras se investiga
-  /// esto). `ValueNotifier` en vez de `Stream` porque a la UI le
+  /// Estado de la conexión en vivo — alimenta `IndicadorConexion` en
+  /// Home. `ValueNotifier` en vez de `Stream` porque a la UI le
   /// interesa el último valor, no solo los cambios.
   final ValueNotifier<DiagnosticoSocket> diagnostico = ValueNotifier(
     const DiagnosticoSocket(fase: FaseSocket.desconectado),

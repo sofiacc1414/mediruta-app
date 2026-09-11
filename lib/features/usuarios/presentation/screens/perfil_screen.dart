@@ -1829,11 +1829,13 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
           ),
         );
       }
-      // No se espera esto para reflejar la selección (ver comentario
-      // en el campo `_seleccionadoId`) — solo mantiene sincronizado
-      // el resto de la pantalla (`_PerfilScreenState._perfil`) por si
-      // se necesita en otro lado.
-      unawaited(widget.onCambio());
+      // Se espera esto (a propósito, a diferencia de la selección
+      // visual de acá arriba, que ya se actualizó sin esperar nada) —
+      // si no, `_PerfilScreenState._perfil` podía seguir con el nivel
+      // viejo si el usuario cerraba este panel apenas elegía, y la
+      // próxima vez que lo abriera arrancaba de nuevo con la selección
+      // vieja (`nivelActualId` sale de ese `_perfil`).
+      await widget.onCambio();
     } on ApiException catch (error) {
       setState(() => _error = error.message);
     } on ApiSinConexionException catch (error) {

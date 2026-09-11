@@ -147,7 +147,7 @@ class _PedidoCompletadoScreenState extends ConsumerState<PedidoCompletadoScreen>
                     ),
                   ),
                 ),
-                AppStatusPill(estado: pedido.estado),
+                Flexible(child: AppStatusPill(estado: pedido.estado)),
               ],
             ),
             const SizedBox(height: 12),

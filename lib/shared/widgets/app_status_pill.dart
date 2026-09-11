@@ -41,12 +41,21 @@ class AppStatusPill extends StatelessWidget {
             Icon(estilo.icono, size: 14, color: estilo.texto),
             const SizedBox(width: 4),
           ],
-          Text(
-            _etiquetas[estado] ?? estado,
-            style: TextStyle(
-              color: estilo.texto,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+          // `Flexible` + `ellipsis` en vez de un `Text` suelto: en modo
+          // adulto mayor (texto a 1.3x) el pill crecía más de lo que
+          // le daban las pantallas que lo usan junto a otro contenido
+          // en un `Row` (ver `Flexible` en cada punto de uso) — sin
+          // esto, ese Row entero desbordaba (la franja amarilla/negra
+          // de Flutter) en vez de truncar el texto del pill.
+          Flexible(
+            child: Text(
+              _etiquetas[estado] ?? estado,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: estilo.texto,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

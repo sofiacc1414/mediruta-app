@@ -413,7 +413,7 @@ class _TarjetaSolicitud extends StatelessWidget {
             // una solicitud cancelada seguía mostrando "Asignación
             // pendiente". `AppStatusPill` ya tiene el mapeo completo y
             // correcto de todos los estados (mismo que usa el detalle).
-            AppStatusPill(estado: estado),
+            Flexible(child: AppStatusPill(estado: estado)),
           ],
         ),
       ),
