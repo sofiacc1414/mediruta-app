@@ -54,10 +54,7 @@ class _RestablecerContrasenaScreenState
       vsync: this,
     );
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.04).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
     _pulseController.forward();
     _pulseController.repeat(reverse: true);
@@ -66,21 +63,14 @@ class _RestablecerContrasenaScreenState
       duration: const Duration(milliseconds: 700),
       vsync: this,
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: Curves.easeOut,
-      ),
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.05),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+          CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic),
+        );
     _fadeController.forward();
 
     _burbujaController = AnimationController(
@@ -88,10 +78,7 @@ class _RestablecerContrasenaScreenState
       vsync: this,
     );
     _burbujaAnimation = Tween<double>(begin: 0.0, end: 2 * 3.14159).animate(
-      CurvedAnimation(
-        parent: _burbujaController,
-        curve: Curves.linear,
-      ),
+      CurvedAnimation(parent: _burbujaController, curve: Curves.linear),
     );
     _burbujaController.forward();
     _burbujaController.repeat();
@@ -101,10 +88,7 @@ class _RestablecerContrasenaScreenState
       vsync: this,
     );
     _iconAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(
-        parent: _iconController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _iconController, curve: Curves.easeInOut),
     );
     _iconController.forward();
     _iconController.repeat(reverse: true);
@@ -213,9 +197,9 @@ class _RestablecerContrasenaScreenState
                                 ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 14),
-                            
+
                             // --- Título ---
                             Text(
                               'Restablecer contraseña',
@@ -227,14 +211,14 @@ class _RestablecerContrasenaScreenState
                                 letterSpacing: -0.3,
                               ),
                             ),
-                            
+
                             const SizedBox(height: 16),
-                            
+
                             // --- ICONO PREMIUM ---
                             _buildIconoPremium(),
-                            
+
                             const SizedBox(height: 12),
-                            
+
                             // --- Mensaje de correo ---
                             Container(
                               width: double.infinity,
@@ -274,15 +258,15 @@ class _RestablecerContrasenaScreenState
                                 ],
                               ),
                             ),
-                            
+
                             const SizedBox(height: 16),
-                            
+
                             // --- Error Banner ---
                             if (_error != null) ...[
                               AppFormNotice(mensaje: _error!),
                               const SizedBox(height: 12),
                             ],
-                            
+
                             // --- Campo Código ---
                             AppTextFieldGlass(
                               label: 'Código de 6 dígitos',
@@ -291,22 +275,22 @@ class _RestablecerContrasenaScreenState
                               keyboardType: TextInputType.number,
                               enabled: !_cargando,
                             ),
-                            
+
                             const SizedBox(height: 12),
-                            
+
                             // --- Campo Nueva Contraseña ---
                             AppTextFieldGlass(
                               label: 'Nueva contraseña',
                               icono: Icons.lock_outline,
                               esPassword: true,
                               controller: _nuevaPasswordController,
-                              // Sin autofillHints a propósito — ver login_screen.
+                              autofillHints: const [AutofillHints.newPassword],
                               enabled: !_cargando,
                               errorText: _errorPassword,
                             ),
-                            
+
                             const SizedBox(height: 4),
-                            
+
                             Padding(
                               padding: const EdgeInsets.only(left: 14),
                               child: Text(
@@ -317,14 +301,14 @@ class _RestablecerContrasenaScreenState
                                 ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 18),
-                            
+
                             // --- Botón Restablecer ---
                             _buildBotonRestablecer(),
-                            
+
                             const SizedBox(height: 14),
-                            
+
                             // --- Link Volver ---
                             Center(
                               child: TextButton(
@@ -332,9 +316,12 @@ class _RestablecerContrasenaScreenState
                                     ? null
                                     : () => Navigator.of(context).pop(),
                                 style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 2,
+                                  ),
                                   minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
                                 child: RichText(
                                   text: TextSpan(
@@ -358,7 +345,7 @@ class _RestablecerContrasenaScreenState
                                 ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 2),
                           ],
                         ),
@@ -508,7 +495,7 @@ class _RestablecerContrasenaScreenState
         final double value = _burbujaAnimation.value;
         final sinVal = math.sin(value);
         final cosVal = math.cos(value);
-        
+
         return Stack(
           children: [
             Positioned(

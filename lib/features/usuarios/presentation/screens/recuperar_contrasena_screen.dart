@@ -50,10 +50,7 @@ class _RecuperarContrasenaScreenState
       vsync: this,
     );
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.04).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
     _pulseController.forward();
     _pulseController.repeat(reverse: true);
@@ -62,21 +59,14 @@ class _RecuperarContrasenaScreenState
       duration: const Duration(milliseconds: 700),
       vsync: this,
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: Curves.easeOut,
-      ),
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.05),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+          CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic),
+        );
     _fadeController.forward();
 
     _burbujaController = AnimationController(
@@ -84,10 +74,7 @@ class _RecuperarContrasenaScreenState
       vsync: this,
     );
     _burbujaAnimation = Tween<double>(begin: 0.0, end: 2 * 3.14159).animate(
-      CurvedAnimation(
-        parent: _burbujaController,
-        curve: Curves.linear,
-      ),
+      CurvedAnimation(parent: _burbujaController, curve: Curves.linear),
     );
     _burbujaController.forward();
     _burbujaController.repeat();
@@ -98,10 +85,7 @@ class _RecuperarContrasenaScreenState
       vsync: this,
     );
     _iconAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(
-        parent: _iconController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _iconController, curve: Curves.easeInOut),
     );
     _iconController.forward();
     _iconController.repeat(reverse: true);
@@ -194,9 +178,9 @@ class _RecuperarContrasenaScreenState
                                 ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 14),
-                            
+
                             // --- Título ---
                             Text(
                               'Recuperar contraseña',
@@ -208,29 +192,29 @@ class _RecuperarContrasenaScreenState
                                 letterSpacing: -0.3,
                               ),
                             ),
-                            
+
                             const SizedBox(height: 16),
-                            
+
                             // --- ICONO PREMIUM CON ANIMACIÓN ---
                             _buildIconoPremium(),
-                            
+
                             const SizedBox(height: 16),
-                            
+
                             // --- Mensaje de estado ---
                             if (_solicitudEnviada) ...[
                               _buildMensajeExito(),
                             ] else ...[
                               _buildMensajeInicial(),
                             ],
-                            
+
                             const SizedBox(height: 16),
-                            
+
                             // --- Error Banner ---
                             if (_error != null) ...[
                               AppFormNotice(mensaje: _error!),
                               const SizedBox(height: 12),
                             ],
-                            
+
                             // --- Campo Correo ---
                             if (!_solicitudEnviada) ...[
                               AppTextFieldGlass(
@@ -238,21 +222,19 @@ class _RecuperarContrasenaScreenState
                                 icono: Icons.email_outlined,
                                 controller: _correoController,
                                 keyboardType: TextInputType.emailAddress,
-                                // Sin autofillHints a propósito — ver login_screen.
+                                autofillHints: const [AutofillHints.email],
                                 enabled: !_cargando,
                               ),
-                              
+
                               const SizedBox(height: 16),
-                              
+
                               _buildBotonEnviar(),
                             ],
-                            
-                            if (_solicitudEnviada) ...[
-                              _buildBotonCodigo(),
-                            ],
-                            
+
+                            if (_solicitudEnviada) ...[_buildBotonCodigo()],
+
                             const SizedBox(height: 14),
-                            
+
                             // --- Link Volver ---
                             Center(
                               child: TextButton(
@@ -260,9 +242,12 @@ class _RecuperarContrasenaScreenState
                                     ? null
                                     : () => Navigator.of(context).pop(),
                                 style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 2,
+                                  ),
                                   minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
                                 child: RichText(
                                   text: TextSpan(
@@ -286,7 +271,7 @@ class _RecuperarContrasenaScreenState
                                 ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 2),
                           ],
                         ),
@@ -378,10 +363,7 @@ class _RecuperarContrasenaScreenState
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.teal.withOpacity(0.1),
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.teal.withOpacity(0.1), width: 1),
         boxShadow: [
           BoxShadow(
             color: AppColors.teal.withOpacity(0.04),
@@ -392,11 +374,7 @@ class _RecuperarContrasenaScreenState
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.check_circle_rounded,
-            color: AppColors.teal,
-            size: 44,
-          ),
+          Icon(Icons.check_circle_rounded, color: AppColors.teal, size: 44),
           const SizedBox(height: 8),
           Text(
             '¡Correo enviado!',
@@ -520,10 +498,7 @@ class _RecuperarContrasenaScreenState
               gradient: LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
-                colors: [
-                  AppColors.teal,
-                  AppColors.teal.withOpacity(0.85),
-                ],
+                colors: [AppColors.teal, AppColors.teal.withOpacity(0.85)],
                 stops: const [0.0, 1.0],
               ),
               borderRadius: BorderRadius.circular(30),
@@ -592,7 +567,7 @@ class _RecuperarContrasenaScreenState
         final double value = _burbujaAnimation.value;
         final sinVal = math.sin(value);
         final cosVal = math.cos(value);
-        
+
         return Stack(
           children: [
             Positioned(

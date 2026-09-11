@@ -43,7 +43,8 @@ class _CambiarContrasenaScreenState
     final errorPassword = PoliticaContrasena.validar(
       _nuevaPasswordController.text,
     );
-    final noCoincide = _nuevaPasswordController.text != _confirmarPasswordController.text;
+    final noCoincide =
+        _nuevaPasswordController.text != _confirmarPasswordController.text;
     setState(() {
       _errorPassword = errorPassword;
       _errorConfirmacion = noCoincide ? 'Las contraseñas no coinciden.' : null;
@@ -65,11 +66,16 @@ class _CambiarContrasenaScreenState
         SnackBar(
           content: const Text(
             'Contraseña actualizada.',
-            style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: AppColors.navy,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           backgroundColor: Colors.white,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           elevation: 4,
         ),
       );
@@ -104,7 +110,11 @@ class _CambiarContrasenaScreenState
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.navy,
+            size: 20,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -151,7 +161,8 @@ class _CambiarContrasenaScreenState
                   icono: Icons.lock_outline,
                   controller: _passwordActualController,
                   ocultar: _ocultarActual,
-                  onToggleOcultar: () => setState(() => _ocultarActual = !_ocultarActual),
+                  onToggleOcultar: () =>
+                      setState(() => _ocultarActual = !_ocultarActual),
                   enabled: !_cargando,
                 ),
                 const SizedBox(height: 16),
@@ -161,8 +172,10 @@ class _CambiarContrasenaScreenState
                   icono: Icons.enhanced_encryption_outlined,
                   controller: _nuevaPasswordController,
                   ocultar: _ocultarNueva,
-                  onToggleOcultar: () => setState(() => _ocultarNueva = !_ocultarNueva),
+                  onToggleOcultar: () =>
+                      setState(() => _ocultarNueva = !_ocultarNueva),
                   enabled: !_cargando,
+                  autofillHints: const [AutofillHints.newPassword],
                   errorText: _errorPassword,
                 ),
                 const SizedBox(height: 16),
@@ -172,8 +185,11 @@ class _CambiarContrasenaScreenState
                   icono: Icons.enhanced_encryption_outlined,
                   controller: _confirmarPasswordController,
                   ocultar: _ocultarConfirmacion,
-                  onToggleOcultar: () => setState(() => _ocultarConfirmacion = !_ocultarConfirmacion),
+                  onToggleOcultar: () => setState(
+                    () => _ocultarConfirmacion = !_ocultarConfirmacion,
+                  ),
                   enabled: !_cargando,
+                  autofillHints: const [AutofillHints.newPassword],
                   errorText: _errorConfirmacion,
                 ),
 
@@ -185,7 +201,9 @@ class _CambiarContrasenaScreenState
                   child: ElevatedButton(
                     onPressed: _cargando ? null : _cambiar,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.skyBlue.withValues(alpha: 0.3), // Azul muy claro difuminado
+                      backgroundColor: AppColors.skyBlue.withValues(
+                        alpha: 0.3,
+                      ), // Azul muy claro difuminado
                       foregroundColor: AppColors.navy, // Letras azul oscuro
                       disabledBackgroundColor: Colors.grey.shade200,
                       shape: RoundedRectangleBorder(
@@ -258,10 +276,7 @@ class _CampoContrasena extends StatelessWidget {
         obscureText: ocultar,
         enabled: enabled,
         autofillHints: autofillHints,
-        style: const TextStyle(
-          fontSize: 15,
-          color: AppColors.navy,
-        ),
+        style: const TextStyle(fontSize: 15, color: AppColors.navy),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(
@@ -279,14 +294,19 @@ class _CampoContrasena extends StatelessWidget {
           suffixIcon: IconButton(
             onPressed: onToggleOcultar,
             icon: Icon(
-              ocultar ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              ocultar
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
               color: Colors.grey,
               size: 20,
             ),
           ),
           errorText: errorText,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.15)),

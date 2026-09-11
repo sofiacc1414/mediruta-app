@@ -47,10 +47,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
       vsync: this,
     );
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
     _pulseController.forward();
     _pulseController.repeat(reverse: true);
@@ -68,7 +65,9 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
   Future<void> _registrar() async {
     final errorPassword = PoliticaContrasena.validar(_passwordController.text);
     final coinciden = _confirmarController.text == _passwordController.text;
-    final errorConfirmacion = coinciden ? null : 'Las contraseñas no coinciden.';
+    final errorConfirmacion = coinciden
+        ? null
+        : 'Las contraseñas no coinciden.';
     setState(() {
       _errorPassword = errorPassword;
       _errorConfirmacion = errorConfirmacion;
@@ -86,7 +85,9 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
             correo: correo,
             password: password,
             tipoRegistro: _tipoRegistro,
-            altaPaciente: _tipoRegistro == 'DOMICILIARIO' ? _altaPaciente : null,
+            altaPaciente: _tipoRegistro == 'DOMICILIARIO'
+                ? _altaPaciente
+                : null,
           );
 
       final usuario = await ref
@@ -95,7 +96,9 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
       if (!mounted) return;
       ref.read(authSessionProvider.notifier).sesionIniciada(usuario);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('¡Registro exitoso! Completá tu perfil para empezar.')),
+        const SnackBar(
+          content: Text('¡Registro exitoso! Completá tu perfil para empezar.'),
+        ),
       );
       Navigator.of(context).pushNamedAndRemoveUntil('/perfil', (_) => false);
     } on ApiException catch (error) {
@@ -150,9 +153,9 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                         filterQuality: FilterQuality.high,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 10),
-                    
+
                     // --- Título COMPACTO ---
                     Text(
                       'Crear cuenta',
@@ -164,9 +167,9 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                         letterSpacing: -0.3,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 2),
-                    
+
                     Text(
                       'Únete a MediRuta',
                       textAlign: TextAlign.center,
@@ -176,22 +179,22 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                         fontWeight: FontWeight.w400,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 14),
-                    
+
                     // --- Error ---
                     if (_error != null) ...[
                       AppFormNotice(mensaje: _error!),
                       const SizedBox(height: 10),
                     ],
-                    
+
                     // --- Campos BEIGE FORTALECIDOS ---
                     AppTextFieldGlass(
                       label: 'Correo electrónico',
                       icono: Icons.email_outlined,
                       controller: _correoController,
                       keyboardType: TextInputType.emailAddress,
-                      // Sin autofillHints a propósito — ver login_screen.
+                      autofillHints: const [AutofillHints.email],
                       enabled: !_cargando,
                     ),
 
@@ -202,12 +205,13 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                       icono: Icons.lock_outline,
                       esPassword: true,
                       controller: _passwordController,
+                      autofillHints: const [AutofillHints.newPassword],
                       enabled: !_cargando,
                       errorText: _errorPassword,
                     ),
-                    
+
                     const SizedBox(height: 2),
-                    
+
                     Padding(
                       padding: const EdgeInsets.only(left: 14),
                       child: Text(
@@ -218,23 +222,24 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 10),
-                    
+
                     AppTextFieldGlass(
                       label: 'Confirmar contraseña',
                       icono: Icons.lock_outline,
                       esPassword: true,
                       controller: _confirmarController,
+                      autofillHints: const [AutofillHints.newPassword],
                       enabled: !_cargando,
                       errorText: _errorConfirmacion,
                     ),
-                    
+
                     const SizedBox(height: 14),
-                    
+
                     // --- Selector de Rol ---
                     _buildRolSelector(),
-                    
+
                     // --- Checkboxes ---
                     if (_tipoRegistro == 'DOMICILIARIO') ...[
                       const SizedBox(height: 4),
@@ -250,9 +255,9 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                         ),
                       ),
                     ],
-                    
+
                     const SizedBox(height: 4),
-                    
+
                     AppCheckboxRow(
                       valor: _aceptaTerminos,
                       onChanged: (v) => setState(() => _aceptaTerminos = v),
@@ -264,18 +269,20 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 14),
-                    
+
                     // --- Botón ---
                     _buildBotonPremium(),
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     // --- Link ---
                     Center(
                       child: TextButton(
-                        onPressed: _cargando ? null : () => Navigator.of(context).pop(),
+                        onPressed: _cargando
+                            ? null
+                            : () => Navigator.of(context).pop(),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 2),
                           minimumSize: Size.zero,
@@ -291,7 +298,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 2),
                   ],
                 ),
@@ -363,7 +370,11 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
               gradient: LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
-                colors: [AppColors.navy, const Color(0xFF3D5A73), AppColors.navy.withOpacity(0.9)],
+                colors: [
+                  AppColors.navy,
+                  const Color(0xFF3D5A73),
+                  AppColors.navy.withOpacity(0.9),
+                ],
                 stops: const [0.0, 0.5, 1.0],
               ),
               borderRadius: BorderRadius.circular(30),
@@ -468,10 +479,7 @@ class _RolCardPremiumState extends State<_RolCardPremium>
       vsync: this,
     );
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(
-        parent: _scaleController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
     );
   }
 
@@ -495,10 +503,13 @@ class _RolCardPremiumState extends State<_RolCardPremium>
             return Transform.scale(
               scale: _scaleAnimation.value,
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 4,
+                ),
                 decoration: BoxDecoration(
-                  gradient: widget.isSelected 
-                      ? widget.gradient 
+                  gradient: widget.isSelected
+                      ? widget.gradient
                       : LinearGradient(
                           colors: [
                             AppColors.white.withOpacity(0.5),
@@ -507,8 +518,8 @@ class _RolCardPremiumState extends State<_RolCardPremium>
                         ),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: widget.isSelected 
-                        ? widget.color 
+                    color: widget.isSelected
+                        ? widget.color
                         : AppColors.navy.withOpacity(0.06),
                     width: widget.isSelected ? 2 : 1,
                   ),
@@ -533,14 +544,16 @@ class _RolCardPremiumState extends State<_RolCardPremium>
                     Container(
                       padding: const EdgeInsets.all(5),
                       decoration: BoxDecoration(
-                        color: widget.isSelected 
+                        color: widget.isSelected
                             ? AppColors.white.withOpacity(0.2)
                             : widget.color.withOpacity(0.06),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         widget.icon,
-                        color: widget.isSelected ? AppColors.white : widget.color,
+                        color: widget.isSelected
+                            ? AppColors.white
+                            : widget.color,
                         size: 20,
                       ),
                     ),
@@ -549,9 +562,13 @@ class _RolCardPremiumState extends State<_RolCardPremium>
                       widget.title,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
-                        color: widget.isSelected ? AppColors.white : AppColors.navy,
+                        color: widget.isSelected
+                            ? AppColors.white
+                            : AppColors.navy,
                         fontSize: 12,
-                        fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w600,
+                        fontWeight: widget.isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 1),
@@ -559,7 +576,7 @@ class _RolCardPremiumState extends State<_RolCardPremium>
                       widget.subtitle,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
-                        color: widget.isSelected 
+                        color: widget.isSelected
                             ? AppColors.white.withOpacity(0.85)
                             : AppColors.navy.withOpacity(0.4),
                         fontSize: 8.5,

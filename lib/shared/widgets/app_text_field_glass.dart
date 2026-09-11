@@ -73,7 +73,12 @@ class _AppTextFieldGlassState extends State<AppTextFieldGlass>
           height: 52,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: hasError ? AppColors.skyBlue : const Color(0xFFE8DDD0),
+            // Antes un tostado hardcodeado (0xFFE8DDD0) que no es
+            // ninguno de los 5 colores oficiales — se veía "naranja"
+            // contra el resto de la pantalla. AppColors.beige es el
+            // mismo fill que ya usa AppTextField (el otro campo de
+            // texto reutilizable), así quedan consistentes entre sí.
+            color: hasError ? AppColors.skyBlue : AppColors.beige,
             borderRadius: BorderRadius.circular(30),
             boxShadow: [
               BoxShadow(

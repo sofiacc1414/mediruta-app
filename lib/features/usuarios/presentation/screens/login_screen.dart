@@ -47,10 +47,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       vsync: this,
     );
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.04).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
     _pulseController.forward();
     _pulseController.repeat(reverse: true);
@@ -59,21 +56,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       duration: const Duration(milliseconds: 700),
       vsync: this,
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: Curves.easeOut,
-      ),
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.05),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+          CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic),
+        );
     _fadeController.forward();
 
     _burbujaController = AnimationController(
@@ -81,10 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       vsync: this,
     );
     _burbujaAnimation = Tween<double>(begin: 0.0, end: 2 * 3.14159).animate(
-      CurvedAnimation(
-        parent: _burbujaController,
-        curve: Curves.linear,
-      ),
+      CurvedAnimation(parent: _burbujaController, curve: Curves.linear),
     );
     _burbujaController.forward();
     _burbujaController.repeat();
@@ -147,7 +134,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Cuenta desactivada', style: TextStyle(color: AppColors.navy)),
+        title: const Text(
+          'Cuenta desactivada',
+          style: TextStyle(color: AppColors.navy),
+        ),
         content: const Text(
           'Esta cuenta está desactivada. ¿Querés reactivarla? '
           'Vas a poder revisar y actualizar tus datos de perfil apenas entres.',
@@ -155,11 +145,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Ahora no', style: TextStyle(color: AppColors.navy)),
+            child: const Text(
+              'Ahora no',
+              style: TextStyle(color: AppColors.navy),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Reactivar cuenta', style: TextStyle(color: AppColors.teal)),
+            child: const Text(
+              'Reactivar cuenta',
+              style: TextStyle(color: AppColors.teal),
+            ),
           ),
         ],
       ),
@@ -179,7 +175,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           );
       if (!mounted) return;
       ref.read(authSessionProvider.notifier).sesionIniciada(usuario);
-      Navigator.of(context).pushNamedAndRemoveUntil(PerfilScreen.routeName, (_) => false);
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(PerfilScreen.routeName, (_) => false);
     } on ApiException catch (error) {
       _passwordController.clear();
       setState(() => _error = error.message);
@@ -211,7 +209,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           children: [
             // --- Burbujas Animadas ---
             _buildBurbujas(),
-            
+
             // --- Contenido Principal ---
             SafeArea(
               child: Center(
@@ -249,9 +247,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 14),
-                            
+
                             // --- Título ---
                             Text(
                               '¡Bienvenido de nuevo!',
@@ -263,9 +261,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 letterSpacing: -0.3,
                               ),
                             ),
-                            
+
                             const SizedBox(height: 4),
-                            
+
                             Text(
                               'Accede para continuar cuidando tu salud.',
                               textAlign: TextAlign.center,
@@ -275,26 +273,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 fontWeight: FontWeight.w400,
                               ),
                             ),
-                            
+
                             const SizedBox(height: 20),
-                            
+
                             // --- Error Banner ---
                             if (_error != null) ...[
                               AppFormNotice(mensaje: _error!),
                               const SizedBox(height: 12),
                             ],
-                            
+
                             // --- Campo Correo ---
                             AppTextFieldGlass(
                               label: 'Correo electrónico',
                               icono: Icons.email_outlined,
                               controller: _correoController,
                               keyboardType: TextInputType.emailAddress,
-                              // Sin autofillHints a propósito: Android
-                              // pinta el campo con el color propio del
-                              // autocompletar (Google Password Manager),
-                              // fuera de nuestra paleta y sin forma de
-                              // controlarlo desde la app.
+                              autofillHints: const [AutofillHints.email],
                               enabled: !_cargando,
                             ),
 
@@ -306,22 +300,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               icono: Icons.lock_outline,
                               esPassword: true,
                               controller: _passwordController,
+                              autofillHints: const [AutofillHints.password],
                               enabled: !_cargando,
                             ),
-                            
+
                             const SizedBox(height: 8),
-                            
+
                             // --- Link Olvidaste contraseña (CENTRADO) ---
                             Center(
                               child: TextButton(
                                 onPressed: _cargando
                                     ? null
-                                    : () => Navigator.of(context)
-                                        .pushNamed('/recuperar-contrasena'),
+                                    : () => Navigator.of(
+                                        context,
+                                      ).pushNamed('/recuperar-contrasena'),
                                 style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 2,
+                                  ),
                                   minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
                                 child: Text(
                                   '¿Olvidaste tu contraseña?',
@@ -333,24 +332,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 12),
-                            
+
                             // --- Botón Iniciar Sesión ---
                             _buildBotonPremium(),
-                            
+
                             const SizedBox(height: 16),
-                            
+
                             // --- Link Registro ---
                             Center(
                               child: TextButton(
                                 onPressed: _cargando
                                     ? null
-                                    : () => Navigator.of(context).pushNamed('/registro'),
+                                    : () => Navigator.of(
+                                        context,
+                                      ).pushNamed('/registro'),
                                 style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 2,
+                                  ),
                                   minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
                                 child: RichText(
                                   text: TextSpan(
@@ -374,7 +378,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 2),
                           ],
                         ),
@@ -482,7 +486,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         final double value = _burbujaAnimation.value;
         final sinVal = math.sin(value);
         final cosVal = math.cos(value);
-        
+
         return Stack(
           children: [
             // Burbuja 1
