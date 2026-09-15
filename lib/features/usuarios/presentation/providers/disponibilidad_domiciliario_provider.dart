@@ -86,6 +86,39 @@ class DisponibilidadDomiciliarioNotifier extends StateNotifier<DisponibilidadDom
     }
     return Geolocator.getCurrentPosition();
   }
+
+  /// Refresca la "foto instantánea" de ubicación sin pasar por el flujo
+  /// de `cambiar()` (que es para el toggle manual y expone error en la
+  /// UI). Se usa justo después de entregar un pedido: hasta ahora la
+  /// única vez que `perfil_domiciliario.ubicacion` se actualizaba era
+  /// al prender "Disponible" — si el domiciliario nunca lo apaga entre
+  /// un pedido y el siguiente (lo normal), esa posición quedaba
+  /// congelada en donde estaba al prenderlo la primera vez, aunque ya
+  /// haya recorrido kilómetros entregando. Eso hacía que el pool del
+  /// siguiente pedido (`ST_DWithin`, ver `listar_pedidos_disponibles`)
+  /// lo siguiera viendo "cerca" de una farmacia de la que en realidad
+  /// ya se alejó. Silencioso a propósito (sin tocar `error`/
+  /// `actualizando`): si falla (sin señal GPS justo en ese momento,
+  /// permiso revocado, etc.) el domiciliario simplemente sigue con la
+  /// ubicación anterior — no es peor que el comportamiento actual, y no
+  /// tiene sentido interrumpirlo con un error por algo que no disparó
+  /// a propósito.
+  Future<void> refrescarUbicacionTrasEntrega() async {
+    if (!state.disponible) return;
+    try {
+      final posicion = await _obtenerUbicacionActual();
+      if (posicion == null) return;
+      await _ref
+          .read(actualizarDisponibilidadDomiciliarioUseCaseProvider)
+          .execute(
+            disponible: true,
+            lat: posicion.latitude,
+            lng: posicion.longitude,
+          );
+    } catch (_) {
+      // Best-effort: ver doc del método.
+    }
+  }
 }
 
 final disponibilidadDomiciliarioProvider =

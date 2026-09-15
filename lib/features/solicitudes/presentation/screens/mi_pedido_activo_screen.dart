@@ -10,6 +10,7 @@ import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/entrega_confirmada_screen.dart';
+import '../../../usuarios/presentation/providers/disponibilidad_domiciliario_provider.dart';
 import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/documentos_paciente_para_recoger.dart';
@@ -209,6 +210,15 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     // registrado. Ahora es una pantalla completa, a propósito: cierra
     // el ciclo del pedido en vez de ser un aviso menor.
     if (mounted && _error == null) {
+      // Refresca la ubicación guardada del domiciliario ahora que quedó
+      // libre — ver doc de `refrescarUbicacionTrasEntrega`: sin esto, el
+      // pool del siguiente pedido lo seguía viendo en la posición de
+      // cuando prendió "Disponible" la primera vez, no donde entregó
+      // este pedido. No se espera (no bloquea la navegación) y no
+      // muestra error si falla.
+      unawaited(
+        ref.read(disponibilidadDomiciliarioProvider.notifier).refrescarUbicacionTrasEntrega(),
+      );
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => EntregaConfirmadaScreen(

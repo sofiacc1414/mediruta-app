@@ -47,3 +47,7 @@ app.*.map.json
 # Caché incremental de Kotlin (queda en /android tras compilar, sea local
 # o dentro del contenedor Docker de build de APK)
 /android/.kotlin/
+
+# APK versionado que se copia a la raíz en cada release (ver ritual de
+# release) — se sube a GitHub Releases, no al repo.
+/*.apk
