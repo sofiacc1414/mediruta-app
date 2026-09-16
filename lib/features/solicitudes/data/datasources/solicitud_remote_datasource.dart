@@ -1,6 +1,7 @@
 import '../../../../shared/core/network/api_client.dart';
 import '../../domain/entities/datos_solicitud.dart';
 import '../../domain/entities/medicamento.dart';
+import '../../domain/entities/precio_pedido.dart';
 
 /// Traduce las operaciones de solicitudes (HU-03) a requests concretos
 /// contra `mediruta-api` — única capa que conoce las rutas/forma del JSON.
@@ -81,9 +82,25 @@ class SolicitudRemoteDatasource {
     return respuesta as List<dynamic>;
   }
 
-  Future<Map<String, dynamic>> enviar(String solicitudId) async {
+  Future<Map<String, dynamic>> enviar(
+    String solicitudId, {
+    VerificacionDireccionPrevia? farmaciaVerificada,
+    VerificacionDireccionPrevia? entregaVerificada,
+  }) async {
     final respuesta = await _apiClient.post(
       '/solicitudes/$solicitudId/enviar',
+      body: {
+        if (farmaciaVerificada != null) ...{
+          'direccionFarmaciaVerificadaPara': farmaciaVerificada.direccionVerificadaPara,
+          'farmaciaLat': farmaciaVerificada.lat,
+          'farmaciaLng': farmaciaVerificada.lng,
+        },
+        if (entregaVerificada != null) ...{
+          'direccionEntregaVerificadaPara': entregaVerificada.direccionVerificadaPara,
+          'entregaLat': entregaVerificada.lat,
+          'entregaLng': entregaVerificada.lng,
+        },
+      },
       autenticado: true,
     );
     return respuesta as Map<String, dynamic>;

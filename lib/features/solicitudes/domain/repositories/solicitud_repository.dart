@@ -37,7 +37,13 @@ abstract class SolicitudRepository {
 
   /// G05. Devuelve el código de pedido recién generado (`MR-000001`,
   /// ...) — no existía hasta este momento, un Borrador no es un pedido.
-  Future<String> enviar(String solicitudId);
+  /// `farmaciaVerificada`/`entregaVerificada` — ver
+  /// `VerificacionDireccionPrevia`.
+  Future<String> enviar(
+    String solicitudId, {
+    VerificacionDireccionPrevia? farmaciaVerificada,
+    VerificacionDireccionPrevia? entregaVerificada,
+  });
 
   /// Estimado en vivo mientras se arma el borrador, antes de enviar.
   Future<PrecioPedido> estimarPrecio({

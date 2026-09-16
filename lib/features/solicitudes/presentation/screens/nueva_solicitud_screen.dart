@@ -314,6 +314,45 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
         _precioEstimado?.direccionEntregaResuelta != null;
   }
 
+  /// Ronda 14 — bug real reportado: aunque el estimado en vivo ya
+  /// hubiera confirmado la dirección, "Enviar solicitud" la volvía a
+  /// geocodificar desde cero al final — un segundo viaje a Nominatim
+  /// que podía fallar aunque el primero hubiera funcionado, dejando el
+  /// pedido enviado pero SIN ubicación, en silencio. Se mandan acá las
+  /// coordenadas que el estimado ya confirmó, para el texto exacto que
+  /// las confirmó — si el paciente lo volvió a editar después, el
+  /// servidor lo nota (el texto ya no coincide) y geocodifica de
+  /// nuevo solo.
+  VerificacionDireccionPrevia? get _farmaciaVerificada {
+    final precio = _precioEstimado;
+    if (precio == null ||
+        _farmaciaConfirmadaPara == null ||
+        precio.direccionFarmaciaLat == null ||
+        precio.direccionFarmaciaLng == null) {
+      return null;
+    }
+    return VerificacionDireccionPrevia(
+      direccionVerificadaPara: _farmaciaConfirmadaPara!,
+      lat: precio.direccionFarmaciaLat!,
+      lng: precio.direccionFarmaciaLng!,
+    );
+  }
+
+  VerificacionDireccionPrevia? get _entregaVerificada {
+    final precio = _precioEstimado;
+    if (precio == null ||
+        _entregaConfirmadaPara == null ||
+        precio.direccionEntregaLat == null ||
+        precio.direccionEntregaLng == null) {
+      return null;
+    }
+    return VerificacionDireccionPrevia(
+      direccionVerificadaPara: _entregaConfirmadaPara!,
+      lat: precio.direccionEntregaLat!,
+      lng: precio.direccionEntregaLng!,
+    );
+  }
+
   /// Ronda 13 — sugerencias mientras se escribe, no solo al perder el
   /// foco. Compartido entre farmacia y entrega — mismo endpoint,
   /// acotado con la ciudad/departamento del perfil del lado de la API.
@@ -461,7 +500,11 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     });
     try {
       final id = await _persistir();
-      final codigoPedido = await ref.read(enviarSolicitudUseCaseProvider).execute(id);
+      final codigoPedido = await ref.read(enviarSolicitudUseCaseProvider).execute(
+            id,
+            farmaciaVerificada: _farmaciaVerificada,
+            entregaVerificada: _entregaVerificada,
+          );
       if (mounted) await _mostrarPedidoConfirmado(codigoPedido);
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (error) {

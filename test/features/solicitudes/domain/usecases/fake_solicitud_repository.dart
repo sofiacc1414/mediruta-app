@@ -89,8 +89,16 @@ class FakeSolicitudRepository implements SolicitudRepository {
   }
 
   @override
-  Future<String> enviar(String solicitudId) async {
-    _registrar('enviar', {'solicitudId': solicitudId});
+  Future<String> enviar(
+    String solicitudId, {
+    VerificacionDireccionPrevia? farmaciaVerificada,
+    VerificacionDireccionPrevia? entregaVerificada,
+  }) async {
+    _registrar('enviar', {
+      'solicitudId': solicitudId,
+      'farmaciaVerificada': farmaciaVerificada,
+      'entregaVerificada': entregaVerificada,
+    });
     _lanzarSiCorresponde();
     return codigoPedidoARetornar;
   }

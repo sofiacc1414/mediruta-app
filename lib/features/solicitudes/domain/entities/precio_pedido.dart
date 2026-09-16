@@ -27,6 +27,25 @@ class CandidatoDireccion {
   }
 }
 
+/// Ronda 14 — coordenadas ya confirmadas para una dirección exacta,
+/// para mandarlas al enviar el pedido y evitar que ese paso tenga que
+/// volver a geocodificar el mismo texto (ver `EnviarSolicitudUseCase`
+/// del lado de la API). Si el texto actual ya no coincide con
+/// `direccionVerificadaPara` (se editó después de confirmar), el
+/// servidor ignora esto y geocodifica de nuevo — no hace falta que la
+/// App lo controle, alcanza con mandar lo último confirmado.
+class VerificacionDireccionPrevia {
+  const VerificacionDireccionPrevia({
+    required this.direccionVerificadaPara,
+    required this.lat,
+    required this.lng,
+  });
+
+  final String direccionVerificadaPara;
+  final double lat;
+  final double lng;
+}
+
 /// Precio del pedido (copago + domicilio) — ver `CalcularPrecioPedidoUseCase`
 /// del lado de la API. `disponible: false` cuando el Paciente todavía no
 /// eligió su nivel de copago, o falta geocodificar la farmacia y/o la
@@ -42,9 +61,13 @@ class PrecioPedido {
     this.direccionFarmaciaResuelta,
     this.direccionFarmaciaPrecisa = true,
     this.direccionFarmaciaCandidatos = const [],
+    this.direccionFarmaciaLat,
+    this.direccionFarmaciaLng,
     this.direccionEntregaResuelta,
     this.direccionEntregaPrecisa = true,
     this.direccionEntregaCandidatos = const [],
+    this.direccionEntregaLat,
+    this.direccionEntregaLng,
   });
 
   factory PrecioPedido.disponible({
@@ -55,9 +78,13 @@ class PrecioPedido {
     String? direccionFarmaciaResuelta,
     bool direccionFarmaciaPrecisa = true,
     List<CandidatoDireccion> direccionFarmaciaCandidatos = const [],
+    double? direccionFarmaciaLat,
+    double? direccionFarmaciaLng,
     String? direccionEntregaResuelta,
     bool direccionEntregaPrecisa = true,
     List<CandidatoDireccion> direccionEntregaCandidatos = const [],
+    double? direccionEntregaLat,
+    double? direccionEntregaLng,
   }) {
     return PrecioPedido._(
       disponible: true,
@@ -68,9 +95,13 @@ class PrecioPedido {
       direccionFarmaciaResuelta: direccionFarmaciaResuelta,
       direccionFarmaciaPrecisa: direccionFarmaciaPrecisa,
       direccionFarmaciaCandidatos: direccionFarmaciaCandidatos,
+      direccionFarmaciaLat: direccionFarmaciaLat,
+      direccionFarmaciaLng: direccionFarmaciaLng,
       direccionEntregaResuelta: direccionEntregaResuelta,
       direccionEntregaPrecisa: direccionEntregaPrecisa,
       direccionEntregaCandidatos: direccionEntregaCandidatos,
+      direccionEntregaLat: direccionEntregaLat,
+      direccionEntregaLng: direccionEntregaLng,
     );
   }
 
@@ -79,9 +110,13 @@ class PrecioPedido {
     String? direccionFarmaciaResuelta,
     bool direccionFarmaciaPrecisa = true,
     List<CandidatoDireccion> direccionFarmaciaCandidatos = const [],
+    double? direccionFarmaciaLat,
+    double? direccionFarmaciaLng,
     String? direccionEntregaResuelta,
     bool direccionEntregaPrecisa = true,
     List<CandidatoDireccion> direccionEntregaCandidatos = const [],
+    double? direccionEntregaLat,
+    double? direccionEntregaLng,
   }) {
     return PrecioPedido._(
       disponible: false,
@@ -89,9 +124,13 @@ class PrecioPedido {
       direccionFarmaciaResuelta: direccionFarmaciaResuelta,
       direccionFarmaciaPrecisa: direccionFarmaciaPrecisa,
       direccionFarmaciaCandidatos: direccionFarmaciaCandidatos,
+      direccionFarmaciaLat: direccionFarmaciaLat,
+      direccionFarmaciaLng: direccionFarmaciaLng,
       direccionEntregaResuelta: direccionEntregaResuelta,
       direccionEntregaPrecisa: direccionEntregaPrecisa,
       direccionEntregaCandidatos: direccionEntregaCandidatos,
+      direccionEntregaLat: direccionEntregaLat,
+      direccionEntregaLng: direccionEntregaLng,
     );
   }
 
@@ -120,9 +159,17 @@ class PrecioPedido {
   /// es `false`. Se ofrecen en un modal para que el Paciente elija en
   /// vez de quedarse con la aproximación automática.
   final List<CandidatoDireccion> direccionFarmaciaCandidatos;
+  /// Ronda 14 — coordenadas ya confirmadas para `direccionFarmaciaResuelta`.
+  /// Se guardan para mandarlas de vuelta al enviar el pedido y evitar
+  /// que ese paso tenga que volver a geocodificar el mismo texto (ver
+  /// `EnviarSolicitudUseCase` del lado de la API).
+  final double? direccionFarmaciaLat;
+  final double? direccionFarmaciaLng;
   final String? direccionEntregaResuelta;
   final bool direccionEntregaPrecisa;
   final List<CandidatoDireccion> direccionEntregaCandidatos;
+  final double? direccionEntregaLat;
+  final double? direccionEntregaLng;
 
   factory PrecioPedido.fromJson(Map<String, dynamic> json) {
     final direccionFarmaciaResuelta = json['direccionFarmaciaResuelta'] as String?;
@@ -131,12 +178,16 @@ class PrecioPedido {
     final direccionFarmaciaCandidatos = _candidatosDesde(
       json['direccionFarmaciaCandidatos'],
     );
+    final direccionFarmaciaLat = (json['direccionFarmaciaLat'] as num?)?.toDouble();
+    final direccionFarmaciaLng = (json['direccionFarmaciaLng'] as num?)?.toDouble();
     final direccionEntregaResuelta = json['direccionEntregaResuelta'] as String?;
     final direccionEntregaPrecisa =
         json['direccionEntregaPrecisa'] as bool? ?? true;
     final direccionEntregaCandidatos = _candidatosDesde(
       json['direccionEntregaCandidatos'],
     );
+    final direccionEntregaLat = (json['direccionEntregaLat'] as num?)?.toDouble();
+    final direccionEntregaLng = (json['direccionEntregaLng'] as num?)?.toDouble();
 
     if (json['disponible'] == true) {
       return PrecioPedido.disponible(
@@ -147,9 +198,13 @@ class PrecioPedido {
         direccionFarmaciaResuelta: direccionFarmaciaResuelta,
         direccionFarmaciaPrecisa: direccionFarmaciaPrecisa,
         direccionFarmaciaCandidatos: direccionFarmaciaCandidatos,
+        direccionFarmaciaLat: direccionFarmaciaLat,
+        direccionFarmaciaLng: direccionFarmaciaLng,
         direccionEntregaResuelta: direccionEntregaResuelta,
         direccionEntregaPrecisa: direccionEntregaPrecisa,
         direccionEntregaCandidatos: direccionEntregaCandidatos,
+        direccionEntregaLat: direccionEntregaLat,
+        direccionEntregaLng: direccionEntregaLng,
       );
     }
     return PrecioPedido.noDisponible(
@@ -157,9 +212,13 @@ class PrecioPedido {
       direccionFarmaciaResuelta: direccionFarmaciaResuelta,
       direccionFarmaciaPrecisa: direccionFarmaciaPrecisa,
       direccionFarmaciaCandidatos: direccionFarmaciaCandidatos,
+      direccionFarmaciaLat: direccionFarmaciaLat,
+      direccionFarmaciaLng: direccionFarmaciaLng,
       direccionEntregaResuelta: direccionEntregaResuelta,
       direccionEntregaPrecisa: direccionEntregaPrecisa,
       direccionEntregaCandidatos: direccionEntregaCandidatos,
+      direccionEntregaLat: direccionEntregaLat,
+      direccionEntregaLng: direccionEntregaLng,
     );
   }
 

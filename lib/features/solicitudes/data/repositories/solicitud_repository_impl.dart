@@ -57,8 +57,16 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   }
 
   @override
-  Future<String> enviar(String solicitudId) async {
-    final respuesta = await _datasource.enviar(solicitudId);
+  Future<String> enviar(
+    String solicitudId, {
+    VerificacionDireccionPrevia? farmaciaVerificada,
+    VerificacionDireccionPrevia? entregaVerificada,
+  }) async {
+    final respuesta = await _datasource.enviar(
+      solicitudId,
+      farmaciaVerificada: farmaciaVerificada,
+      entregaVerificada: entregaVerificada,
+    );
     return respuesta['codigoPedido'] as String;
   }
 
