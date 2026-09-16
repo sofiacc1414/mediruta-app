@@ -326,6 +326,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
             lat: c.lat,
             lng: c.lng,
             direccionResuelta: c.direccionResuelta,
+            precisa: c.precisa,
           ),
         )
         .toList();

@@ -13,11 +13,19 @@ class SugerenciaDireccion {
     required this.lat,
     required this.lng,
     required this.direccionResuelta,
+    required this.precisa,
   });
 
   final double lat;
   final double lng;
   final String direccionResuelta;
+  /// Bug real reportado: elegir una sugerencia y volver a
+  /// geocodificarla (un segundo viaje de red, solo para "confirmarla")
+  /// a veces fallaba aunque la primera consulta sí hubiera funcionado.
+  /// Se manda esta bandera para que quien la reciba pueda confiar en
+  /// el resultado directamente, sin un segundo request — ya viene de
+  /// un geocode exitoso.
+  final bool precisa;
 }
 
 /// Ronda 13 — bug real reportado: había que terminar de escribir y

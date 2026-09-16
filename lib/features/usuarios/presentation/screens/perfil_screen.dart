@@ -188,8 +188,32 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   ) async {
     final elegido = await mostrarSelectorDireccionPerfil(dialogContext, candidatos: candidatos);
     if (elegido == null || !mounted) return;
-    _pacienteDireccionController.text = elegido.direccionResuelta;
-    _verificarDireccionPaciente();
+    _confirmarDireccionPacienteDirecto(
+      direccionResuelta: elegido.direccionResuelta,
+      precisa: elegido.precisa,
+    );
+  }
+
+  /// Bug real reportado: elegir una sugerencia (de este modal, o del
+  /// autocompletado en vivo) y volver a geocodificarla para
+  /// "confirmarla" — un segundo request solo para eso — a veces
+  /// fallaba aunque la primera búsqueda sí hubiera encontrado la
+  /// dirección. La sugerencia YA viene de un geocode exitoso: se
+  /// confía directo en su `direccionResuelta`/`precisa`, sin volver a
+  /// consultar Nominatim.
+  void _confirmarDireccionPacienteDirecto({
+    required String direccionResuelta,
+    required bool precisa,
+  }) {
+    _pacienteDireccionController.text = direccionResuelta;
+    final clave =
+        '$direccionResuelta|${_pacienteDepartamentoController.text.trim()}|${_pacienteCiudadController.text.trim()}';
+    _direccionPacienteVerificadaPara = clave;
+    _direccionPacienteResultado.value = VerificacionDireccion(
+      direccionResuelta: direccionResuelta,
+      precisa: precisa,
+      candidatos: const [],
+    );
   }
 
   Widget _mensajeConfirmacionDireccionPaciente(BuildContext dialogContext) {
@@ -759,10 +783,14 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                               lat: c.lat,
                               lng: c.lng,
                               direccionResuelta: c.direccionResuelta,
+                              precisa: c.precisa,
                             ))
                         .toList(),
                   ),
-              onSeleccionar: (_) => _verificarDireccionPaciente(),
+              onSeleccionar: (sugerencia) => _confirmarDireccionPacienteDirecto(
+                direccionResuelta: sugerencia.direccionResuelta,
+                precisa: sugerencia.precisa,
+              ),
             ),
             _mensajeConfirmacionDireccionPaciente(context),
             const SizedBox(height: 12),
