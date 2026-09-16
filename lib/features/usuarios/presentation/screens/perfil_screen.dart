@@ -183,17 +183,36 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
 
   /// Bug real reportado: al guardar "Datos de Paciente" con una
   /// dirección que la API rechaza (ver `DireccionNoValidaError`), el
-  /// formulario "no hacía nada" — no mostraba ningún error. La causa:
-  /// el bottom sheet donde vive el formulario sigue abierto (no se
-  /// cierra en un error, a propósito, para que el usuario corrija sin
-  /// perder lo demás que ya escribió), y un `SnackBar` pedido al
-  /// `ScaffoldMessenger` de la pantalla DE ABAJO queda tapado por el
-  /// propio bottom sheet — nunca llega a verse. Por eso acá se recibe
-  /// el `BuildContext` del bottom sheet (el que arma `showModalBottomSheet`
-  /// en cada `_showXDialog`, no `this.context`) para mostrar el error
-  /// encima de él. En el camino feliz sí se usa `this.context`: ese
-  /// sheet ya se cerró (`Navigator.of(context).pop()` unas líneas más
-  /// abajo) antes de mostrar el snackbar de éxito.
+  /// formulario "no hacía nada" — no se veía ningún error. Un
+  /// `SnackBar` se desvanece solo a los pocos segundos y, con el
+  /// bottom sheet del formulario todavía abierto encima de la pantalla
+  /// (no se cierra en un error, a propósito, para no perder lo ya
+  /// escrito), era fácil no llegar a verlo. Un `AlertDialog` se queda
+  /// ahí hasta que el usuario lo cierra — no hay forma de perdérselo.
+  /// Recibe el `BuildContext` del propio bottom sheet (el que arma
+  /// `showModalBottomSheet` en cada `_showXDialog`, no `this.context`)
+  /// para que el diálogo se abra encima de él.
+  Future<void> _mostrarErrorGuardado(BuildContext dialogContext, String mensaje) {
+    return showDialog<void>(
+      context: dialogContext,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'No se pudo guardar',
+          style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700),
+        ),
+        content: Text(mensaje, style: const TextStyle(color: AppColors.navy)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendido', style: TextStyle(color: AppColors.navy)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _guardarCambios({
     required BuildContext dialogContext,
     required bool esPaciente,
@@ -217,9 +236,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       faltantes.add('dirección, tipo de vehículo y placa de Domiciliario');
     }
     if (faltantes.isNotEmpty) {
-      ScaffoldMessenger.of(dialogContext).showSnackBar(
-        SnackBar(content: Text('Completa: ${faltantes.join('; ')}.')),
-      );
+      await _mostrarErrorGuardado(dialogContext, 'Completa: ${faltantes.join('; ')}.');
       return;
     }
 
@@ -273,11 +290,11 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       
     } on ApiException catch (error) {
       if (mounted && dialogContext.mounted) {
-        ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(error.message)));
+        await _mostrarErrorGuardado(dialogContext, error.message);
       }
     } on ApiSinConexionException catch (error) {
       if (mounted && dialogContext.mounted) {
-        ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(error.toString())));
+        await _mostrarErrorGuardado(dialogContext, error.toString());
       }
     } finally {
       if (mounted) setState(() => _guardandoCambios = false);
