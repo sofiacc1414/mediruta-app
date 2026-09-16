@@ -14,6 +14,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/selector_ciudad_autocompletar.dart';
+import '../../../../shared/widgets/sugerencias_direccion.dart';
 import '../../domain/entities/nivel_copago.dart';
 import '../../domain/entities/perfil.dart';
 import '../../domain/entities/verificacion_direccion.dart';
@@ -94,7 +95,16 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   final _vehiculoTipoController = TextEditingController();
   final _vehiculoPlacaController = TextEditingController();
 
-  bool _guardandoCambios = false;
+  // `ValueNotifier`, no un campo + `setState`: bug real reportado — el
+  // botón "Guardar cambios" se quedaba bloqueado (mostrando el spinner
+  // para siempre) al cerrar el popup de error. El contenido de cada
+  // `showModalBottomSheet` de esta pantalla vive en su propia ruta/
+  // subárbol (lo arma el `builder` una sola vez) — un `setState` de
+  // `_PerfilScreenState` NO lo reconstruye, así que el botón quedaba
+  // congelado con el valor de `cargando` que tenía en el momento en
+  // que se abrió el panel. Mismo motivo/mismo arreglo que la
+  // confirmación de dirección — ver `_direccionPacienteCargando`.
+  final _guardandoCambiosNotifier = ValueNotifier<bool>(false);
   bool _notificacionesActivas = true;
 
   @override
@@ -118,6 +128,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     _pacienteDireccionFocus.dispose();
     _direccionPacienteCargando.dispose();
     _direccionPacienteResultado.dispose();
+    _guardandoCambiosNotifier.dispose();
     _domiciliarioDireccionController.dispose();
     _vehiculoTipoController.dispose();
     _vehiculoPlacaController.dispose();
@@ -355,9 +366,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       return;
     }
 
-    setState(() {
-      _guardandoCambios = true;
-    });
+    _guardandoCambiosNotifier.value = true;
     try {
       await ref
           .read(actualizarDatosComunesUseCaseProvider)
@@ -412,7 +421,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
         await _mostrarErrorGuardado(dialogContext, error.toString());
       }
     } finally {
-      if (mounted) setState(() => _guardandoCambios = false);
+      if (mounted) _guardandoCambiosNotifier.value = false;
     }
   }
 
@@ -666,44 +675,49 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _EditarPerfilBottomSheet(
-        title: 'Información personal',
-        children: [
-          _CampoPerfil(
-            label: 'Correo electrónico',
-            icono: Icons.email_outlined,
-            controller: _correoController,
-            enabled: false,
-          ),
-          const SizedBox(height: 12),
-          _CampoPerfil(
-            label: 'Nombre completo',
-            icono: Icons.person_outline,
-            controller: _nombreController,
-            enabled: !_guardandoCambios,
-          ),
-          const SizedBox(height: 12),
-          _CampoPerfil(
-            label: 'Teléfono',
-            icono: Icons.phone_outlined,
-            controller: _telefonoController,
-            keyboardType: TextInputType.phone,
-            enabled: !_guardandoCambios,
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 50,
-            child: AppLoadingButton(
-              label: 'Guardar cambios',
-              cargando: _guardandoCambios,
-              onPressed: () => _guardarCambios(
-                dialogContext: context,
-                esPaciente: false,
-                esDomiciliario: false,
+      // `ValueListenableBuilder`, no leer `_guardandoCambios`
+      // directo — ver el comentario en `_guardandoCambiosNotifier`.
+      builder: (context) => ValueListenableBuilder<bool>(
+        valueListenable: _guardandoCambiosNotifier,
+        builder: (context, guardando, _) => _EditarPerfilBottomSheet(
+          title: 'Información personal',
+          children: [
+            _CampoPerfil(
+              label: 'Correo electrónico',
+              icono: Icons.email_outlined,
+              controller: _correoController,
+              enabled: false,
+            ),
+            const SizedBox(height: 12),
+            _CampoPerfil(
+              label: 'Nombre completo',
+              icono: Icons.person_outline,
+              controller: _nombreController,
+              enabled: !guardando,
+            ),
+            const SizedBox(height: 12),
+            _CampoPerfil(
+              label: 'Teléfono',
+              icono: Icons.phone_outlined,
+              controller: _telefonoController,
+              keyboardType: TextInputType.phone,
+              enabled: !guardando,
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 50,
+              child: AppLoadingButton(
+                label: 'Guardar cambios',
+                cargando: guardando,
+                onPressed: () => _guardarCambios(
+                  dialogContext: context,
+                  esPaciente: false,
+                  esDomiciliario: false,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -717,123 +731,147 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _EditarPerfilBottomSheet(
-        title: 'Datos de Paciente',
-        children: [
-          _CampoPerfil(
-            label: 'Dirección de entrega',
-            icono: Icons.home_outlined,
-            controller: _pacienteDireccionController,
-            focusNode: _pacienteDireccionFocus,
-            enabled: !_guardandoCambios,
-          ),
-          _mensajeConfirmacionDireccionPaciente(context),
-          const SizedBox(height: 12),
-          _CampoPerfilDropdown(
-            label: 'Departamento',
-            icono: Icons.map_outlined,
-            controller: _pacienteDepartamentoController,
-            enabled: !_guardandoCambios,
-            opciones: colombiaDepartamentos,
-            // Una ciudad del departamento anterior ya no aplica — se
-            // limpia para no dejar guardado un par
-            // departamento/ciudad que no corresponden entre sí. El
-            // contexto de búsqueda cambió — se re-verifica.
-            onSeleccionado: (_) {
-              _pacienteCiudadController.clear();
-              _verificarDireccionPaciente();
-            },
-          ),
-          const SizedBox(height: 12),
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: _pacienteDepartamentoController,
-            builder: (context, valorDepartamento, _) {
-              final ciudades =
-                  colombiaDepartamentosCiudades[valorDepartamento.text] ??
-                  const <String>[];
-              return SelectorCiudadAutocompletar(
-                label: 'Ciudad',
-                icono: Icons.location_city_outlined,
-                opciones: ciudades,
-                valorInicial: _pacienteCiudadController.text,
-                enabled: !_guardandoCambios && ciudades.isNotEmpty,
-                onSeleccionar: (valor) {
-                  _pacienteCiudadController.text = valor;
-                  _verificarDireccionPaciente();
-                },
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          _CampoFechaPerfil(
-            label: 'Fecha de nacimiento',
-            fecha: _pacienteFechaNacimiento,
-            onTap: !_guardandoCambios ? _elegirFechaNacimiento : null,
-          ),
-          const SizedBox(height: 16),
-          const Divider(color: AppColors.skyBlue, height: 1),
-          const SizedBox(height: 12),
-          _SelectorNivelCopago(
-            nivelActualId: _perfil?.paciente?.nivelCopagoId,
-            onCambio: _recargarSoloPerfil,
-          ),
-          const SizedBox(height: 16),
-          const Divider(color: AppColors.skyBlue, height: 1),
-          const SizedBox(height: 12),
-          const Text(
-            'Documentos',
-            style: TextStyle(
-              color: AppColors.navy,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+      builder: (context) => ValueListenableBuilder<bool>(
+        valueListenable: _guardandoCambiosNotifier,
+        builder: (context, guardando, _) => _EditarPerfilBottomSheet(
+          title: 'Datos de Paciente',
+          children: [
+            _CampoPerfil(
+              label: 'Dirección de entrega',
+              icono: Icons.home_outlined,
+              controller: _pacienteDireccionController,
+              focusNode: _pacienteDireccionFocus,
+              enabled: !guardando,
             ),
-          ),
-          const SizedBox(height: 8),
-          _DocumentoUploadRow(
-            label: 'Cédula (frente)',
-            url: _perfil?.paciente?.fotoCedulaFrenteUrl,
-            onArchivoElegido: (bytes, nombre, contentType) async {
-              await ref
-                  .read(subirFotoCedulaPacienteUseCaseProvider)
+            SugerenciasDireccion(
+              controller: _pacienteDireccionController,
+              focusNode: _pacienteDireccionFocus,
+              buscar: (texto) => ref
+                  .read(autocompletarDireccionUseCaseProvider)
                   .execute(
-                    lado: LadoDocumento.frente,
-                    bytes: bytes,
-                    nombreArchivo: nombre,
-                    contentType: contentType,
-                  );
-              await _recargarSoloPerfil();
-            },
-          ),
-          const SizedBox(height: 8),
-          _DocumentoUploadRow(
-            label: 'Cédula (reverso)',
-            url: _perfil?.paciente?.fotoCedulaReversoUrl,
-            onArchivoElegido: (bytes, nombre, contentType) async {
-              await ref
-                  .read(subirFotoCedulaPacienteUseCaseProvider)
-                  .execute(
-                    lado: LadoDocumento.reverso,
-                    bytes: bytes,
-                    nombreArchivo: nombre,
-                    contentType: contentType,
-                  );
-              await _recargarSoloPerfil();
-            },
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 50,
-            child: AppLoadingButton(
-              label: 'Guardar cambios',
-              cargando: _guardandoCambios,
-              onPressed: () => _guardarCambios(
-                dialogContext: context,
-                esPaciente: true,
-                esDomiciliario: false,
+                    texto: texto,
+                    departamento: _pacienteDepartamentoController.text.trim(),
+                    ciudad: _pacienteCiudadController.text.trim(),
+                  )
+                  .then(
+                    (candidatos) => candidatos
+                        .map((c) => SugerenciaDireccion(
+                              lat: c.lat,
+                              lng: c.lng,
+                              direccionResuelta: c.direccionResuelta,
+                            ))
+                        .toList(),
+                  ),
+              onSeleccionar: (_) => _verificarDireccionPaciente(),
+            ),
+            _mensajeConfirmacionDireccionPaciente(context),
+            const SizedBox(height: 12),
+            _CampoPerfilDropdown(
+              label: 'Departamento',
+              icono: Icons.map_outlined,
+              controller: _pacienteDepartamentoController,
+              enabled: !guardando,
+              opciones: colombiaDepartamentos,
+              // Una ciudad del departamento anterior ya no aplica — se
+              // limpia para no dejar guardado un par
+              // departamento/ciudad que no corresponden entre sí. El
+              // contexto de búsqueda cambió — se re-verifica.
+              onSeleccionado: (_) {
+                _pacienteCiudadController.clear();
+                _verificarDireccionPaciente();
+              },
+            ),
+            const SizedBox(height: 12),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _pacienteDepartamentoController,
+              builder: (context, valorDepartamento, _) {
+                final ciudades =
+                    colombiaDepartamentosCiudades[valorDepartamento.text] ??
+                    const <String>[];
+                return SelectorCiudadAutocompletar(
+                  label: 'Ciudad',
+                  icono: Icons.location_city_outlined,
+                  opciones: ciudades,
+                  valorInicial: _pacienteCiudadController.text,
+                  enabled: !guardando && ciudades.isNotEmpty,
+                  onSeleccionar: (valor) {
+                    _pacienteCiudadController.text = valor;
+                    _verificarDireccionPaciente();
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _CampoFechaPerfil(
+              label: 'Fecha de nacimiento',
+              fecha: _pacienteFechaNacimiento,
+              onTap: !guardando ? _elegirFechaNacimiento : null,
+            ),
+            const SizedBox(height: 16),
+            const Divider(color: AppColors.skyBlue, height: 1),
+            const SizedBox(height: 12),
+            _SelectorNivelCopago(
+              nivelActualId: _perfil?.paciente?.nivelCopagoId,
+              onCambio: _recargarSoloPerfil,
+            ),
+            const SizedBox(height: 16),
+            const Divider(color: AppColors.skyBlue, height: 1),
+            const SizedBox(height: 12),
+            const Text(
+              'Documentos',
+              style: TextStyle(
+                color: AppColors.navy,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            _DocumentoUploadRow(
+              label: 'Cédula (frente)',
+              url: _perfil?.paciente?.fotoCedulaFrenteUrl,
+              onArchivoElegido: (bytes, nombre, contentType) async {
+                await ref
+                    .read(subirFotoCedulaPacienteUseCaseProvider)
+                    .execute(
+                      lado: LadoDocumento.frente,
+                      bytes: bytes,
+                      nombreArchivo: nombre,
+                      contentType: contentType,
+                    );
+                await _recargarSoloPerfil();
+              },
+            ),
+            const SizedBox(height: 8),
+            _DocumentoUploadRow(
+              label: 'Cédula (reverso)',
+              url: _perfil?.paciente?.fotoCedulaReversoUrl,
+              onArchivoElegido: (bytes, nombre, contentType) async {
+                await ref
+                    .read(subirFotoCedulaPacienteUseCaseProvider)
+                    .execute(
+                      lado: LadoDocumento.reverso,
+                      bytes: bytes,
+                      nombreArchivo: nombre,
+                      contentType: contentType,
+                    );
+                await _recargarSoloPerfil();
+              },
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 50,
+              child: AppLoadingButton(
+                label: 'Guardar cambios',
+                cargando: guardando,
+                onPressed: () => _guardarCambios(
+                  dialogContext: context,
+                  esPaciente: true,
+                  esDomiciliario: false,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -844,7 +882,9 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _EditarPerfilBottomSheet(
+      builder: (context) => ValueListenableBuilder<bool>(
+        valueListenable: _guardandoCambiosNotifier,
+        builder: (context, guardando, _) => _EditarPerfilBottomSheet(
         title: 'Datos de Domiciliario',
         children: [
           Container(
@@ -903,14 +943,14 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             label: 'Dirección de residencia',
             icono: Icons.home_outlined,
             controller: _domiciliarioDireccionController,
-            enabled: !_guardandoCambios,
+            enabled: !guardando,
           ),
           const SizedBox(height: 12),
           _CampoPerfilDropdown(
             label: 'Tipo de vehículo',
             icono: Icons.two_wheeler_outlined,
             controller: _vehiculoTipoController,
-            enabled: !_guardandoCambios,
+            enabled: !guardando,
             opciones: const ['Moto', 'Bicicleta'],
           ),
           const SizedBox(height: 12),
@@ -918,7 +958,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             label: 'Placa',
             icono: Icons.pin_outlined,
             controller: _vehiculoPlacaController,
-            enabled: !_guardandoCambios,
+            enabled: !guardando,
             inputFormatters: [_MayusculasTextFormatter()],
           ),
           const SizedBox(height: 16),
@@ -973,7 +1013,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
               height: 50,
               child: AppLoadingButton(
                 label: 'Enviar solicitud de validación',
-                cargando: _guardandoCambios,
+                cargando: guardando,
                 onPressed: () => _enviarSolicitudDomiciliario(),
               ),
             ),
@@ -983,7 +1023,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             height: 50,
             child: AppLoadingButton(
               label: 'Guardar cambios',
-              cargando: _guardandoCambios,
+              cargando: guardando,
               onPressed: () => _guardarCambios(
                 dialogContext: context,
                 esPaciente: false,
@@ -992,6 +1032,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -1034,7 +1075,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   }
 
   Future<void> _enviarSolicitudDomiciliario() async {
-    setState(() => _guardandoCambios = true);
+    _guardandoCambiosNotifier.value = true;
     try {
       final mensaje = await ref.read(enviarSolicitudDomiciliarioUseCaseProvider).execute();
       final usuarioActualizado = await ref.read(obtenerSesionActualUseCaseProvider).execute();
@@ -1050,7 +1091,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
           : error.message;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(detalle)));
     } finally {
-      if (mounted) setState(() => _guardandoCambios = false);
+      if (mounted) _guardandoCambiosNotifier.value = false;
     }
   }
 
@@ -1141,7 +1182,9 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _EditarPerfilBottomSheet(
+      builder: (context) => ValueListenableBuilder<bool>(
+        valueListenable: _guardandoCambiosNotifier,
+        builder: (context, guardando, _) => _EditarPerfilBottomSheet(
         title: 'Desactivar cuenta',
         isDestructive: true,
         children: [
@@ -1176,17 +1219,18 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             child: AppLoadingButton(
               label: 'Confirmar desactivación',
               variante: AppButtonVariante.secondary,
-              cargando: _guardandoCambios,
+              cargando: guardando,
               onPressed: _desactivarCuenta,
             ),
           ),
         ],
+        ),
       ),
     );
   }
 
   Future<void> _desactivarCuenta() async {
-    setState(() => _guardandoCambios = true);
+    _guardandoCambiosNotifier.value = true;
     try {
       await ref.read(desactivarCuentaUseCaseProvider).execute();
       await ref.read(authSessionProvider.notifier).cerrarSesion();
@@ -1195,7 +1239,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     } on ApiException catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
     } finally {
-      if (mounted) setState(() => _guardandoCambios = false);
+      if (mounted) _guardandoCambiosNotifier.value = false;
     }
   }
 }

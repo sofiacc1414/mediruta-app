@@ -45,6 +45,12 @@ abstract class SolicitudRepository {
     required String direccionEntrega,
   });
 
+  /// Ronda 13 — sugerencias de direcciones reales mientras se escribe
+  /// (ej. "universidad de medellin"), no solo al perder el foco.
+  /// Acotado con la ciudad/departamento del perfil del Paciente (la
+  /// API los toma de ahí, no hace falta mandarlos).
+  Future<List<CandidatoDireccion>> autocompletarDireccion(String texto);
+
   /// G06.
   Future<void> cancelar(String solicitudId);
 

@@ -12,6 +12,7 @@ import '../../domain/usecases/listar_niveles_copago_usecase.dart';
 import '../../domain/usecases/desactivar_cuenta_usecase.dart';
 import '../../domain/usecases/obtener_perfil_usecase.dart';
 import '../../domain/usecases/subir_documento_domiciliario_usecase.dart';
+import '../../domain/usecases/autocompletar_direccion_usecase.dart';
 import '../../domain/usecases/subir_foto_cedula_paciente_usecase.dart';
 import '../../domain/usecases/subir_foto_perfil_usecase.dart';
 import '../../domain/usecases/verificar_direccion_usecase.dart';
@@ -42,6 +43,10 @@ final actualizarPerfilPacienteUseCaseProvider = Provider(
 
 final verificarDireccionUseCaseProvider = Provider(
   (ref) => VerificarDireccionUseCase(ref.watch(perfilRepositoryProvider)),
+);
+
+final autocompletarDireccionUseCaseProvider = Provider(
+  (ref) => AutocompletarDireccionUseCase(ref.watch(perfilRepositoryProvider)),
 );
 
 final subirFotoCedulaPacienteUseCaseProvider = Provider(

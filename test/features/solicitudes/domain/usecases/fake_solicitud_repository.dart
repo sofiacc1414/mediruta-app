@@ -30,6 +30,7 @@ class FakeSolicitudRepository implements SolicitudRepository {
       );
   List<NovedadResumen> novedadesSolicitudARetornar = const [];
   PrecioPedido precioEstimadoARetornar = PrecioPedido.noDisponible('sin_ubicaciones');
+  List<CandidatoDireccion> candidatosAutocompletarARetornar = const [];
 
   Map<String, dynamic>? ultimaLlamada;
 
@@ -105,6 +106,13 @@ class FakeSolicitudRepository implements SolicitudRepository {
     });
     _lanzarSiCorresponde();
     return precioEstimadoARetornar;
+  }
+
+  @override
+  Future<List<CandidatoDireccion>> autocompletarDireccion(String texto) async {
+    _registrar('autocompletarDireccion', {'texto': texto});
+    _lanzarSiCorresponde();
+    return candidatosAutocompletarARetornar;
   }
 
   @override

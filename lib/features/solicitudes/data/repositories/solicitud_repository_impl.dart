@@ -75,6 +75,14 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   }
 
   @override
+  Future<List<CandidatoDireccion>> autocompletarDireccion(String texto) async {
+    final respuesta = await _datasource.autocompletarDireccion(texto);
+    return respuesta
+        .map((e) => CandidatoDireccion.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
   Future<void> cancelar(String solicitudId) {
     return _datasource.cancelar(solicitudId);
   }

@@ -69,6 +69,18 @@ class SolicitudRemoteDatasource {
     return respuesta as Map<String, dynamic>;
   }
 
+  /// Ronda 13 — sugerencias mientras se escribe, no solo al perder el
+  /// foco. Ciudad/departamento los toma la API del perfil del
+  /// Paciente — acá no hace falta mandarlos.
+  Future<List<dynamic>> autocompletarDireccion(String texto) async {
+    final respuesta = await _apiClient.post(
+      '/solicitudes/autocompletar-direccion',
+      body: {'texto': texto},
+      autenticado: true,
+    );
+    return respuesta as List<dynamic>;
+  }
+
   Future<Map<String, dynamic>> enviar(String solicitudId) async {
     final respuesta = await _apiClient.post(
       '/solicitudes/$solicitudId/enviar',

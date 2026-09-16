@@ -64,6 +64,26 @@ class PerfilRemoteDatasource {
     return respuesta as Map<String, dynamic>;
   }
 
+  /// Ronda 13 — sugerencias mientras se escribe (ej. "universidad de
+  /// medellin"), no solo al perder el foco. Siempre devuelve una
+  /// lista de candidatos por igual, sin elegir uno como "el bueno".
+  Future<List<dynamic>> autocompletarDireccion({
+    required String texto,
+    String? departamento,
+    String? ciudad,
+  }) async {
+    final respuesta = await _apiClient.post(
+      '/perfil/autocompletar-direccion',
+      body: {
+        'texto': texto,
+        if (departamento != null && departamento.isNotEmpty) 'departamento': departamento,
+        if (ciudad != null && ciudad.isNotEmpty) 'ciudad': ciudad,
+      },
+      autenticado: true,
+    );
+    return respuesta as List<dynamic>;
+  }
+
   Future<void> subirFotoCedulaPaciente({
     required LadoDocumento lado,
     required List<int> bytes,

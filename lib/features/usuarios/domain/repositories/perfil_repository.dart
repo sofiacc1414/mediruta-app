@@ -34,6 +34,14 @@ abstract class PerfilRepository {
     String? ciudad,
   });
 
+  /// Ronda 13 — sugerencias mientras se escribe, no solo al perder el
+  /// foco. Ver `VerificarDireccionUseCase` para la confirmación final.
+  Future<List<CandidatoDireccionPerfil>> autocompletarDireccion({
+    required String texto,
+    String? departamento,
+    String? ciudad,
+  });
+
   /// G01/G03 — foto de un lado (frente o reverso) de la cédula del
   /// Paciente. Los dos lados se suben por separado.
   Future<void> subirFotoCedulaPaciente({

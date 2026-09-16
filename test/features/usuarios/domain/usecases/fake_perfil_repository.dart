@@ -44,6 +44,8 @@ class FakePerfilRepository implements PerfilRepository {
     candidatos: [],
   );
 
+  List<CandidatoDireccionPerfil> candidatosAutocompletarARetornar = const [];
+
   Map<String, dynamic>? ultimaLlamada;
 
   void _registrar(String metodo, Map<String, dynamic> args) {
@@ -105,6 +107,21 @@ class FakePerfilRepository implements PerfilRepository {
     });
     _lanzarSiCorresponde();
     return verificacionDireccionARetornar;
+  }
+
+  @override
+  Future<List<CandidatoDireccionPerfil>> autocompletarDireccion({
+    required String texto,
+    String? departamento,
+    String? ciudad,
+  }) async {
+    _registrar('autocompletarDireccion', {
+      'texto': texto,
+      'departamento': departamento,
+      'ciudad': ciudad,
+    });
+    _lanzarSiCorresponde();
+    return candidatosAutocompletarARetornar;
   }
 
   @override

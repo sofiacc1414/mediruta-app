@@ -58,6 +58,22 @@ class PerfilRepositoryImpl implements PerfilRepository {
   }
 
   @override
+  Future<List<CandidatoDireccionPerfil>> autocompletarDireccion({
+    required String texto,
+    String? departamento,
+    String? ciudad,
+  }) async {
+    final respuesta = await _datasource.autocompletarDireccion(
+      texto: texto,
+      departamento: departamento,
+      ciudad: ciudad,
+    );
+    return respuesta
+        .map((e) => CandidatoDireccionPerfil.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
   Future<void> subirFotoCedulaPaciente({
     required LadoDocumento lado,
     required List<int> bytes,

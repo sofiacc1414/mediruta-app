@@ -8,7 +8,9 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
-import '../../../usuarios/presentation/providers/perfil_providers.dart';
+import '../../../../shared/widgets/sugerencias_direccion.dart';
+import '../../../usuarios/presentation/providers/perfil_providers.dart'
+    hide autocompletarDireccionUseCaseProvider;
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/datos_solicitud.dart';
 import '../../domain/entities/medicamento.dart';
@@ -310,6 +312,23 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     }
     return _precioEstimado?.direccionFarmaciaResuelta != null &&
         _precioEstimado?.direccionEntregaResuelta != null;
+  }
+
+  /// Ronda 13 — sugerencias mientras se escribe, no solo al perder el
+  /// foco. Compartido entre farmacia y entrega — mismo endpoint,
+  /// acotado con la ciudad/departamento del perfil del lado de la API.
+  Future<List<SugerenciaDireccion>> _buscarSugerencias(String texto) async {
+    final candidatos =
+        await ref.read(autocompletarDireccionUseCaseProvider).execute(texto);
+    return candidatos
+        .map(
+          (c) => SugerenciaDireccion(
+            lat: c.lat,
+            lng: c.lng,
+            direccionResuelta: c.direccionResuelta,
+          ),
+        )
+        .toList();
   }
 
   Widget _mensajeConfirmacionFarmacia() {
@@ -752,6 +771,12 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                           focusNode: _focusDireccionFarmacia,
                           enabled: !_guardando,
                         ),
+                        SugerenciasDireccion(
+                          controller: _direccionFarmacia,
+                          focusNode: _focusDireccionFarmacia,
+                          buscar: _buscarSugerencias,
+                          onSeleccionar: (_) => _onCambioDireccionParaPrecio(),
+                        ),
                         _mensajeConfirmacionFarmacia(),
                         const SizedBox(height: 24),
 
@@ -764,6 +789,12 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                           controller: _direccionEntrega,
                           focusNode: _focusDireccionEntrega,
                           enabled: !_guardando,
+                        ),
+                        SugerenciasDireccion(
+                          controller: _direccionEntrega,
+                          focusNode: _focusDireccionEntrega,
+                          buscar: _buscarSugerencias,
+                          onSeleccionar: (_) => _onCambioDireccionParaPrecio(),
                         ),
                         _mensajeConfirmacionEntrega(),
                         const SizedBox(height: 24),
