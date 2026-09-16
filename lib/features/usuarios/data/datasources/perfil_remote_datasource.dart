@@ -43,6 +43,27 @@ class PerfilRemoteDatasource {
     );
   }
 
+  /// Ronda 12 — geocodifica sin guardar, para mostrar un loader +
+  /// confirmación/candidatos apenas se pierde el foco del campo de
+  /// dirección (mismo camino que `/solicitudes/estimar-precio`, pero
+  /// para el perfil, que no tiene un "pedido" del cual pedir precio).
+  Future<Map<String, dynamic>> verificarDireccion({
+    required String direccion,
+    String? departamento,
+    String? ciudad,
+  }) async {
+    final respuesta = await _apiClient.post(
+      '/perfil/verificar-direccion',
+      body: {
+        'direccion': direccion,
+        if (departamento != null && departamento.isNotEmpty) 'departamento': departamento,
+        if (ciudad != null && ciudad.isNotEmpty) 'ciudad': ciudad,
+      },
+      autenticado: true,
+    );
+    return respuesta as Map<String, dynamic>;
+  }
+
   Future<void> subirFotoCedulaPaciente({
     required LadoDocumento lado,
     required List<int> bytes,

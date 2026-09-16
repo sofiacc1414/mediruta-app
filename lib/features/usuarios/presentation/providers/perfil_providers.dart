@@ -14,6 +14,7 @@ import '../../domain/usecases/obtener_perfil_usecase.dart';
 import '../../domain/usecases/subir_documento_domiciliario_usecase.dart';
 import '../../domain/usecases/subir_foto_cedula_paciente_usecase.dart';
 import '../../domain/usecases/subir_foto_perfil_usecase.dart';
+import '../../domain/usecases/verificar_direccion_usecase.dart';
 import 'usuario_providers.dart';
 
 /// Cableado de dependencias del perfil (HU-02) — mismo espíritu que
@@ -37,6 +38,10 @@ final actualizarDatosComunesUseCaseProvider = Provider(
 
 final actualizarPerfilPacienteUseCaseProvider = Provider(
   (ref) => ActualizarPerfilPacienteUseCase(ref.watch(perfilRepositoryProvider)),
+);
+
+final verificarDireccionUseCaseProvider = Provider(
+  (ref) => VerificarDireccionUseCase(ref.watch(perfilRepositoryProvider)),
 );
 
 final subirFotoCedulaPacienteUseCaseProvider = Provider(

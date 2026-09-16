@@ -2,6 +2,7 @@ import 'package:mediruta_app/features/usuarios/domain/entities/nivel_copago.dart
 import 'package:mediruta_app/features/usuarios/domain/entities/perfil.dart';
 import 'package:mediruta_app/features/usuarios/domain/entities/perfil_domiciliario.dart';
 import 'package:mediruta_app/features/usuarios/domain/entities/perfil_paciente.dart';
+import 'package:mediruta_app/features/usuarios/domain/entities/verificacion_direccion.dart';
 import 'package:mediruta_app/features/usuarios/domain/repositories/perfil_repository.dart';
 import 'package:mediruta_app/features/usuarios/domain/value-objects/lado_documento.dart';
 import 'package:mediruta_app/features/usuarios/domain/value-objects/tipo_documento_domiciliario.dart';
@@ -36,6 +37,12 @@ class FakePerfilRepository implements PerfilRepository {
   );
 
   List<NivelCopago> nivelesCopagoARetornar = const [];
+
+  VerificacionDireccion verificacionDireccionARetornar = const VerificacionDireccion(
+    direccionResuelta: null,
+    precisa: true,
+    candidatos: [],
+  );
 
   Map<String, dynamic>? ultimaLlamada;
 
@@ -83,6 +90,21 @@ class FakePerfilRepository implements PerfilRepository {
       'ciudad': ciudad,
     });
     _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<VerificacionDireccion> verificarDireccion({
+    required String direccion,
+    String? departamento,
+    String? ciudad,
+  }) async {
+    _registrar('verificarDireccion', {
+      'direccion': direccion,
+      'departamento': departamento,
+      'ciudad': ciudad,
+    });
+    _lanzarSiCorresponde();
+    return verificacionDireccionARetornar;
   }
 
   @override

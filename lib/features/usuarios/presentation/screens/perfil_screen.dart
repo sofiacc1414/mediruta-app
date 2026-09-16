@@ -16,11 +16,13 @@ import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/selector_ciudad_autocompletar.dart';
 import '../../domain/entities/nivel_copago.dart';
 import '../../domain/entities/perfil.dart';
+import '../../domain/entities/verificacion_direccion.dart';
 import '../../domain/value-objects/lado_documento.dart';
 import '../../domain/value-objects/tipo_documento_domiciliario.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/perfil_providers.dart';
 import '../providers/usuario_providers.dart';
+import '../widgets/confirmacion_direccion_perfil.dart';
 import '../widgets/main_bottom_bar.dart';
 import 'cambiar_contrasena_screen.dart';
 
@@ -67,7 +69,26 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   final _pacienteDireccionController = TextEditingController();
   final _pacienteDepartamentoController = TextEditingController();
   final _pacienteCiudadController = TextEditingController();
+  final _pacienteDireccionFocus = FocusNode();
   DateTime? _pacienteFechaNacimiento;
+
+  // Ronda 12 — bug real reportado: la dirección del perfil recién se
+  // validaba contra Nominatim al tocar "Guardar cambios", sin loader
+  // ni sugerencias mientras tanto (a diferencia del flujo de pedidos,
+  // que geocodifica en vivo al salir del campo). Mismo patrón acá: se
+  // dispara al perder el foco del campo, o al cambiar
+  // departamento/ciudad (cambia el contexto de la búsqueda).
+  //
+  // `ValueNotifier`, no campos + `setState`: el contenido del
+  // `showModalBottomSheet` de "Datos de Paciente" vive en un
+  // subárbol/ruta aparte (lo arma el `builder` una sola vez) — un
+  // `setState` de esta pantalla NO lo reconstruye. Mismo motivo por el
+  // que el selector de ciudad ya usa `ValueListenableBuilder` sobre
+  // `_pacienteDepartamentoController` en vez de depender de rebuilds
+  // del padre.
+  final _direccionPacienteCargando = ValueNotifier<bool>(false);
+  final _direccionPacienteResultado = ValueNotifier<VerificacionDireccion?>(null);
+  String? _direccionPacienteVerificadaPara;
 
   final _domiciliarioDireccionController = TextEditingController();
   final _vehiculoTipoController = TextEditingController();
@@ -82,6 +103,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     final estadoInicial = ref.read(authSessionProvider);
     final usuarioInicial = estadoInicial is AuthAutenticado ? estadoInicial.usuario : null;
     _correoController = TextEditingController(text: usuarioInicial?.correo ?? '');
+    _pacienteDireccionFocus.addListener(_onFocoDireccionPacienteCambio);
     _cargarPerfil();
   }
 
@@ -93,10 +115,101 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     _pacienteDireccionController.dispose();
     _pacienteDepartamentoController.dispose();
     _pacienteCiudadController.dispose();
+    _pacienteDireccionFocus.dispose();
+    _direccionPacienteCargando.dispose();
+    _direccionPacienteResultado.dispose();
     _domiciliarioDireccionController.dispose();
     _vehiculoTipoController.dispose();
     _vehiculoPlacaController.dispose();
     super.dispose();
+  }
+
+  void _onFocoDireccionPacienteCambio() {
+    if (_pacienteDireccionFocus.hasFocus) return;
+    _verificarDireccionPaciente();
+  }
+
+  /// Dispara la verificación en vivo (sin guardar) contra Nominatim —
+  /// al perder el foco del campo de dirección, o al cambiar
+  /// departamento/ciudad estando la dirección ya escrita.
+  Future<void> _verificarDireccionPaciente() async {
+    final direccion = _pacienteDireccionController.text.trim();
+    if (direccion.isEmpty) {
+      _direccionPacienteVerificadaPara = null;
+      _direccionPacienteResultado.value = null;
+      return;
+    }
+    // Mismo texto que la última verificación (para esta misma
+    // dirección Y este mismo departamento/ciudad) — no repetir el
+    // mismo request.
+    final clave =
+        '$direccion|${_pacienteDepartamentoController.text.trim()}|${_pacienteCiudadController.text.trim()}';
+    if (clave == _direccionPacienteVerificadaPara) return;
+
+    _direccionPacienteCargando.value = true;
+    try {
+      final resultado = await ref.read(verificarDireccionUseCaseProvider).execute(
+            direccion: direccion,
+            departamento: _pacienteDepartamentoController.text.trim(),
+            ciudad: _pacienteCiudadController.text.trim(),
+          );
+      if (!mounted) return;
+      // El paciente pudo haber seguido escribiendo mientras este
+      // request estaba en vuelo — no pisar un cambio más nuevo.
+      final claveVigente =
+          '${_pacienteDireccionController.text.trim()}|${_pacienteDepartamentoController.text.trim()}|${_pacienteCiudadController.text.trim()}';
+      if (claveVigente != clave) return;
+      _direccionPacienteVerificadaPara = clave;
+      _direccionPacienteResultado.value = resultado;
+    } on ApiException {
+      // Best effort — si falla la verificación en vivo, no bloquea
+      // seguir escribiendo; "Guardar cambios" igual valida al final.
+    } on ApiSinConexionException {
+      // ídem
+    } finally {
+      if (mounted) _direccionPacienteCargando.value = false;
+    }
+  }
+
+  Future<void> _elegirCandidatoDireccionPaciente(
+    BuildContext dialogContext,
+    List<CandidatoDireccionPerfil> candidatos,
+  ) async {
+    final elegido = await mostrarSelectorDireccionPerfil(dialogContext, candidatos: candidatos);
+    if (elegido == null || !mounted) return;
+    _pacienteDireccionController.text = elegido.direccionResuelta;
+    _verificarDireccionPaciente();
+  }
+
+  Widget _mensajeConfirmacionDireccionPaciente(BuildContext dialogContext) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        _pacienteDireccionController,
+        _pacienteDepartamentoController,
+        _pacienteCiudadController,
+        _direccionPacienteCargando,
+        _direccionPacienteResultado,
+      ]),
+      builder: (context, _) {
+        final texto = _pacienteDireccionController.text.trim();
+        if (texto.isEmpty) return const SizedBox.shrink();
+        final clave =
+            '$texto|${_pacienteDepartamentoController.text.trim()}|${_pacienteCiudadController.text.trim()}';
+        final resultado = _direccionPacienteResultado.value;
+        final vigente = _direccionPacienteVerificadaPara == clave && resultado != null;
+        final candidatos = vigente ? resultado.candidatos : const <CandidatoDireccionPerfil>[];
+        return MensajeConfirmacionDireccionPerfil(
+          cargando: _direccionPacienteCargando.value && !vigente,
+          resuelta: vigente ? resultado.direccionResuelta : null,
+          precisa: vigente ? resultado.precisa : true,
+          fallo: vigente && resultado.direccionResuelta == null,
+          candidatos: candidatos,
+          onVerAlternativas: candidatos.isEmpty
+              ? null
+              : () => _elegirCandidatoDireccionPaciente(dialogContext, candidatos),
+        );
+      },
+    );
   }
 
   Future<void> _cargarPerfil() async {
@@ -120,6 +233,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
         _domiciliarioDireccionController.text = perfil.domiciliario?.direccion ?? '';
         _vehiculoTipoController.text = perfil.domiciliario?.vehiculoTipo ?? '';
         _vehiculoPlacaController.text = perfil.domiciliario?.vehiculoPlaca ?? '';
+        _direccionPacienteVerificadaPara = null;
+        _direccionPacienteResultado.value = null;
       });
     } on ApiException catch (error) {
       setState(() => _errorCarga = error.message);
@@ -594,6 +709,10 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   }
 
   void _showPacienteDialog() {
+    // Verifica la dirección ya guardada apenas se abre el panel (no
+    // solo tras la primera edición) — así el paciente ve de una si
+    // sigue siendo válida, sin tener que tocar el campo primero.
+    _verificarDireccionPaciente();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -605,8 +724,10 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             label: 'Dirección de entrega',
             icono: Icons.home_outlined,
             controller: _pacienteDireccionController,
+            focusNode: _pacienteDireccionFocus,
             enabled: !_guardandoCambios,
           ),
+          _mensajeConfirmacionDireccionPaciente(context),
           const SizedBox(height: 12),
           _CampoPerfilDropdown(
             label: 'Departamento',
@@ -616,8 +737,12 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             opciones: colombiaDepartamentos,
             // Una ciudad del departamento anterior ya no aplica — se
             // limpia para no dejar guardado un par
-            // departamento/ciudad que no corresponden entre sí.
-            onSeleccionado: (_) => _pacienteCiudadController.clear(),
+            // departamento/ciudad que no corresponden entre sí. El
+            // contexto de búsqueda cambió — se re-verifica.
+            onSeleccionado: (_) {
+              _pacienteCiudadController.clear();
+              _verificarDireccionPaciente();
+            },
           ),
           const SizedBox(height: 12),
           ValueListenableBuilder<TextEditingValue>(
@@ -632,8 +757,10 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                 opciones: ciudades,
                 valorInicial: _pacienteCiudadController.text,
                 enabled: !_guardandoCambios && ciudades.isNotEmpty,
-                onSeleccionar: (valor) =>
-                    _pacienteCiudadController.text = valor,
+                onSeleccionar: (valor) {
+                  _pacienteCiudadController.text = valor;
+                  _verificarDireccionPaciente();
+                },
               );
             },
           ),
@@ -1635,6 +1762,7 @@ class _CampoPerfil extends StatelessWidget {
     required this.enabled,
     this.keyboardType,
     this.inputFormatters,
+    this.focusNode,
   });
 
   final String label;
@@ -1643,6 +1771,7 @@ class _CampoPerfil extends StatelessWidget {
   final bool enabled;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -1654,6 +1783,7 @@ class _CampoPerfil extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
+        focusNode: focusNode,
         enabled: enabled,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,

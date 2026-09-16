@@ -1,5 +1,6 @@
 import '../entities/nivel_copago.dart';
 import '../entities/perfil.dart';
+import '../entities/verificacion_direccion.dart';
 import '../value-objects/lado_documento.dart';
 import '../value-objects/tipo_documento_domiciliario.dart';
 
@@ -23,6 +24,14 @@ abstract class PerfilRepository {
     required String fechaNacimiento,
     required String departamento,
     required String ciudad,
+  });
+
+  /// Ronda 12 — geocodifica sin guardar (loader + candidatos apenas
+  /// se pierde el foco del campo de dirección del perfil).
+  Future<VerificacionDireccion> verificarDireccion({
+    required String direccion,
+    String? departamento,
+    String? ciudad,
   });
 
   /// G01/G03 — foto de un lado (frente o reverso) de la cédula del

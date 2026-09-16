@@ -1,5 +1,6 @@
 import '../../domain/entities/nivel_copago.dart';
 import '../../domain/entities/perfil.dart';
+import '../../domain/entities/verificacion_direccion.dart';
 import '../../domain/repositories/perfil_repository.dart';
 import '../../domain/value-objects/lado_documento.dart';
 import '../../domain/value-objects/tipo_documento_domiciliario.dart';
@@ -40,6 +41,20 @@ class PerfilRepositoryImpl implements PerfilRepository {
       departamento: departamento,
       ciudad: ciudad,
     );
+  }
+
+  @override
+  Future<VerificacionDireccion> verificarDireccion({
+    required String direccion,
+    String? departamento,
+    String? ciudad,
+  }) async {
+    final respuesta = await _datasource.verificarDireccion(
+      direccion: direccion,
+      departamento: departamento,
+      ciudad: ciudad,
+    );
+    return VerificacionDireccion.fromJson(respuesta);
   }
 
   @override
