@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
+import '../../../../shared/core/network/eventos_socket_service.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../usuarios/presentation/providers/usuario_providers.dart';
@@ -30,7 +31,10 @@ class PedidosDisponiblesScreen extends ConsumerStatefulWidget {
 class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScreen> {
   // Red de seguridad además del WebSocket — ver el mismo comentario en
   // SolicitudDetalleScreen: en algunas redes el socket no conecta, y
-  // sin esto no queda ningún otro mecanismo que refresque solo.
+  // sin esto no queda ningún otro mecanismo que refresque solo. Bug
+  // real reportado: "si el WebSocket funciona no envíes el refresh
+  // cada 15 segundos, es innecesario" — con el socket conectado este
+  // poll no aporta nada, ver el guard en el callback de abajo.
   static const _intervaloPoll = Duration(seconds: 15);
 
   bool _cargando = true;
@@ -43,7 +47,13 @@ class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScr
   void initState() {
     super.initState();
     _cargar();
-    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+    _timer = Timer.periodic(_intervaloPoll, (_) {
+      if (ref.read(eventosSocketServiceProvider).diagnostico.value.fase ==
+          FaseSocket.conectado) {
+        return;
+      }
+      _cargarSilencioso();
+    });
     _suscripcionSocket = ref
         .read(eventosSocketServiceProvider)
         .pedidoActualizado

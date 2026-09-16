@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
+import '../../../../shared/core/network/eventos_socket_service.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
@@ -38,7 +39,10 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
   // móviles con NAT/proxies restrictivos) el socket no llega a
   // conectar y ahí no queda ningún otro mecanismo que refresque solo
   // — sin este poll, un cambio real (ej. "entregado") podía tardar
-  // minutos en verse, o no verse hasta recargar a mano.
+  // minutos en verse, o no verse hasta recargar a mano. Bug real
+  // reportado: "si el WebSocket funciona no envíes el refresh cada 15
+  // segundos, es innecesario" — con el socket conectado este poll no
+  // aporta nada, ver el guard en el callback de abajo.
   static const _intervaloPoll = Duration(seconds: 15);
 
   bool _cargando = true;
@@ -53,7 +57,13 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
   void initState() {
     super.initState();
     _cargar();
-    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+    _timer = Timer.periodic(_intervaloPoll, (_) {
+      if (ref.read(eventosSocketServiceProvider).diagnostico.value.fase ==
+          FaseSocket.conectado) {
+        return;
+      }
+      _cargarSilencioso();
+    });
     _suscripcionSocket = ref
         .read(eventosSocketServiceProvider)
         .pedidoActualizado

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
+import '../../../../shared/core/network/eventos_socket_service.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_order_card.dart';
@@ -37,7 +38,11 @@ class HistorialPedidosScreen extends ConsumerStatefulWidget {
 class _HistorialPedidosScreenState extends ConsumerState<HistorialPedidosScreen> {
   // Red de seguridad además del WebSocket — ver el mismo comentario en
   // SolicitudDetalleScreen: en algunas redes el socket no conecta, y
-  // sin esto no queda ningún otro mecanismo que refresque solo.
+  // sin esto no queda ningún otro mecanismo que refresque solo. Bug
+  // real reportado: "si el WebSocket funciona no envíes el refresh
+  // cada 15 segundos, es innecesario" — con el socket conectado, este
+  // poll no aporta nada (ver el guard en el callback de abajo);
+  // arranca solo cuando el socket no está conectado o se cae.
   static const _intervaloPoll = Duration(seconds: 15);
 
   bool _cargando = true;
@@ -51,7 +56,13 @@ class _HistorialPedidosScreenState extends ConsumerState<HistorialPedidosScreen>
   void initState() {
     super.initState();
     _cargar();
-    _timer = Timer.periodic(_intervaloPoll, (_) => _cargarSilencioso());
+    _timer = Timer.periodic(_intervaloPoll, (_) {
+      if (ref.read(eventosSocketServiceProvider).diagnostico.value.fase ==
+          FaseSocket.conectado) {
+        return;
+      }
+      _cargarSilencioso();
+    });
     // Además del poll (que queda como red de seguridad), ver
     // EventosSocketService — cubre, por ejemplo, que este pedido se
     // marque "entregado" mientras esta pantalla está abierta.

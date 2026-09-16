@@ -33,6 +33,8 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
   final List<Medicamento> _medicamentos = [];
   final _direccionEntrega = TextEditingController();
   final _direccionFarmacia = TextEditingController();
+  final _focusDireccionEntrega = FocusNode();
+  final _focusDireccionFarmacia = FocusNode();
   DateTime? _recetaFechaVencimiento;
 
   String? _recetaUrlServidor;
@@ -50,13 +52,29 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
 
   // Estimado en vivo del precio (copago + domicilio) mientras se arma
   // el pedido — antes, el paciente solo se enteraba del costo después
-  // de haberlo enviado. Con debounce: geocodificar pega contra
-  // Nominatim (rate-limited del lado de la API), no tiene sentido
-  // disparar un request por cada tecla.
-  static const _debouncePrecioDuracion = Duration(milliseconds: 900);
+  // de haberlo enviado.
+  //
+  // Bug real reportado ("la app está super lenta"): antes esto
+  // escuchaba cambios de TEXTO con un debounce de 900ms — es decir,
+  // disparaba un estimado (2 geocodificaciones contra Nominatim) 900ms
+  // después de CADA pausa al escribir, mientras los dos campos no
+  // estuvieran vacíos, sin importar si la dirección estaba completa o
+  // a mitad de escribir. Del lado de la API, Nominatim tiene un
+  // rate-limit global de 1 request/segundo COMPARTIDO entre todos los
+  // usuarios (ver NominatimGeocodificacionAdapter) — cada tecla de
+  // cada paciente escribiendo una dirección iba a esa misma cola.
+  //
+  // Ahora escucha el FOCO de cada campo, no el texto: dispara como
+  // mucho una vez cuando se termina de escribir esa dirección (el
+  // campo pierde el foco), no una vez por pausa mientras se tipea.
   PrecioPedido? _precioEstimado;
   bool _cargandoPrecio = false;
-  Timer? _debouncePrecio;
+  String? _ultimaFarmaciaEstimada;
+  String? _ultimaEntregaEstimada;
+  // Para qué texto exacto `_precioEstimado` ya tiene una respuesta
+  // real de Nominatim — ver `_estimarPrecio`.
+  String? _farmaciaConfirmadaPara;
+  String? _entregaConfirmadaPara;
 
   @override
   void initState() {
@@ -64,16 +82,23 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     _solicitudIdRemoto = widget.solicitudId;
     _direccionEntrega.addListener(_onCambioCampo);
     _direccionFarmacia.addListener(_onCambioCampo);
-    _direccionEntrega.addListener(_onCambioDireccionParaPrecio);
-    _direccionFarmacia.addListener(_onCambioDireccionParaPrecio);
+    // Refresca el mensaje de confirmación bajo cada campo apenas el
+    // texto cambia — sin esto, una confirmación vieja seguía mostrada
+    // mientras el paciente reescribía la dirección, hasta el próximo
+    // blur (que es cuando de verdad se vuelve a geocodificar).
+    _direccionEntrega.addListener(_refrescarUI);
+    _direccionFarmacia.addListener(_refrescarUI);
+    _focusDireccionFarmacia.addListener(_onFocoCambioDireccion);
+    _focusDireccionEntrega.addListener(_onFocoCambioDireccion);
     _inicializar();
   }
 
   @override
   void dispose() {
-    _debouncePrecio?.cancel();
     _direccionEntrega.dispose();
     _direccionFarmacia.dispose();
+    _focusDireccionFarmacia.dispose();
+    _focusDireccionEntrega.dispose();
     super.dispose();
   }
 
@@ -193,12 +218,28 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     ref.read(borradorLocalRepositoryProvider).guardar(_datosActuales());
   }
 
+  void _refrescarUI() {
+    if (mounted) setState(() {});
+  }
+
+  /// Se dispara cuando CUALQUIERA de los dos campos de dirección
+  /// pierde el foco — no en cada cambio de foco (eso incluiría también
+  /// cuando un campo lo GANA), y no en cada tecla mientras se escribe.
+  void _onFocoCambioDireccion() {
+    // Mientras cualquiera de los dos siga enfocado, el paciente sigue
+    // trabajando en la dirección — no hay "campo recién completado"
+    // todavía.
+    if (_focusDireccionFarmacia.hasFocus || _focusDireccionEntrega.hasFocus) {
+      return;
+    }
+    _onCambioDireccionParaPrecio();
+  }
+
   /// Separado de `_onCambioCampo()` a propósito: ese solo corre para un
   /// borrador nuevo (no editando uno existente), mientras que el
   /// estimado de precio tiene que funcionar en los dos casos.
   void _onCambioDireccionParaPrecio() {
     if (_cargandoInicial) return;
-    _debouncePrecio?.cancel();
 
     final farmacia = _direccionFarmacia.text.trim();
     final entrega = _direccionEntrega.text.trim();
@@ -207,13 +248,23 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       return;
     }
 
-    _debouncePrecio = Timer(
-      _debouncePrecioDuracion,
-      () => _estimarPrecio(farmacia, entrega),
-    );
+    // Ninguna de las dos direcciones cambió desde el último estimado
+    // (ej. el paciente solo tocó un campo para revisarlo y volvió a
+    // salir) — no tiene sentido volver a geocodificar el mismo texto.
+    if (farmacia == _ultimaFarmaciaEstimada && entrega == _ultimaEntregaEstimada) {
+      return;
+    }
+
+    _estimarPrecio(farmacia, entrega);
   }
 
   Future<void> _estimarPrecio(String farmacia, String entrega) async {
+    // Se marca ANTES de pedir el estimado (no solo al tener éxito) —
+    // así, si vuelve a perder el foco sin cambiar el texto (ej. la API
+    // falló y el paciente solo tocó el campo de nuevo), no se repite
+    // el mismo request.
+    _ultimaFarmaciaEstimada = farmacia;
+    _ultimaEntregaEstimada = entrega;
     setState(() => _cargandoPrecio = true);
     try {
       final precio = await ref
@@ -227,7 +278,16 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
           _direccionEntrega.text.trim() != entrega) {
         return;
       }
-      setState(() => _precioEstimado = precio);
+      setState(() {
+        _precioEstimado = precio;
+        // Distinto de `_ultimaXEstimada` (que se marca ANTES del
+        // request, para no duplicar llamadas) — esto marca para qué
+        // texto exacto `_precioEstimado` ya tiene una respuesta real,
+        // así el mensaje bajo cada campo no muestra una confirmación
+        // vieja mientras el otro campo se re-verifica.
+        _farmaciaConfirmadaPara = farmacia;
+        _entregaConfirmadaPara = entrega;
+      });
     } on ApiException {
       // Un estimado que falla (ej. Nominatim caído) no debe
       // interrumpir armar el pedido — simplemente no se muestra.
@@ -236,6 +296,80 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     } finally {
       if (mounted) setState(() => _cargandoPrecio = false);
     }
+  }
+
+  /// `true` cuando las dos direcciones ya tienen una confirmación real
+  /// (no null) para el texto que está escrito ahora mismo — ver
+  /// `_onEnviar`, que exige esto antes de dejar enviar el pedido.
+  bool get _direccionesConfirmadas {
+    final farmacia = _direccionFarmacia.text.trim();
+    final entrega = _direccionEntrega.text.trim();
+    if (farmacia.isEmpty || entrega.isEmpty) return false;
+    if (_farmaciaConfirmadaPara != farmacia || _entregaConfirmadaPara != entrega) {
+      return false;
+    }
+    return _precioEstimado?.direccionFarmaciaResuelta != null &&
+        _precioEstimado?.direccionEntregaResuelta != null;
+  }
+
+  Widget _mensajeConfirmacionFarmacia() {
+    final texto = _direccionFarmacia.text.trim();
+    if (texto.isEmpty) return const SizedBox.shrink();
+    final vigente = _farmaciaConfirmadaPara == texto && _precioEstimado != null;
+    final List<CandidatoDireccion> candidatos =
+        vigente ? _precioEstimado!.direccionFarmaciaCandidatos : const [];
+    return MensajeConfirmacionDireccion(
+      cargando: _cargandoPrecio && !vigente,
+      resuelta: vigente ? _precioEstimado!.direccionFarmaciaResuelta : null,
+      precisa: vigente ? _precioEstimado!.direccionFarmaciaPrecisa : true,
+      fallo: vigente && _precioEstimado!.direccionFarmaciaResuelta == null,
+      candidatos: candidatos,
+      onVerAlternativas: candidatos.isEmpty
+          ? null
+          : () => _elegirCandidato(_direccionFarmacia, candidatos),
+    );
+  }
+
+  Widget _mensajeConfirmacionEntrega() {
+    final texto = _direccionEntrega.text.trim();
+    if (texto.isEmpty) return const SizedBox.shrink();
+    final vigente = _entregaConfirmadaPara == texto && _precioEstimado != null;
+    final List<CandidatoDireccion> candidatos =
+        vigente ? _precioEstimado!.direccionEntregaCandidatos : const [];
+    return MensajeConfirmacionDireccion(
+      cargando: _cargandoPrecio && !vigente,
+      resuelta: vigente ? _precioEstimado!.direccionEntregaResuelta : null,
+      precisa: vigente ? _precioEstimado!.direccionEntregaPrecisa : true,
+      fallo: vigente && _precioEstimado!.direccionEntregaResuelta == null,
+      candidatos: candidatos,
+      onVerAlternativas: candidatos.isEmpty
+          ? null
+          : () => _elegirCandidato(_direccionEntrega, candidatos),
+    );
+  }
+
+  /// Ronda 11 — bug real reportado: un Paciente registrado en un
+  /// municipio (ej. Amagá) puede estar pidiendo desde otro (ej. San
+  /// Antonio de Prado, ya en Medellín) — el primer resultado de
+  /// Nominatim no siempre es el correcto. Al elegir un candidato, se
+  /// reemplaza el texto del campo por la dirección tal como Nominatim
+  /// la reconoce (más específica que lo que el Paciente escribió), lo
+  /// que dispara una nueva geocodificación de esa dirección puntual al
+  /// perder el foco — mismo camino que cualquier otra edición manual,
+  /// sin necesidad de pasarle lat/lng directo a la API.
+  Future<void> _elegirCandidato(
+    TextEditingController controller,
+    List<CandidatoDireccion> candidatos,
+  ) async {
+    final elegido = await mostrarSelectorDireccion(
+      context,
+      direccionElegida: controller.text,
+      candidatos: candidatos,
+    );
+    if (elegido == null || !mounted) return;
+    controller.text = elegido.direccionResuelta;
+    _onCambioCampo();
+    _onCambioDireccionParaPrecio();
   }
 
   bool _huboCambiosSinGuardar() {
@@ -615,8 +749,10 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                           label: 'Dirección de la farmacia',
                           icono: Icons.local_pharmacy_outlined,
                           controller: _direccionFarmacia,
+                          focusNode: _focusDireccionFarmacia,
                           enabled: !_guardando,
                         ),
+                        _mensajeConfirmacionFarmacia(),
                         const SizedBox(height: 24),
 
                         // ====== SECCIÓN: ENTREGA ======
@@ -626,8 +762,10 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                           label: 'Dirección de entrega',
                           icono: Icons.home_outlined,
                           controller: _direccionEntrega,
+                          focusNode: _focusDireccionEntrega,
                           enabled: !_guardando,
                         ),
+                        _mensajeConfirmacionEntrega(),
                         const SizedBox(height: 24),
 
                         // Estimado en vivo — recién aparece cuando hay
@@ -667,13 +805,26 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                         AppLoadingButton(
                           label: 'Enviar solicitud',
                           cargando: _guardando,
-                          onPressed: faltantes.isEmpty ? _onEnviar : null,
+                          onPressed: faltantes.isEmpty && _direccionesConfirmadas
+                              ? _onEnviar
+                              : null,
                         ),
                         if (faltantes.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           Text(
                             'Para enviar falta: ${faltantes.join(', ')}.',
                             style: const TextStyle(color: AppColors.teal, fontSize: 13),
+                          ),
+                        ] else if (!_direccionesConfirmadas) ...[
+                          // Bug real reportado: antes se dejaba enviar
+                          // el pedido aunque Nominatim no hubiera
+                          // podido confirmar ninguna de las dos
+                          // direcciones — el domiciliario terminaba
+                          // sin ubicación real para navegar.
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Para enviar, esperá a que las dos direcciones queden confirmadas arriba.',
+                            style: TextStyle(color: AppColors.teal, fontSize: 13),
                           ),
                         ],
                       ],

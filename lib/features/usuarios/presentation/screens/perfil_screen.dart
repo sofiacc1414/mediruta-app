@@ -980,22 +980,26 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
         title: 'Desactivar cuenta',
         isDestructive: true,
         children: [
+          // Bug real reportado: este aviso usaba rojo semántico — la
+          // paleta oficial del proyecto nunca usa rojo/verde/naranja
+          // (ver context.md), la gravedad se comunica con el ícono y
+          // el fill, no con el color.
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.05),
+              color: AppColors.skyBlue.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+              border: Border.all(color: AppColors.navy.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
+                const Icon(Icons.warning_amber_rounded, color: AppColors.navy, size: 24),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
                     'Esta acción es permanente y no se puede deshacer. '
                     'Tu cuenta pasará a estado inactivo y se cerrará tu sesión.',
-                    style: TextStyle(color: Colors.red, fontSize: 14),
+                    style: TextStyle(color: AppColors.navy, fontSize: 14),
                   ),
                 ),
               ],
@@ -1429,16 +1433,16 @@ class _EditarPerfilBottomSheet extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.edit_outlined,
-                      color: isDestructive ? Colors.red : AppColors.teal,
+                      color: isDestructive ? AppColors.navy : AppColors.teal,
                       size: 22,
                     ),
                     const SizedBox(width: 10),
                     Text(
                       title,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: isDestructive ? Colors.red : AppColors.navy,
+                        color: AppColors.navy,
                       ),
                     ),
                     const Spacer(),

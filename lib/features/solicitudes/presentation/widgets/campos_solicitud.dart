@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../domain/entities/medicamento.dart';
+import '../../domain/entities/precio_pedido.dart';
 
 /// Widgets de formulario de solicitud (HU-03), compartidos entre
 /// `nueva_solicitud_screen.dart` (crear/editar un Borrador) y
@@ -39,12 +40,18 @@ class CampoTextoBlanco extends StatelessWidget {
     required this.icono,
     required this.controller,
     required this.enabled,
+    this.focusNode,
   });
 
   final String label;
   final IconData icono;
   final TextEditingController controller;
   final bool enabled;
+  /// Opcional — lo usa `NuevaSolicitudScreen` para saber cuándo el
+  /// Paciente terminó de escribir la dirección (perdió el foco del
+  /// campo) en vez de disparar el estimado de precio en cada pausa al
+  /// tipear.
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +63,7 @@ class CampoTextoBlanco extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
+        focusNode: focusNode,
         enabled: enabled,
         style: const TextStyle(
           fontSize: 15,
@@ -283,6 +291,16 @@ class _DialogoMedicamentoState extends State<DialogoMedicamento> {
       _formaFarmaceutica.text.trim().isNotEmpty &&
       _cantidad.text.trim().isNotEmpty;
 
+  /// Bug real reportado: el campo ya sugiere/filtra sobre la lista
+  /// disponible (se mantiene tal cual, con buscador), pero antes
+  /// dejaba guardar cualquier texto libre igual — sin que el usuario
+  /// eligiera una opción de la lista. Comparación insensible a
+  /// mayúsculas: el usuario puede tipear la sugerencia exacta a mano
+  /// sin necesidad de tocarla en el overlay.
+  bool get _formaFarmaceuticaValida => formasFarmaceuticasSugeridas.any(
+    (opcion) => opcion.toLowerCase() == _formaFarmaceutica.text.trim().toLowerCase(),
+  );
+
   @override
   void dispose() {
     _nombre.dispose();
@@ -294,6 +312,30 @@ class _DialogoMedicamentoState extends State<DialogoMedicamento> {
   }
 
   void _aceptar() {
+    if (!_formaFarmaceuticaValida) {
+      showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Forma farmacéutica no disponible',
+            style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700),
+          ),
+          content: const Text(
+            'Elegí una de las opciones sugeridas — escribí para buscarla y tocá la que corresponda.',
+            style: TextStyle(color: AppColors.navy),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Entendido', style: TextStyle(color: AppColors.teal)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     Navigator.of(context).pop(
       Medicamento(
         nombre: vacioComoNulo(_nombre.text),
@@ -627,4 +669,222 @@ class FilaFotoReceta extends StatelessWidget {
     }
     return const Icon(Icons.description_outlined, color: AppColors.navy, size: 24);
   }
+}
+
+/// Confirmación de qué entendió la geocodificación de una dirección de
+/// farmacia/entrega — vive debajo del campo de texto correspondiente
+/// (bug real reportado: antes quedaba escondida dentro de la tarjeta
+/// de precio, sin relación visual con el campo). Tres estados,
+/// distinguidos por ÍCONO — nunca por color semántico (paleta oficial
+/// únicamente, ver context.md): confirmada (check), imprecisa (lugar
+/// grande sin punto exacto) y fallida (Nominatim no encontró nada).
+class MensajeConfirmacionDireccion extends StatelessWidget {
+  const MensajeConfirmacionDireccion({
+    super.key,
+    required this.cargando,
+    required this.resuelta,
+    required this.precisa,
+    required this.fallo,
+    this.candidatos = const [],
+    this.onVerAlternativas,
+  });
+
+  /// Mientras se está esperando la respuesta de geocodificación.
+  final bool cargando;
+  /// La dirección tal como Nominatim la entendió — `null` si todavía
+  /// no se intentó (campo vacío o el otro campo sigue incompleto) o si
+  /// se intentó y no hubo resultado.
+  final String? resuelta;
+  /// `false` cuando SÍ se geocodificó pero es un lugar grande sin
+  /// punto de entrega exacto (ej. "Universidad de Medellín").
+  final bool precisa;
+  /// Se intentó geocodificar y Nominatim no devolvió nada — distinto
+  /// de "todavía no se intentó" (`resuelta == null` sin `fallo`).
+  final bool fallo;
+  /// Ronda 11 — otras coincidencias que Nominatim devolvió para la
+  /// misma búsqueda. Bug real reportado: un Paciente registrado en un
+  /// municipio (ej. Amagá) puede estar pidiendo desde otro (ej. San
+  /// Antonio de Prado) — cuando la dirección elegida no es precisa, se
+  /// ofrece elegir entre estas en vez de quedarse con la aproximación
+  /// automática.
+  final List<CandidatoDireccion> candidatos;
+  final VoidCallback? onVerAlternativas;
+
+  @override
+  Widget build(BuildContext context) {
+    if (cargando) {
+      return _fila(
+        icono: Icons.search,
+        texto: 'Verificando dirección…',
+        relleno: false,
+      );
+    }
+    if (fallo) {
+      return _fila(
+        icono: Icons.location_off_outlined,
+        texto: 'No pudimos ubicar esta dirección — revisala antes de enviar.',
+        relleno: true,
+      );
+    }
+    if (resuelta == null) {
+      return const SizedBox.shrink();
+    }
+    if (!precisa) {
+      return _fila(
+        icono: Icons.info_outline,
+        texto:
+            '$resuelta — es un lugar grande, agregá más detalle si podés (bloque, portería, entrada).',
+        relleno: true,
+        enlace: candidatos.isNotEmpty ? '¿No es acá? Elegí otra dirección' : null,
+        onEnlace: candidatos.isNotEmpty ? onVerAlternativas : null,
+      );
+    }
+    return _fila(
+      icono: Icons.check_circle_outline,
+      texto: resuelta!,
+      relleno: false,
+    );
+  }
+
+  Widget _fila({
+    required IconData icono,
+    required String texto,
+    required bool relleno,
+    String? enlace,
+    VoidCallback? onEnlace,
+  }) {
+    final fila = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icono, size: 14, color: AppColors.navy),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                texto,
+                style: const TextStyle(color: AppColors.navy, fontSize: 12, height: 1.3),
+              ),
+              if (enlace != null)
+                InkWell(
+                  onTap: onEnlace,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      enlace,
+                      style: const TextStyle(
+                        color: AppColors.navy,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+    if (!relleno) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 14, right: 8, top: 6),
+        child: fila,
+      );
+    }
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.skyBlue,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.navy.withValues(alpha: 0.18)),
+      ),
+      child: fila,
+    );
+  }
+}
+
+/// Modal para elegir entre los candidatos alternos que Nominatim
+/// devolvió, cuando la dirección elegida automáticamente no es
+/// precisa — ver `MensajeConfirmacionDireccion.onVerAlternativas`.
+Future<CandidatoDireccion?> mostrarSelectorDireccion(
+  BuildContext context, {
+  required String direccionElegida,
+  required List<CandidatoDireccion> candidatos,
+}) {
+  return showModalBottomSheet<CandidatoDireccion>(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Elegí la dirección correcta',
+                style: TextStyle(
+                  color: AppColors.navy,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Encontramos varias coincidencias — elegí la que corresponde.',
+                style: TextStyle(color: AppColors.teal, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              for (final candidato in candidatos)
+                InkWell(
+                  onTap: () => Navigator.of(context).pop(candidato),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF2F4F7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          candidato.precisa
+                              ? Icons.check_circle_outline
+                              : Icons.info_outline,
+                          size: 16,
+                          color: AppColors.navy,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            candidato.direccionResuelta,
+                            style: const TextStyle(color: AppColors.navy, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(
+                  'Ninguna — seguir con la escrita',
+                  style: TextStyle(color: AppColors.teal),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
