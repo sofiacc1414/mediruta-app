@@ -539,57 +539,70 @@ class FilaFotoReceta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: _esImagenVisible
-                ? () => mostrarImagenCompleta(
-                    context,
-                    bytes: bytesLocal != null ? Uint8List.fromList(bytesLocal!) : null,
-                    url: bytesLocal == null ? urlServidor : null,
-                  )
-                : null,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+    // Bug real reportado: antes, sin archivo todavía, tocar el ícono o
+    // el texto no hacía nada — solo "Subir" respondía. Ahora, si
+    // todavía no hay archivo, toda la fila abre el selector (el
+    // `GestureDetector` de la miniatura solo aplica cuando SÍ hay
+    // imagen, para el zoom — ver más abajo, no se toca ese caso).
+    return InkWell(
+      onTap: !tieneArchivo ? onElegir : null,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: _esImagenVisible
+                  ? () => mostrarImagenCompleta(
+                      context,
+                      bytes: bytesLocal != null ? Uint8List.fromList(bytesLocal!) : null,
+                      url: bytesLocal == null ? urlServidor : null,
+                    )
+                  : null,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  ),
+                  child: _contenidoCentral(),
                 ),
-                child: _contenidoCentral(),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              tieneArchivo
-                  ? (_esImagenVisible ? 'Foto de la receta — toca para verla' : 'Receta (PDF) subida')
-                  : 'Foto de la receta — no subida',
-              style: const TextStyle(
-                color: AppColors.navy,
-                fontSize: 14,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                tieneArchivo
+                    ? (_esImagenVisible ? 'Foto de la receta — toca para verla' : 'Receta (PDF) subida')
+                    : 'Foto de la receta — no subida',
+                style: const TextStyle(
+                  color: AppColors.navy,
+                  fontSize: 14,
+                ),
               ),
             ),
-          ),
-          TextButton(
-            onPressed: onElegir,
-            child: Text(
-              tieneArchivo ? 'Reemplazar' : 'Subir',
-              style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
+            // Con archivo ya subido, el "Reemplazar" sigue siendo su
+            // propio botón independiente (la fila ya no abre el
+            // selector al tocarla en ese estado — tocar la miniatura
+            // hace zoom, tocar acá reemplaza).
+            TextButton(
+              onPressed: onElegir,
+              child: Text(
+                tieneArchivo ? 'Reemplazar' : 'Subir',
+                style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

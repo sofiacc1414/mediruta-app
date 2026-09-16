@@ -6,12 +6,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../shared/core/data/colombia_departamentos.dart';
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/core/theme/modo_adulto_mayor_provider.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
+import '../../../../shared/widgets/selector_ciudad_autocompletar.dart';
 import '../../domain/entities/nivel_copago.dart';
 import '../../domain/entities/perfil.dart';
 import '../../domain/value-objects/lado_documento.dart';
@@ -570,18 +572,34 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             enabled: !_guardandoCambios,
           ),
           const SizedBox(height: 12),
-          _CampoPerfil(
+          _CampoPerfilDropdown(
             label: 'Departamento',
             icono: Icons.map_outlined,
             controller: _pacienteDepartamentoController,
             enabled: !_guardandoCambios,
+            opciones: colombiaDepartamentos,
+            // Una ciudad del departamento anterior ya no aplica — se
+            // limpia para no dejar guardado un par
+            // departamento/ciudad que no corresponden entre sí.
+            onSeleccionado: (_) => _pacienteCiudadController.clear(),
           ),
           const SizedBox(height: 12),
-          _CampoPerfil(
-            label: 'Ciudad',
-            icono: Icons.location_city_outlined,
-            controller: _pacienteCiudadController,
-            enabled: !_guardandoCambios,
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _pacienteDepartamentoController,
+            builder: (context, valorDepartamento, _) {
+              final ciudades =
+                  colombiaDepartamentosCiudades[valorDepartamento.text] ??
+                  const <String>[];
+              return SelectorCiudadAutocompletar(
+                label: 'Ciudad',
+                icono: Icons.location_city_outlined,
+                opciones: ciudades,
+                valorInicial: _pacienteCiudadController.text,
+                enabled: !_guardandoCambios && ciudades.isNotEmpty,
+                onSeleccionar: (valor) =>
+                    _pacienteCiudadController.text = valor,
+              );
+            },
           ),
           const SizedBox(height: 12),
           _CampoFechaPerfil(
@@ -1638,6 +1656,7 @@ class _CampoPerfilDropdown extends StatelessWidget {
     required this.controller,
     required this.enabled,
     required this.opciones,
+    this.onSeleccionado,
   });
 
   final String label;
@@ -1645,6 +1664,10 @@ class _CampoPerfilDropdown extends StatelessWidget {
   final TextEditingController controller;
   final bool enabled;
   final List<String> opciones;
+  /// Se dispara además de guardar el valor en `controller` — usado por
+  /// el departamento de HU-02 para limpiar la ciudad al cambiar (una
+  /// ciudad de otro departamento ya no aplica).
+  final void Function(String valor)? onSeleccionado;
 
   @override
   Widget build(BuildContext context) {
@@ -1657,7 +1680,12 @@ class _CampoPerfilDropdown extends StatelessWidget {
       ),
       child: DropdownButtonFormField<String>(
         initialValue: valorActual,
-        onChanged: enabled ? (valor) => controller.text = valor ?? '' : null,
+        onChanged: enabled
+            ? (valor) {
+                controller.text = valor ?? '';
+                if (valor != null) onSeleccionado?.call(valor);
+              }
+            : null,
         items: opciones
             .map((opcion) => DropdownMenuItem(value: opcion, child: Text(opcion)))
             .toList(),
@@ -2108,50 +2136,67 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-          ),
-          child: Row(
-            children: [
-              _Miniatura(url: widget.url),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  widget.label,
-                  style: TextStyle(
-                    color: AppColors.navy,
-                    fontWeight: yaSubido ? FontWeight.w500 : FontWeight.normal,
-                    fontSize: 14,
+        // Bug real reportado: antes solo el texto "Subir"/"Reemplazar"
+        // abría el selector — tocar el ícono/miniatura o el nombre del
+        // documento no hacía nada. Se envuelve toda la fila en un
+        // InkWell para que cualquier parte de la tarjeta sea un target
+        // válido, no solo esas 6-7 letras de texto.
+        InkWell(
+          onTap: _subiendo ? null : _elegirYSubir,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                _Miniatura(url: widget.url),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.label,
+                    style: TextStyle(
+                      color: AppColors.navy,
+                      fontWeight: yaSubido ? FontWeight.w500 : FontWeight.normal,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
-              ),
-              TextButton(
-                onPressed: _subiendo ? null : _elegirYSubir,
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(0, 0),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                // Sigue siendo su propio botón (no solo texto plano
+                // dentro del InkWell) para que se vea como algo
+                // tocable y para no perder el spinner de "subiendo" —
+                // `IgnorePointer` evita que compita por el gesto con
+                // el InkWell que ya envuelve toda la fila.
+                IgnorePointer(
+                  child: TextButton(
+                    onPressed: null,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      disabledForegroundColor: AppColors.teal,
+                    ),
+                    child: _subiendo
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            yaSubido ? 'Reemplazar' : 'Subir',
+                            style: const TextStyle(
+                              color: AppColors.teal,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13,
+                            ),
+                          ),
+                  ),
                 ),
-                child: _subiendo
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(
-                        yaSubido ? 'Reemplazar' : 'Subir',
-                        style: TextStyle(
-                          color: yaSubido ? AppColors.teal : AppColors.teal,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13,
-                        ),
-                      ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         if (_error != null) ...[

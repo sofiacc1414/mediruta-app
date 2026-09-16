@@ -445,7 +445,11 @@ class _PedidoHistorialCard extends StatelessWidget {
               ],
             ),
           ),
-          // Fecha
+          // Fecha + valor del pedido — antes el histórico no mostraba
+          // el valor del pedido, un dato de interés real para el
+          // domiciliario (bug real reportado). `null` cuando falta el
+          // copago o la distancia (pedido viejo sin geocodificar), en
+          // vez de mostrar un "$0" engañoso.
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -462,6 +466,17 @@ class _PedidoHistorialCard extends StatelessWidget {
                   color: Colors.grey.withValues(alpha: 0.5),
                 ),
               ),
+              if (pedido.total != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  _formatearPrecio(pedido.total!),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.navy,
+                  ),
+                ),
+              ],
             ],
           ),
         ],
@@ -483,6 +498,16 @@ class _PedidoHistorialCard extends StatelessWidget {
       child: tarjeta,
     );
   }
+}
+
+String _formatearPrecio(num precio) {
+  final texto = precio.round().toString();
+  final buffer = StringBuffer();
+  for (var i = 0; i < texto.length; i++) {
+    if (i > 0 && (texto.length - i) % 3 == 0) buffer.write('.');
+    buffer.write(texto[i]);
+  }
+  return '\$$buffer';
 }
 
 String _formatearFecha(String iso) {

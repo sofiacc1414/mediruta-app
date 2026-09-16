@@ -7,6 +7,7 @@ class PedidoHistorial {
     required this.estado,
     required this.direccionEntrega,
     required this.creadoEn,
+    required this.total,
   });
 
   final String id;
@@ -14,6 +15,10 @@ class PedidoHistorial {
   final String estado;
   final String? direccionEntrega;
   final String creadoEn;
+  /// Valor del pedido — dato de interés real para el domiciliario, no
+  /// se mostraba antes. `null` si falta el copago o la distancia (por
+  /// ejemplo, un pedido viejo sin geocodificar).
+  final num? total;
 
   factory PedidoHistorial.fromJson(Map<String, dynamic> json) {
     return PedidoHistorial(
@@ -22,6 +27,7 @@ class PedidoHistorial {
       estado: json['estado'] as String,
       direccionEntrega: json['direccionEntrega'] as String?,
       creadoEn: json['creadoEn'] as String,
+      total: json['total'] as num?,
     );
   }
 }

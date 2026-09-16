@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../shared/core/theme/app_colors.dart';
+import '../../../../shared/widgets/app_form_notice.dart';
 import '../../domain/entities/precio_pedido.dart';
 
 /// Precio del pedido (copago + domicilio) — ver `PrecioPedido`. Si
@@ -54,6 +55,31 @@ class TarjetaPrecioPedido extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
+          // Confirmación de qué entendió la geocodificación — bug real
+          // que motiva esto: una búsqueda ambigua puede resolver al
+          // lugar equivocado (ej. "Parque Simón Bolívar" → un parque
+          // distinto en otro barrio) sin que nada en el precio lo
+          // delate. Se muestra apenas hay una dirección resuelta,
+          // disponible o no el precio todavía (así el Paciente puede
+          // corregir antes de que alcance a enviar el pedido).
+          if (precio.direccionFarmaciaResuelta != null) ...[
+            AppFormNotice(
+              mensaje: precio.direccionFarmaciaPrecisa
+                  ? 'Farmacia: ${precio.direccionFarmaciaResuelta}'
+                  : 'Farmacia: ${precio.direccionFarmaciaResuelta} — es un lugar grande, agregá más detalle si podés (bloque, portería, entrada).',
+              compact: true,
+            ),
+            const SizedBox(height: 4),
+          ],
+          if (precio.direccionEntregaResuelta != null) ...[
+            AppFormNotice(
+              mensaje: precio.direccionEntregaPrecisa
+                  ? 'Entrega: ${precio.direccionEntregaResuelta}'
+                  : 'Entrega: ${precio.direccionEntregaResuelta} — es un lugar grande, agregá más detalle si podés (bloque, portería, entrada).',
+              compact: true,
+            ),
+            const SizedBox(height: 8),
+          ],
           if (!precio.disponible)
             Text(
               precio.motivo == 'sin_nivel_copago'
