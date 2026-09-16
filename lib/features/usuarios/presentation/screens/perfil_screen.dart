@@ -181,7 +181,21 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     }
   }
 
+  /// Bug real reportado: al guardar "Datos de Paciente" con una
+  /// dirección que la API rechaza (ver `DireccionNoValidaError`), el
+  /// formulario "no hacía nada" — no mostraba ningún error. La causa:
+  /// el bottom sheet donde vive el formulario sigue abierto (no se
+  /// cierra en un error, a propósito, para que el usuario corrija sin
+  /// perder lo demás que ya escribió), y un `SnackBar` pedido al
+  /// `ScaffoldMessenger` de la pantalla DE ABAJO queda tapado por el
+  /// propio bottom sheet — nunca llega a verse. Por eso acá se recibe
+  /// el `BuildContext` del bottom sheet (el que arma `showModalBottomSheet`
+  /// en cada `_showXDialog`, no `this.context`) para mostrar el error
+  /// encima de él. En el camino feliz sí se usa `this.context`: ese
+  /// sheet ya se cerró (`Navigator.of(context).pop()` unas líneas más
+  /// abajo) antes de mostrar el snackbar de éxito.
   Future<void> _guardarCambios({
+    required BuildContext dialogContext,
     required bool esPaciente,
     required bool esDomiciliario,
   }) async {
@@ -203,7 +217,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       faltantes.add('dirección, tipo de vehículo y placa de Domiciliario');
     }
     if (faltantes.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(dialogContext).showSnackBar(
         SnackBar(content: Text('Completa: ${faltantes.join('; ')}.')),
       );
       return;
@@ -258,9 +272,13 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       );
       
     } on ApiException catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+      if (mounted && dialogContext.mounted) {
+        ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(error.message)));
+      }
     } on ApiSinConexionException catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      if (mounted && dialogContext.mounted) {
+        ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
     } finally {
       if (mounted) setState(() => _guardandoCambios = false);
     }
@@ -547,6 +565,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
               label: 'Guardar cambios',
               cargando: _guardandoCambios,
               onPressed: () => _guardarCambios(
+                dialogContext: context,
                 esPaciente: false,
                 esDomiciliario: false,
               ),
@@ -664,6 +683,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
               label: 'Guardar cambios',
               cargando: _guardandoCambios,
               onPressed: () => _guardarCambios(
+                dialogContext: context,
                 esPaciente: true,
                 esDomiciliario: false,
               ),
@@ -821,6 +841,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
               label: 'Guardar cambios',
               cargando: _guardandoCambios,
               onPressed: () => _guardarCambios(
+                dialogContext: context,
                 esPaciente: false,
                 esDomiciliario: true,
               ),
