@@ -84,10 +84,12 @@ class FakePerfilRepository implements PerfilRepository {
     required String fechaNacimiento,
     required String departamento,
     required String ciudad,
+    required bool direccionVerificada,
   }) async {
     _registrar('actualizarPerfilPaciente', {
       'direccion': direccion,
       'fechaNacimiento': fechaNacimiento,
+      'direccionVerificada': direccionVerificada,
       'departamento': departamento,
       'ciudad': ciudad,
     });

@@ -34,12 +34,14 @@ class PerfilRepositoryImpl implements PerfilRepository {
     required String fechaNacimiento,
     required String departamento,
     required String ciudad,
+    required bool direccionVerificada,
   }) {
     return _datasource.actualizarPerfilPaciente(
       direccion: direccion,
       fechaNacimiento: fechaNacimiento,
       departamento: departamento,
       ciudad: ciudad,
+      direccionVerificada: direccionVerificada,
     );
   }
 

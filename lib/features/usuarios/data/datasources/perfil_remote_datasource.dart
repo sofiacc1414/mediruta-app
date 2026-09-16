@@ -30,6 +30,7 @@ class PerfilRemoteDatasource {
     required String fechaNacimiento,
     required String departamento,
     required String ciudad,
+    required bool direccionVerificada,
   }) {
     return _apiClient.patch(
       '/perfil/paciente',
@@ -38,6 +39,7 @@ class PerfilRemoteDatasource {
         'fechaNacimiento': fechaNacimiento,
         'departamento': departamento,
         'ciudad': ciudad,
+        'direccionVerificada': direccionVerificada,
       },
       autenticado: true,
     );

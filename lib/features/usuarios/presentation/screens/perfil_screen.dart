@@ -216,6 +216,23 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     );
   }
 
+  /// `true` cuando la dirección de paciente escrita AHORA MISMO es
+  /// exactamente la última que se confirmó como resuelta (chequeo en
+  /// vivo, o al elegir una sugerencia) — ver
+  /// `ActualizarPerfilPacienteUseCase.direccionVerificada`: evita que
+  /// "Guardar cambios" repita la geocodificación y se tope con una
+  /// falla que la App ya no tuvo al confirmarla.
+  bool get _direccionPacienteConfirmada {
+    final texto = _pacienteDireccionController.text.trim();
+    if (texto.isEmpty) return false;
+    final clave =
+        '$texto|${_pacienteDepartamentoController.text.trim()}|${_pacienteCiudadController.text.trim()}';
+    final resultado = _direccionPacienteResultado.value;
+    return _direccionPacienteVerificadaPara == clave &&
+        resultado != null &&
+        resultado.direccionResuelta != null;
+  }
+
   Widget _mensajeConfirmacionDireccionPaciente(BuildContext dialogContext) {
     return AnimatedBuilder(
       animation: Listenable.merge([
@@ -406,6 +423,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
               fechaNacimiento: _isoFecha(_pacienteFechaNacimiento!),
               departamento: _pacienteDepartamentoController.text.trim(),
               ciudad: _pacienteCiudadController.text.trim(),
+              direccionVerificada: _direccionPacienteConfirmada,
             );
       }
       if (esDomiciliario) {

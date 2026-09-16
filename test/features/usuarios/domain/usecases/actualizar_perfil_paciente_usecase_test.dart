@@ -6,7 +6,7 @@ import 'fake_perfil_repository.dart';
 
 void main() {
   group('ActualizarPerfilPacienteUseCase', () {
-    test('G01/G03 — delega dirección y fecha de nacimiento', () async {
+    test('G01/G03 — delega dirección, fecha de nacimiento y direccionVerificada', () async {
       final repo = FakePerfilRepository();
       final usecase = ActualizarPerfilPacienteUseCase(repo);
 
@@ -15,12 +15,14 @@ void main() {
         fechaNacimiento: '1990-05-10',
         departamento: 'Cundinamarca',
         ciudad: 'Bogotá',
+        direccionVerificada: true,
       );
 
       expect(repo.ultimaLlamada, {
         'metodo': 'actualizarPerfilPaciente',
         'direccion': 'Calle 123 #45-67',
         'fechaNacimiento': '1990-05-10',
+        'direccionVerificada': true,
         'departamento': 'Cundinamarca',
         'ciudad': 'Bogotá',
       });
@@ -37,6 +39,7 @@ void main() {
           fechaNacimiento: '1990-05-10',
           departamento: 'Cundinamarca',
           ciudad: 'Bogotá',
+          direccionVerificada: false,
         ),
         throwsA(isA<ApiException>()),
       );

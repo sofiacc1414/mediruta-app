@@ -18,12 +18,14 @@ abstract class PerfilRepository {
 
   /// G01/G03 — dirección + fecha de nacimiento del Paciente.
   /// `departamento`/`ciudad` son obligatorios desde HU-09 (contexto de
-  /// geocodificación de sus pedidos).
+  /// geocodificación de sus pedidos). `direccionVerificada` — ver
+  /// `ActualizarPerfilPacienteUseCase`.
   Future<void> actualizarPerfilPaciente({
     required String direccion,
     required String fechaNacimiento,
     required String departamento,
     required String ciudad,
+    required bool direccionVerificada,
   });
 
   /// Ronda 12 — geocodifica sin guardar (loader + candidatos apenas
