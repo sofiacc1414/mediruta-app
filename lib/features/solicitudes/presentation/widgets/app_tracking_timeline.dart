@@ -18,14 +18,20 @@ class AppTrackingTimeline extends StatelessWidget {
     required this.estadoActual,
     required this.historial,
     this.accionPasoActual,
+    this.vistaEntregaDomiciliario = false,
   });
 
   final String estadoActual;
   final List<EventoHistorial> historial;
 
-  /// Se muestra junto al paso que coincide con `estadoActual` — `null` si
-  /// no aplica (ej. el detalle de solo lectura del Paciente).
+  /// Se muestra junto al paso en curso — `null` si no aplica (ej. el
+  /// detalle de solo lectura del Paciente).
   final Widget? accionPasoActual;
+
+  /// En "Mi pedido activo" el avance del domiciliario son 4 pasos.
+  /// Solo se marca un paso cuando la acción de ese paso ya se completó:
+  /// al aceptar, únicamente "Pedido aceptado".
+  final bool vistaEntregaDomiciliario;
 
   static const _pasos = [
     'pendiente_revision',
@@ -47,8 +53,61 @@ class AppTrackingTimeline extends StatelessWidget {
     'entregado': 'Entregado',
   };
 
+  /// Pasos que recorre el domiciliario después de aceptar. El estado
+  /// real del pedido se traduce a cuántos de estos ya quedaron hechos.
+  static const _pasosEntrega = [
+    'pedido_aceptado',
+    'en_camino_farmacia',
+    'en_farmacia',
+    'pedido_recogido',
+    'en_camino',
+    'en_sitio',
+    'entregado',
+  ];
+
+  static const _etiquetasEntrega = {
+    'pedido_aceptado': 'Pedido aceptado',
+    'en_camino_farmacia': 'En camino a farmacia',
+    'en_farmacia': 'En farmacia',
+    'pedido_recogido': 'Pedido recogido',
+    'en_camino': 'En camino al destino',
+    'en_sitio': 'En sitio',
+    'entregado': 'Entregado',
+  };
+
+  /// Cuántos pasos de entrega ya están completos. Aceptar deja hechos
+  /// "Pedido aceptado" y "En camino a farmacia". La cédula solo existe
+  /// cuando el paso "En farmacia" ya se marcó.
+  static int pasosEntregaCompletados(String estado) {
+    return switch (estado) {
+      'en_farmacia' => 3,
+      'medicamentos_recogidos' => 4,
+      'en_camino_entrega' => 5,
+      'en_sitio' => 6,
+      'entregado' => 7,
+      _ => 2,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (vistaEntregaDomiciliario) {
+      final completados = pasosEntregaCompletados(estadoActual);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < _pasosEntrega.length; i++)
+            _FilaPaso(
+              etiqueta: _etiquetasEntrega[_pasosEntrega[i]]!,
+              alcanzado: i < completados,
+              esUltimo: i == _pasosEntrega.length - 1,
+              fechaHora: _fechaEntrega(_pasosEntrega[i]),
+              accion: i == completados ? accionPasoActual : null,
+            ),
+        ],
+      );
+    }
+
     final indiceActual = _pasos.indexOf(estadoActual);
 
     return Column(
@@ -64,6 +123,19 @@ class AppTrackingTimeline extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  String? _fechaEntrega(String paso) {
+    final estado = switch (paso) {
+      'pedido_aceptado' || 'en_camino_farmacia' => 'asignado_en_camino_farmacia',
+      'en_farmacia' => 'en_farmacia',
+      'pedido_recogido' => 'medicamentos_recogidos',
+      'en_camino' => 'en_camino_entrega',
+      'en_sitio' => 'en_sitio',
+      'entregado' => 'entregado',
+      _ => paso,
+    };
+    return _fechaPara(estado);
   }
 
   String? _fechaPara(String estado) {

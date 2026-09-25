@@ -5,6 +5,7 @@ import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
+import '../../../../shared/widgets/snackbar_exito.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/medicamento.dart';
 import '../../domain/entities/solicitud.dart';
@@ -139,9 +140,7 @@ class _SolicitarEdicionPedidoScreenState
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tu solicitud de corrección fue enviada — el administrador la revisa.'),
-          ),
+          snackBarExito('Tu solicitud de corrección fue enviada'),
         );
         Navigator.of(context).pop(true);
       }

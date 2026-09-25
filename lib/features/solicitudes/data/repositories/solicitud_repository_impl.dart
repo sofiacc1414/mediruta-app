@@ -163,6 +163,10 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
   }
 
   @override
+  Future<void> marcarEnFarmacia(String solicitudId) {
+    return _datasource.marcarEnFarmacia(solicitudId);
+  }
+
   Future<void> marcarMedicamentosRecogidos(String solicitudId) {
     return _datasource.marcarMedicamentosRecogidos(solicitudId);
   }
@@ -215,9 +219,15 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
 
   @override
   Future<DocumentosPacienteParaRecoger> obtenerDocumentosPacienteParaRecoger(
-    String solicitudId,
-  ) async {
-    final respuesta = await _datasource.obtenerDocumentosPacienteParaRecoger(solicitudId);
+    String solicitudId, {
+    double? lat,
+    double? lng,
+  }) async {
+    final respuesta = await _datasource.obtenerDocumentosPacienteParaRecoger(
+      solicitudId,
+      lat: lat,
+      lng: lng,
+    );
     return DocumentosPacienteParaRecoger.fromJson(respuesta);
   }
 }

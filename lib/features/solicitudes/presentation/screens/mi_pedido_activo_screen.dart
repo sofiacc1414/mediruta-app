@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
@@ -148,6 +149,10 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     }
   }
 
+  Future<void> _marcarEnFarmacia() => _ejecutarPaso(
+        (id) => ref.read(marcarEnFarmaciaUseCaseProvider).execute(id),
+      );
+
   Future<void> _marcarRecogido() => _ejecutarPaso(
         (id) => ref.read(marcarMedicamentosRecogidosUseCaseProvider).execute(id),
       );
@@ -274,6 +279,38 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     );
   }
 
+  Future<Position?> _ubicacionActual() async {
+    if (!await Geolocator.isLocationServiceEnabled()) return null;
+    var permiso = await Geolocator.checkPermission();
+    if (permiso == LocationPermission.denied) {
+      permiso = await Geolocator.requestPermission();
+    }
+    if (permiso == LocationPermission.denied ||
+        permiso == LocationPermission.deniedForever) {
+      return null;
+    }
+    return Geolocator.getCurrentPosition();
+  }
+
+  static const _mensajeFueraDeFarmacia =
+      'No tienes acceso a los documentos porque no estás exactamente en la dirección autorizada de la farmacia.';
+
+  String _mensajeDocumentos(ApiException error) {
+    final mensaje = error.message.trim();
+    if (error.statusCode == 403 ||
+        mensaje.contains('FueraDeUbicacionAutorizadaError') ||
+        mensaje == _mensajeFueraDeFarmacia) {
+      return _mensajeFueraDeFarmacia;
+    }
+    if (mensaje.isEmpty ||
+        error.statusCode >= 500 ||
+        mensaje == 'Internal Server Error' ||
+        mensaje.contains('Exception')) {
+      return 'No tienes acceso a los documentos en este momento.';
+    }
+    return mensaje;
+  }
+
   /// HU-07/HU-09 — la cédula del Paciente solo es visible acá, en el
   /// único momento en que hay un motivo legítimo para verla: yendo a
   /// reclamar el medicamento a su nombre. El botón que la abre solo
@@ -283,15 +320,19 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
   Future<void> _verDocumentosPaciente() async {
     final pedido = _pedido;
     if (pedido == null) return;
+    // La cédula solo se pide en recogida en farmacia. La API también
+    // rechaza el resto de estados; acá ni siquiera se llama.
+    if (pedido.estado != 'en_farmacia') return;
 
     DocumentosPacienteParaRecoger? documentos;
     String? error;
+    final posicion = await _ubicacionActual();
     try {
       documentos = await ref
           .read(obtenerDocumentosPacienteParaRecogerUseCaseProvider)
-          .execute(pedido.id);
+          .execute(pedido.id, lat: posicion?.latitude, lng: posicion?.longitude);
     } on ApiException catch (e) {
-      error = e.message;
+      error = _mensajeDocumentos(e);
     } on ApiSinConexionException catch (e) {
       error = e.toString();
     }
@@ -324,14 +365,18 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     }
     return switch (estado) {
       'asignado_en_camino_farmacia' => _BotonPaso(
-          label: 'Medicamentos recogidos',
+          label: 'Llegué a la farmacia',
+          onPressed: _marcarEnFarmacia,
+        ),
+      'en_farmacia' => _BotonPaso(
+          label: 'Pedido recogido',
           onPressed: _marcarRecogido,
         ),
       'medicamentos_recogidos' => _BotonPaso(
-          label: 'Salir hacia el paciente',
+          label: 'En camino al destino',
           onPressed: _iniciarEntrega,
         ),
-      'en_camino_entrega' => _BotonPaso(label: 'Marcar en sitio', onPressed: _marcarEnSitio),
+      'en_camino_entrega' => _BotonPaso(label: 'Llegué con el paciente', onPressed: _marcarEnSitio),
       'en_sitio' => _BotonPaso(label: 'Confirmar entrega', onPressed: _entregar),
       _ => null,
     };
@@ -519,7 +564,7 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
                   ],
                 ),
               ),
-              if (pedido.estado == 'asignado_en_camino_farmacia') ...[
+              if (pedido.estado == 'en_farmacia') ...[
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -543,6 +588,7 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
                   estadoActual: pedido.estado,
                   historial: pedido.historial,
                   accionPasoActual: _accionPara(pedido.estado),
+                  vistaEntregaDomiciliario: true,
                 ),
               ),
             ],
@@ -620,8 +666,10 @@ class _EstadoPill extends StatelessWidget {
     switch (estado) {
       case 'asignado_en_camino_farmacia':
         return 'En camino a farmacia';
+      case 'en_farmacia':
+        return 'En farmacia';
       case 'medicamentos_recogidos':
-        return 'Medicamentos recogidos';
+        return 'Pedido recogido';
       case 'en_camino_entrega':
         return 'En camino a entrega';
       case 'en_sitio':
@@ -796,7 +844,7 @@ class _HojaDocumentosPaciente extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Mostrá la cédula en la farmacia y verificá el pedido contra la fórmula médica.',
+                'Mostrá solo la cédula del paciente para retirar el pedido.',
                 style: TextStyle(color: AppColors.teal, fontSize: 13),
               ),
               const SizedBox(height: 20),
@@ -806,8 +854,6 @@ class _HojaDocumentosPaciente extends StatelessWidget {
                 _FotoDocumento(label: 'Cédula — Frente', url: documentos?.cedulaFrenteUrl),
                 const SizedBox(height: 16),
                 _FotoDocumento(label: 'Cédula — Reverso', url: documentos?.cedulaReversoUrl),
-                const SizedBox(height: 16),
-                _FotoDocumento(label: 'Fórmula médica', url: documentos?.recetaUrl),
               ],
             ],
           ),

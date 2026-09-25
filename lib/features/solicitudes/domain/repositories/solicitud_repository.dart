@@ -118,6 +118,8 @@ abstract class SolicitudRepository {
   /// cualquier otro error de dominio.
   Future<void> aceptarPedido(String solicitudId);
 
+  Future<void> marcarEnFarmacia(String solicitudId);
+
   Future<void> marcarMedicamentosRecogidos(String solicitudId);
 
   Future<void> iniciarEntrega(String solicitudId);
@@ -152,6 +154,8 @@ abstract class SolicitudRepository {
   /// la farmacia al reclamar el medicamento. La API la niega (404)
   /// fuera de la ventana `asignado_en_camino_farmacia`.
   Future<DocumentosPacienteParaRecoger> obtenerDocumentosPacienteParaRecoger(
-    String solicitudId,
-  );
+    String solicitudId, {
+    double? lat,
+    double? lng,
+  });
 }

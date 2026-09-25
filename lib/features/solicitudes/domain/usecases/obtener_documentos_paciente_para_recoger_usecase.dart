@@ -11,7 +11,15 @@ class ObtenerDocumentosPacienteParaRecogerUseCase {
 
   final SolicitudRepository _repository;
 
-  Future<DocumentosPacienteParaRecoger> execute(String solicitudId) {
-    return _repository.obtenerDocumentosPacienteParaRecoger(solicitudId);
+  Future<DocumentosPacienteParaRecoger> execute(
+    String solicitudId, {
+    double? lat,
+    double? lng,
+  }) {
+    return _repository.obtenerDocumentosPacienteParaRecoger(
+      solicitudId,
+      lat: lat,
+      lng: lng,
+    );
   }
 }

@@ -194,6 +194,10 @@ class SolicitudRemoteDatasource {
     return _apiClient.post('/pedidos/$solicitudId/aceptar', autenticado: true);
   }
 
+  Future<void> marcarEnFarmacia(String solicitudId) {
+    return _apiClient.post('/pedidos/$solicitudId/en-farmacia', autenticado: true);
+  }
+
   Future<void> marcarMedicamentosRecogidos(String solicitudId) {
     return _apiClient.post('/pedidos/$solicitudId/recogido', autenticado: true);
   }
@@ -255,10 +259,13 @@ class SolicitudRemoteDatasource {
   /// de esa ventana, ver `ObtenerDocumentosPacienteParaRecogerUseCase`
   /// del lado de la API).
   Future<Map<String, dynamic>> obtenerDocumentosPacienteParaRecoger(
-    String solicitudId,
-  ) async {
+    String solicitudId, {
+    double? lat,
+    double? lng,
+  }) async {
+    final query = (lat != null && lng != null) ? '?lat=$lat&lng=$lng' : '';
     final respuesta = await _apiClient.get(
-      '/pedidos/$solicitudId/documentos-paciente',
+      '/pedidos/$solicitudId/documentos-paciente$query',
       autenticado: true,
     );
     return respuesta as Map<String, dynamic>;

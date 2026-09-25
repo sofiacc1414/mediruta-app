@@ -11,6 +11,7 @@ import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
 import '../../../../shared/widgets/entrega_confirmada_screen.dart';
+import '../../../../shared/widgets/snackbar_exito.dart';
 import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/novedad_resumen.dart';
@@ -278,7 +279,9 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
       await _cargar();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reportamos el problema — el administrador te lo va a enviar de nuevo.')),
+          snackBarExito(
+            'Reportamos el problema — el administrador te lo va a enviar de nuevo.',
+          ),
         );
       }
     } on ApiException catch (error) {

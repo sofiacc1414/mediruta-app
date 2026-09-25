@@ -24,6 +24,7 @@ import '../../domain/usecases/listar_novedades_solicitud_domiciliario_usecase.da
 import '../../domain/usecases/obtener_documentos_paciente_para_recoger_usecase.dart';
 import '../../domain/usecases/listar_pedidos_disponibles_usecase.dart';
 import '../../domain/usecases/listar_solicitudes_usecase.dart';
+import '../../domain/usecases/marcar_en_farmacia_usecase.dart';
 import '../../domain/usecases/marcar_en_sitio_usecase.dart';
 import '../../domain/usecases/marcar_medicamentos_recogidos_usecase.dart';
 import '../../domain/usecases/obtener_pedido_activo_usecase.dart';
@@ -89,6 +90,10 @@ final listarPedidosDisponiblesUseCaseProvider = Provider(
 
 final aceptarPedidoUseCaseProvider = Provider(
   (ref) => AceptarPedidoUseCase(ref.watch(solicitudRepositoryProvider)),
+);
+
+final marcarEnFarmaciaUseCaseProvider = Provider(
+  (ref) => MarcarEnFarmaciaUseCase(ref.watch(solicitudRepositoryProvider)),
 );
 
 final marcarMedicamentosRecogidosUseCaseProvider = Provider(
