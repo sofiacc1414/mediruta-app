@@ -11,6 +11,7 @@ import 'features/solicitudes/presentation/screens/pedidos_disponibles_screen.dar
 import 'features/solicitudes/presentation/screens/solicitud_detalle_screen.dart';
 import 'features/usuarios/presentation/providers/auth_session_provider.dart';
 import 'features/usuarios/presentation/screens/cambiar_contrasena_screen.dart';
+import 'features/notificaciones/presentation/notificaciones_screen.dart';
 import 'features/usuarios/presentation/screens/home_screen.dart';
 import 'features/usuarios/presentation/screens/login_screen.dart';
 import 'features/usuarios/presentation/screens/onboarding_screen.dart';
@@ -60,6 +61,7 @@ class MediRutaApp extends ConsumerWidget {
         CambiarContrasenaScreen.routeName: (_) => const CambiarContrasenaScreen(),
         PerfilScreen.routeName: (_) => const PerfilScreen(),
         HomeScreen.routeName: (_) => const HomeScreen(),
+        NotificacionesScreen.routeName: (_) => const NotificacionesScreen(),
         MisSolicitudesScreen.routeName: (_) => const MisSolicitudesScreen(),
         NuevaSolicitudScreen.routeName: (_) => const NuevaSolicitudScreen(),
         PedidosDisponiblesScreen.routeName: (_) => const PedidosDisponiblesScreen(),
