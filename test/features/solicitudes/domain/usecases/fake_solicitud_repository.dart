@@ -143,6 +143,11 @@ class FakeSolicitudRepository implements SolicitudRepository {
   }
 
   @override
+  Future<void> marcarEnFarmacia(String solicitudId) async {
+    _registrar('marcarEnFarmacia', {'solicitudId': solicitudId});
+    _lanzarSiCorresponde();
+  }
+
   Future<void> marcarMedicamentosRecogidos(String solicitudId) async {
     _registrar('marcarMedicamentosRecogidos', {'solicitudId': solicitudId});
     _lanzarSiCorresponde();
@@ -260,9 +265,15 @@ class FakeSolicitudRepository implements SolicitudRepository {
 
   @override
   Future<DocumentosPacienteParaRecoger> obtenerDocumentosPacienteParaRecoger(
-    String solicitudId,
-  ) async {
-    _registrar('obtenerDocumentosPacienteParaRecoger', {'solicitudId': solicitudId});
+    String solicitudId, {
+    double? lat,
+    double? lng,
+  }) async {
+    _registrar('obtenerDocumentosPacienteParaRecoger', {
+      'solicitudId': solicitudId,
+      'lat': lat,
+      'lng': lng,
+    });
     _lanzarSiCorresponde();
     return documentosPacienteParaRecogerARetornar;
   }

@@ -23,6 +23,8 @@ void main() {
       expect(repo.ultimaLlamada, {
         'metodo': 'obtenerDocumentosPacienteParaRecoger',
         'solicitudId': 'solicitud-uuid',
+        'lat': null,
+        'lng': null,
       });
     });
 
