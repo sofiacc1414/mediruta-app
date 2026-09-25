@@ -16,6 +16,8 @@ import '../../../solicitudes/presentation/screens/historial_pedidos_screen.dart'
 import '../../../solicitudes/presentation/screens/mi_pedido_activo_screen.dart';
 import '../../../solicitudes/presentation/screens/mis_solicitudes_screen.dart';
 import '../../../solicitudes/presentation/screens/pedidos_disponibles_screen.dart';
+import '../../../notificaciones/presentation/notificaciones_provider.dart';
+import '../../../notificaciones/presentation/notificaciones_screen.dart';
 import '../../../solicitudes/presentation/screens/solicitud_detalle_screen.dart';
 import '../../domain/entities/perfil.dart';
 import '../../domain/entities/rol_asignado.dart';
@@ -36,7 +38,8 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   // Red de seguridad además del WebSocket — ver el mismo comentario en
   // SolicitudDetalleScreen: en algunas redes el socket no conecta, y
   // sin esto no queda ningún otro mecanismo que refresque solo. Bug
@@ -61,13 +64,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Timer? _timer;
   StreamSubscription<void>? _suscripcionSocket;
   bool _sincronizoDisponibilidadInicial = false;
+  int _pendientes = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _cargarPerfil();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _cargarSegunModo());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _cargarSegunModo();
+      _refrescarEstadoRol();
+      _cargarPendientes();
+    });
     _timer = Timer.periodic(_intervaloPoll, (_) {
+      // El rol puede pasar a habilitado mientras la sesión sigue abierta.
+      // Eso no viaja por el socket de pedidos, así que se consulta siempre.
+      _refrescarEstadoRol();
+      _cargarPendientes();
       if (ref.read(eventosSocketServiceProvider).diagnostico.value.fase ==
           FaseSocket.conectado) {
         return;
@@ -77,14 +90,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _suscripcionSocket = ref
         .read(eventosSocketServiceProvider)
         .pedidoActualizado
-        .listen((_) => _refrescarSilencioso());
+        .listen((_) {
+          _refrescarSilencioso();
+          _cargarPendientes();
+        });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _suscripcionSocket?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refrescarEstadoRol();
+    }
+  }
+
+  Future<void> _cargarPendientes() async {
+    try {
+      final items = await ref.read(notificacionesDatasourceProvider).listar();
+      if (!mounted) return;
+      setState(() {
+        _pendientes = items.where((item) => !item.leida).length;
+      });
+    } catch (_) {
+      // La campana no debe tumbar el inicio si el listado falla.
+    }
+  }
+
+  /// Si el admin aprobó al domiciliario, `GET /auth/me` trae el rol
+  /// `habilitado` y Home muestra el toggle "Disponible" sin re-login.
+  Future<void> _refrescarEstadoRol() async {
+    if (_modoActual() != 'DOMICILIARIO') return;
+    if (_estadoRolDomiciliario() == 'habilitado') return;
+    await ref.read(authSessionProvider.notifier).refrescarIdentidad();
+    if (!mounted) return;
+    if (_estadoRolDomiciliario() == 'habilitado') {
+      _modoCargado = null;
+      await _cargarSegunModo();
+    }
   }
 
   /// Refresco del poll o del WebSocket — solo re-pide lo que ya está
@@ -300,6 +349,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         modoEtiqueta: esDomiciliario
                             ? 'Estás en modo Domiciliario'
                             : (esPaciente ? 'Estás en modo Paciente' : null),
+                        pendientes: _pendientes,
+                        onNotificaciones: () async {
+                          await Navigator.pushNamed(
+                            context,
+                            NotificacionesScreen.routeName,
+                          );
+                          _cargarPendientes();
+                        },
                       ),
                       const SizedBox(height: 24),
 
@@ -497,12 +554,16 @@ class _Encabezado extends StatelessWidget {
     required this.nombre,
     required this.fotoUrl,
     required this.modoEtiqueta,
+    required this.pendientes,
+    required this.onNotificaciones,
   });
 
   final String saludo;
   final String? nombre;
   final String? fotoUrl;
   final String? modoEtiqueta;
+  final int pendientes;
+  final VoidCallback onNotificaciones;
 
   @override
   Widget build(BuildContext context) {
@@ -547,6 +608,14 @@ class _Encabezado extends StatelessWidget {
           // HU-XX — selector de modo Paciente/Domiciliario para cuentas
           // con los 2 roles; el propio widget se oculta si la cuenta
           // tiene un solo rol (ver `BotonCambiarModo`).
+          IconButton(
+            onPressed: onNotificaciones,
+            icon: Badge(
+              isLabelVisible: pendientes > 0,
+              label: Text('$pendientes'),
+              child: const Icon(Icons.notifications_none, color: AppColors.navy),
+            ),
+          ),
           const BotonCambiarModo(),
         ],
       ),

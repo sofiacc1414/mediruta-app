@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_checkbox_row.dart';
 import '../../../../shared/widgets/app_form_notice.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field_glass.dart';
+import '../../../../shared/widgets/snackbar_exito.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/usuario_providers.dart';
 import '../widgets/selector_rol.dart';
@@ -34,6 +35,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
   String? _error;
   String? _errorPassword;
   String? _errorConfirmacion;
+  String? _errorCorreo;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -51,10 +53,25 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
     );
     _pulseController.forward();
     _pulseController.repeat(reverse: true);
+    _correoController.addListener(_refrescarValidacionVisual);
+    _passwordController.addListener(_refrescarValidacionVisual);
+  }
+
+  void _refrescarValidacionVisual() {
+    if (mounted) setState(() {});
+  }
+
+  bool _correoConFormato(String valor) {
+    final texto = valor.trim().toLowerCase();
+    return texto.contains('@') &&
+        texto.contains('.com') &&
+        RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(texto);
   }
 
   @override
   void dispose() {
+    _correoController.removeListener(_refrescarValidacionVisual);
+    _passwordController.removeListener(_refrescarValidacionVisual);
     _correoController.dispose();
     _passwordController.dispose();
     _confirmarController.dispose();
@@ -68,12 +85,18 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
     final errorConfirmacion = coinciden
         ? null
         : 'Las contraseñas no coinciden.';
+    final errorCorreo = _correoConFormato(_correoController.text)
+        ? null
+        : 'El correo electrónico debe contener @ y .com';
     setState(() {
       _errorPassword = errorPassword;
       _errorConfirmacion = errorConfirmacion;
+      _errorCorreo = errorCorreo;
       _error = null;
     });
-    if (errorPassword != null || errorConfirmacion != null) return;
+    if (errorPassword != null || errorConfirmacion != null || errorCorreo != null) {
+      return;
+    }
 
     setState(() => _cargando = true);
     final correo = _correoController.text;
@@ -96,9 +119,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
       if (!mounted) return;
       ref.read(authSessionProvider.notifier).sesionIniciada(usuario);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('¡Registro exitoso! Completá tu perfil para empezar.'),
-        ),
+        snackBarExito('¡Registro exitoso! Completá tu perfil para empezar.'),
       );
       Navigator.of(context).pushNamedAndRemoveUntil('/perfil', (_) => false);
     } on ApiException catch (error) {
@@ -196,6 +217,12 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.email],
                       enabled: !_cargando,
+                      errorText: _errorCorreo,
+                    ),
+                    const SizedBox(height: 4),
+                    _AyudaCorreo(
+                      texto: _correoController.text,
+                      valido: _correoConFormato(_correoController.text),
                     ),
 
                     const SizedBox(height: 10),
@@ -210,18 +237,9 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                       errorText: _errorPassword,
                     ),
 
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 6),
 
-                    Padding(
-                      padding: const EdgeInsets.only(left: 14),
-                      child: Text(
-                        '8+ caracteres, mayúscula, minúscula, número y símbolo',
-                        style: GoogleFonts.poppins(
-                          fontSize: 9.5,
-                          color: AppColors.navy.withOpacity(0.3),
-                        ),
-                      ),
-                    ),
+                    _RequisitosContrasena(password: _passwordController.text),
 
                     const SizedBox(height: 10),
 
@@ -605,6 +623,97 @@ class _RolCardPremiumState extends State<_RolCardPremium>
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _AyudaCorreo extends StatelessWidget {
+  const _AyudaCorreo({required this.texto, required this.valido});
+
+  final String texto;
+  final bool valido;
+
+  @override
+  Widget build(BuildContext context) {
+    final cumplido = texto.trim().isNotEmpty && valido;
+    return Padding(
+      padding: const EdgeInsets.only(left: 14),
+      child: Row(
+        children: [
+          Icon(
+            cumplido ? Icons.check_box : Icons.check_box_outline_blank,
+            size: 14,
+            color: cumplido ? AppColors.teal : AppColors.navy.withOpacity(0.45),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              'El correo electrónico debe contener @ y .com',
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                color: cumplido ? AppColors.teal : AppColors.navy.withOpacity(0.55),
+                decoration: cumplido ? TextDecoration.lineThrough : null,
+                decorationColor: AppColors.teal,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RequisitosContrasena extends StatelessWidget {
+  const _RequisitosContrasena({required this.password});
+
+  final String password;
+
+  @override
+  Widget build(BuildContext context) {
+    final requisitos = <(String, bool)>[
+      ('Tener mínimo 8 caracteres', password.length >= PoliticaContrasena.minLength),
+      ('Tener al menos 1 letra mayúscula', RegExp(r'[A-Z]').hasMatch(password)),
+      ('Tener al menos 1 letra minúscula', RegExp(r'[a-z]').hasMatch(password)),
+      ('Tener al menos 1 número', RegExp(r'\d').hasMatch(password)),
+      ('Tener al menos 1 carácter especial', RegExp(r'[^A-Za-z0-9]').hasMatch(password)),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final requisito in requisitos)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Row(
+                children: [
+                  Icon(
+                    requisito.$2 ? Icons.check_box : Icons.check_box_outline_blank,
+                    size: 14,
+                    color: requisito.$2
+                        ? AppColors.teal
+                        : AppColors.navy.withOpacity(0.45),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      requisito.$1,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: requisito.$2
+                            ? AppColors.teal
+                            : AppColors.navy.withOpacity(0.55),
+                        decoration: requisito.$2 ? TextDecoration.lineThrough : null,
+                        decorationColor: AppColors.teal,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

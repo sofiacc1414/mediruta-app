@@ -77,6 +77,22 @@ class AuthSessionNotifier extends StateNotifier<AuthEstado> {
     unawaited(_eventosSocket.conectar(_apiClient));
   }
 
+  /// Vuelve a leer `GET /auth/me` y reemplaza el usuario en memoria.
+  /// El rol DOMICILIARIO pasa a `habilitado` en el servidor cuando el
+  /// admin aprueba, pero el objeto de sesión queda congelado en el
+  /// login — sin esto, "Disponible" no aparece hasta cerrar sesión.
+  Future<void> refrescarIdentidad() async {
+    if (state is! AuthAutenticado) return;
+    try {
+      final usuario = await _obtenerSesionActual.execute();
+      if (state is AuthAutenticado) {
+        state = AuthAutenticado(usuario);
+      }
+    } catch (_) {
+      // Un fallo de red no debe sacar al usuario de la sesión.
+    }
+  }
+
   /// G07 — cierre de sesión desde `home_screen`.
   Future<void> cerrarSesion() async {
     try {

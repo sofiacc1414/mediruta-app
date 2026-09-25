@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -12,6 +13,7 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/core/theme/modo_adulto_mayor_provider.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
+import '../../../../shared/widgets/snackbar_exito.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/selector_ciudad_autocompletar.dart';
 import '../../../../shared/widgets/sugerencias_direccion.dart';
@@ -61,6 +63,10 @@ class PerfilScreen extends ConsumerStatefulWidget {
 class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   bool _cargandoPerfil = true;
   Perfil? _perfil;
+  /// El bottom sheet de documentos se arma una sola vez. `setState` de
+  /// esta pantalla no lo reconstruye, así que la URL guardada se publica
+  /// por acá y la fila del botón la escucha.
+  final _perfilVisible = ValueNotifier<Perfil?>(null);
   String? _errorCarga;
 
   late final TextEditingController _correoController;
@@ -72,6 +78,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   final _pacienteCiudadController = TextEditingController();
   final _pacienteDireccionFocus = FocusNode();
   DateTime? _pacienteFechaNacimiento;
+  final _pacienteFechaVisible = ValueNotifier<DateTime?>(null);
 
   // Ronda 12 — bug real reportado: la dirección del perfil recién se
   // validaba contra Nominatim al tocar "Guardar cambios", sin loader
@@ -129,6 +136,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     _direccionPacienteCargando.dispose();
     _direccionPacienteResultado.dispose();
     _guardandoCambiosNotifier.dispose();
+    _pacienteFechaVisible.dispose();
+    _perfilVisible.dispose();
     _domiciliarioDireccionController.dispose();
     _vehiculoTipoController.dispose();
     _vehiculoPlacaController.dispose();
@@ -274,6 +283,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       if (!mounted) return;
       setState(() {
         _perfil = perfil;
+        _perfilVisible.value = perfil;
         _nombreController.text = perfil.nombreCompleto ?? '';
         _telefonoController.text = perfil.telefono ?? '';
         _pacienteDireccionController.text = perfil.paciente?.direccion ?? '';
@@ -282,6 +292,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
         final fechaNacimiento = perfil.paciente?.fechaNacimiento;
         _pacienteFechaNacimiento =
             fechaNacimiento != null ? DateTime.tryParse(fechaNacimiento) : null;
+        _pacienteFechaVisible.value = _pacienteFechaNacimiento;
         _domiciliarioDireccionController.text = perfil.domiciliario?.direccion ?? '';
         _vehiculoTipoController.text = perfil.domiciliario?.vehiculoTipo ?? '';
         _vehiculoPlacaController.text = perfil.domiciliario?.vehiculoPlaca ?? '';
@@ -302,6 +313,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       final perfil = await ref.read(obtenerPerfilUseCaseProvider).execute();
       if (!mounted) return;
       setState(() => _perfil = perfil);
+      _perfilVisible.value = perfil;
     } on ApiException catch (error) {
       setState(() => _errorCarga = error.message);
     } on ApiSinConexionException catch (error) {
@@ -315,6 +327,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       if (!mounted) return;
       setState(() {
         _perfil = perfil;
+        _perfilVisible.value = perfil;
         if (rolNuevo == 'PACIENTE') {
           _pacienteDireccionController.text = perfil.paciente?.direccion ?? '';
           _pacienteDepartamentoController.text = perfil.paciente?.departamento ?? '';
@@ -322,6 +335,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
           final fechaNacimiento = perfil.paciente?.fechaNacimiento;
           _pacienteFechaNacimiento =
               fechaNacimiento != null ? DateTime.tryParse(fechaNacimiento) : null;
+          _pacienteFechaVisible.value = _pacienteFechaNacimiento;
         } else if (rolNuevo == 'DOMICILIARIO') {
           _domiciliarioDireccionController.text = perfil.domiciliario?.direccion ?? '';
           _vehiculoTipoController.text = perfil.domiciliario?.vehiculoTipo ?? '';
@@ -337,15 +351,53 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
 
   Future<void> _elegirFechaNacimiento() async {
     final ahora = DateTime.now();
-    final seleccionada = await showDatePicker(
+    final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+    final ultima = hoy.subtract(const Duration(days: 1));
+    final primera = DateTime(1900);
+    var inicial = _pacienteFechaNacimiento ?? DateTime(ahora.year - 25, 1, 1);
+    if (inicial.isAfter(ultima)) inicial = ultima;
+    if (inicial.isBefore(primera)) inicial = primera;
+
+    final elegida = await showDialog<DateTime>(
       context: context,
-      initialDate: _pacienteFechaNacimiento ?? DateTime(ahora.year - 25),
-      firstDate: DateTime(1900),
-      lastDate: ahora.subtract(const Duration(days: 1)),
+      builder: (dialogContext) {
+        return Localizations.override(
+          context: dialogContext,
+          locale: const Locale('es'),
+          delegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          child: Theme(
+            data: Theme.of(dialogContext).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: AppColors.navy,
+                onPrimary: AppColors.white,
+                surface: AppColors.white,
+                onSurface: AppColors.navy,
+              ),
+              textButtonTheme: TextButtonThemeData(
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.navy,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            child: _CalendarioNacimiento(
+              inicial: inicial,
+              primera: primera,
+              ultima: ultima,
+            ),
+          ),
+        );
+      },
     );
-    if (seleccionada != null) {
-      setState(() => _pacienteFechaNacimiento = seleccionada);
-    }
+    if (elegida == null) return;
+    _pacienteFechaNacimiento = elegida;
+    _pacienteFechaVisible.value = elegida;
   }
 
   /// Bug real reportado: al guardar "Datos de Paciente" con una
@@ -848,10 +900,13 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
               },
             ),
             const SizedBox(height: 12),
-            _CampoFechaPerfil(
-              label: 'Fecha de nacimiento',
-              fecha: _pacienteFechaNacimiento,
-              onTap: !guardando ? _elegirFechaNacimiento : null,
+            ValueListenableBuilder<DateTime?>(
+              valueListenable: _pacienteFechaVisible,
+              builder: (context, fecha, _) => _CampoFechaPerfil(
+                label: 'Fecha de nacimiento',
+                fecha: fecha,
+                onTap: !guardando ? _elegirFechaNacimiento : null,
+              ),
             ),
             const SizedBox(height: 16),
             const Divider(color: AppColors.skyBlue, height: 1),
@@ -872,9 +927,13 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
               ),
             ),
             const SizedBox(height: 8),
+            ValueListenableBuilder<Perfil?>(
+              valueListenable: _perfilVisible,
+              builder: (context, perfil, _) => Column(
+                children: [
             _DocumentoUploadRow(
               label: 'Cédula (frente)',
-              url: _perfil?.paciente?.fotoCedulaFrenteUrl,
+              url: perfil?.paciente?.fotoCedulaFrenteUrl,
               onArchivoElegido: (bytes, nombre, contentType) async {
                 await ref
                     .read(subirFotoCedulaPacienteUseCaseProvider)
@@ -890,7 +949,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             const SizedBox(height: 8),
             _DocumentoUploadRow(
               label: 'Cédula (reverso)',
-              url: _perfil?.paciente?.fotoCedulaReversoUrl,
+              url: perfil?.paciente?.fotoCedulaReversoUrl,
               onArchivoElegido: (bytes, nombre, contentType) async {
                 await ref
                     .read(subirFotoCedulaPacienteUseCaseProvider)
@@ -902,6 +961,9 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                     );
                 await _recargarSoloPerfil();
               },
+            ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -1019,39 +1081,46 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             ),
           ),
           const SizedBox(height: 8),
+          ValueListenableBuilder<Perfil?>(
+            valueListenable: _perfilVisible,
+            builder: (context, perfil, _) => Column(
+              children: [
           _DocumentoUploadRow(
             label: 'Cédula (frente)',
-            url: _perfil?.domiciliario?.cedulaFrenteUrl,
+            url: perfil?.domiciliario?.cedulaFrenteUrl,
             onArchivoElegido: (b, n, c) =>
                 _subirDocumentoDomiciliario(TipoDocumentoDomiciliario.cedulaFrente, b, n, c),
           ),
           const SizedBox(height: 8),
           _DocumentoUploadRow(
             label: 'Cédula (reverso)',
-            url: _perfil?.domiciliario?.cedulaReversoUrl,
+            url: perfil?.domiciliario?.cedulaReversoUrl,
             onArchivoElegido: (b, n, c) =>
                 _subirDocumentoDomiciliario(TipoDocumentoDomiciliario.cedulaReverso, b, n, c),
           ),
           const SizedBox(height: 8),
           _DocumentoUploadRow(
             label: 'Licencia de conducción',
-            url: _perfil?.domiciliario?.licenciaUrl,
+            url: perfil?.domiciliario?.licenciaUrl,
             onArchivoElegido: (b, n, c) =>
                 _subirDocumentoDomiciliario(TipoDocumentoDomiciliario.licencia, b, n, c),
           ),
           const SizedBox(height: 8),
           _DocumentoUploadRow(
             label: 'SOAT',
-            url: _perfil?.domiciliario?.soatUrl,
+            url: perfil?.domiciliario?.soatUrl,
             onArchivoElegido: (b, n, c) =>
                 _subirDocumentoDomiciliario(TipoDocumentoDomiciliario.soat, b, n, c),
           ),
           const SizedBox(height: 8),
           _DocumentoUploadRow(
             label: 'Tecnomecánica',
-            url: _perfil?.domiciliario?.tecnicomecanicaUrl,
+            url: perfil?.domiciliario?.tecnicomecanicaUrl,
             onArchivoElegido: (b, n, c) =>
                 _subirDocumentoDomiciliario(TipoDocumentoDomiciliario.tecnicomecanica, b, n, c),
+          ),
+              ],
+            ),
           ),
           if (estado == 'borrador') ...[
             const SizedBox(height: 16),
@@ -1123,12 +1192,16 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   Future<void> _enviarSolicitudDomiciliario() async {
     _guardandoCambiosNotifier.value = true;
     try {
-      final mensaje = await ref.read(enviarSolicitudDomiciliarioUseCaseProvider).execute();
+      await ref.read(enviarSolicitudDomiciliarioUseCaseProvider).execute();
       final usuarioActualizado = await ref.read(obtenerSesionActualUseCaseProvider).execute();
       ref.read(authSessionProvider.notifier).sesionIniciada(usuarioActualizado);
       await _recargarSoloPerfil();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        snackBarExito(
+          'Solicitud enviada con éxito, estará en revisión hasta que el administrador lo acepte',
+        ),
+      );
     } on ApiException catch (error) {
       // "La documentación está incompleta" sin más no dice qué falta —
       // si la API mandó el detalle (`faltantes`), se lista.
@@ -2019,7 +2092,7 @@ class _CampoFechaPerfil extends StatelessWidget {
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
           child: Text(
-            fecha != null ? _isoFecha(fecha!) : 'Selecciona una fecha',
+            fecha != null ? _fechaPerfil(fecha!) : 'Selecciona una fecha',
             style: TextStyle(
               color: fecha != null ? AppColors.navy : Colors.grey.withValues(alpha: 0.6),
               fontSize: 15,
@@ -2160,7 +2233,7 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Vos elegís el que te aplica — se suma al costo del domicilio.',
+          'Puedes elegir el que te aplica — se suma al costo del domicilio.',
           style: TextStyle(color: AppColors.teal, fontSize: 12),
         ),
         const SizedBox(height: 8),
@@ -2482,9 +2555,6 @@ class _Miniatura extends StatelessWidget {
 
   final String? url;
 
-  bool get _esPdf =>
-      url != null && url!.split('?').first.toLowerCase().endsWith('.pdf');
-
   @override
   Widget build(BuildContext context) {
     const tamano = 40.0;
@@ -2501,44 +2571,244 @@ class _Miniatura extends StatelessWidget {
       );
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: tamano,
-        height: tamano,
-        color: Colors.white,
-        child: _esPdf
-            ? const Icon(
-                Icons.picture_as_pdf_outlined,
-                color: AppColors.navy,
-                size: 20,
-              )
-            : Image.network(
-                url!,
-                fit: BoxFit.cover,
-                // Sin esto, Flutter decodifica la imagen a su resolución
-                // completa solo para achicarla visualmente a 40px — con
-                // varios documentos en pantalla a la vez, eso es lo que
-                // se sentía como "renderizado lento". `cacheWidth` hace
-                // que decodifique directo a un tamaño chico.
-                cacheWidth: (tamano * 3).round(),
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return const Center(
-                    child: SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) => const Icon(
-                  Icons.image_not_supported_outlined,
-                  color: AppColors.navy,
-                  size: 18,
-                ),
-              ),
+    return Container(
+      width: tamano,
+      height: tamano,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.skyBlue.withValues(alpha: 0.45),
       ),
+      child: const Icon(Icons.check, color: AppColors.navy, size: 18),
+    );
+  }
+}
+
+enum _PasoFecha { dias, anios, meses }
+
+/// Calendario de nacimiento: al tocar el año se elige el año, después el
+/// mes en una grilla y recién entonces el día. El DatePicker de Flutter
+/// vuelve al mismo mes y solo deja cambiarlo con flechas.
+class _CalendarioNacimiento extends StatefulWidget {
+  const _CalendarioNacimiento({
+    required this.inicial,
+    required this.primera,
+    required this.ultima,
+  });
+
+  final DateTime inicial;
+  final DateTime primera;
+  final DateTime ultima;
+
+  @override
+  State<_CalendarioNacimiento> createState() => _CalendarioNacimientoState();
+}
+
+class _CalendarioNacimientoState extends State<_CalendarioNacimiento> {
+  late int _anio = widget.inicial.year;
+  late int _mes = widget.inicial.month;
+  late int _dia = widget.inicial.day;
+  _PasoFecha _paso = _PasoFecha.dias;
+
+  DateTime get _seleccion {
+    final ultimo = DateTime(_anio, _mes + 1, 0).day;
+    final dia = _dia > ultimo ? ultimo : _dia;
+    final candidata = DateTime(_anio, _mes, dia);
+    if (candidata.isAfter(widget.ultima)) return widget.ultima;
+    if (candidata.isBefore(widget.primera)) return widget.primera;
+    return candidata;
+  }
+
+  bool _mesPermitido(int mes) {
+    final inicio = DateTime(_anio, mes, 1);
+    final fin = DateTime(_anio, mes + 1, 0);
+    return !fin.isBefore(widget.primera) && !inicio.isAfter(widget.ultima);
+  }
+
+  bool _diaPermitido(int dia) {
+    final fecha = DateTime(_anio, _mes, dia);
+    return !fecha.isBefore(widget.primera) && !fecha.isAfter(widget.ultima);
+  }
+
+  String _nombreMes(int mes) {
+    final texto = MaterialLocalizations.of(context).formatMonthYear(DateTime(2000, mes));
+    final palabra = texto.split(RegExp(r'\s+')).first;
+    if (palabra.isEmpty) return texto;
+    return '${palabra[0].toUpperCase()}${palabra.substring(1)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final seleccion = _seleccion;
+    return AlertDialog(
+      backgroundColor: AppColors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text(
+        'Fecha de nacimiento',
+        style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 18),
+      ),
+      content: SizedBox(
+        width: 320,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () => setState(() => _paso = _PasoFecha.meses),
+                  child: Text(_nombreMes(_mes)),
+                ),
+                TextButton(
+                  onPressed: () => setState(() => _paso = _PasoFecha.anios),
+                  child: Text('$_anio'),
+                ),
+              ],
+            ),
+            SizedBox(
+              height: 320,
+              child: switch (_paso) {
+                _PasoFecha.anios => YearPicker(
+                    firstDate: widget.primera,
+                    lastDate: widget.ultima,
+                    selectedDate: seleccion,
+                    onChanged: (fecha) {
+                      setState(() {
+                        _anio = fecha.year;
+                        if (!_mesPermitido(_mes)) _mes = widget.ultima.month;
+                        _paso = _PasoFecha.meses;
+                      });
+                    },
+                  ),
+                _PasoFecha.meses => GridView.count(
+                    crossAxisCount: 3,
+                    childAspectRatio: 1.6,
+                    children: [
+                      for (var mes = 1; mes <= 12; mes++)
+                        _CeldaFecha(
+                          texto: _nombreMes(mes),
+                          activo: mes == _mes,
+                          habilitado: _mesPermitido(mes),
+                          onTap: () => setState(() {
+                            _mes = mes;
+                            _paso = _PasoFecha.dias;
+                          }),
+                        ),
+                    ],
+                  ),
+                _PasoFecha.dias => _GrillaDias(
+                    anio: _anio,
+                    mes: _mes,
+                    diaSeleccionado: seleccion.day,
+                    permitido: _diaPermitido,
+                    onElegir: (dia) => setState(() => _dia = dia),
+                  ),
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(seleccion),
+          child: const Text('Listo'),
+        ),
+      ],
+    );
+  }
+}
+
+class _CeldaFecha extends StatelessWidget {
+  const _CeldaFecha({
+    required this.texto,
+    required this.activo,
+    required this.habilitado,
+    required this.onTap,
+  });
+
+  final String texto;
+  final bool activo;
+  final bool habilitado;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(4),
+      child: Material(
+        color: activo ? AppColors.navy : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: habilitado ? onTap : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Center(
+            child: Text(
+              texto,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: !habilitado
+                    ? Colors.grey
+                    : activo
+                        ? AppColors.white
+                        : AppColors.navy,
+                fontSize: 13,
+                fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GrillaDias extends StatelessWidget {
+  const _GrillaDias({
+    required this.anio,
+    required this.mes,
+    required this.diaSeleccionado,
+    required this.permitido,
+    required this.onElegir,
+  });
+
+  final int anio;
+  final int mes;
+  final int diaSeleccionado;
+  final bool Function(int dia) permitido;
+  final ValueChanged<int> onElegir;
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = MaterialLocalizations.of(context);
+    final primero = DateTime(anio, mes, 1);
+    final cantidad = DateTime(anio, mes + 1, 0).day;
+    final inicioSemana = loc.firstDayOfWeekIndex;
+    final offset = (primero.weekday % 7 - inicioSemana + 7) % 7;
+    final nombres = [
+      for (var i = 0; i < 7; i++) loc.narrowWeekdays[(inicioSemana + i) % 7],
+    ];
+    final celdas = offset + cantidad;
+    return GridView.count(
+      crossAxisCount: 7,
+      childAspectRatio: 1,
+      children: [
+        for (final dia in nombres)
+          Center(
+            child: Text(dia, style: const TextStyle(color: AppColors.teal, fontSize: 12)),
+          ),
+        for (var i = 0; i < celdas; i++)
+          if (i < offset)
+            const SizedBox.shrink()
+          else
+            _CeldaFecha(
+              texto: '${i - offset + 1}',
+              activo: i - offset + 1 == diaSeleccionado,
+              habilitado: permitido(i - offset + 1),
+              onTap: () => onElegir(i - offset + 1),
+            ),
+      ],
     );
   }
 }
@@ -2548,4 +2818,10 @@ String _isoFecha(DateTime fecha) {
   final mes = fecha.month.toString().padLeft(2, '0');
   final dia = fecha.day.toString().padLeft(2, '0');
   return '$anio-$mes-$dia';
+}
+
+String _fechaPerfil(DateTime fecha) {
+  final dia = fecha.day.toString().padLeft(2, '0');
+  final mes = fecha.month.toString().padLeft(2, '0');
+  return '$dia/$mes/${fecha.year}';
 }
