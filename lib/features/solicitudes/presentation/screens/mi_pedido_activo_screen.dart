@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/network/eventos_socket_service.dart';
+import '../../../../shared/core/network/tracking_socket_service.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
@@ -52,6 +53,14 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
   Timer? _timer;
   StreamSubscription<void>? _suscripcionSocket;
 
+  // Seguimiento GPS en vivo — filtro híbrido (10m o 15s, lo que pase
+  // primero) mientras el pedido está `en_camino_entrega`, apagado el
+  // resto del tiempo para no gastar batería/datos de más.
+  TrackingSocketService? _trackingSocket;
+  StreamSubscription<Position>? _posicionSub;
+  Timer? _tickerTracking;
+  Position? _ultimaPosicionConocida;
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +84,7 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
   void dispose() {
     _timer?.cancel();
     _suscripcionSocket?.cancel();
+    _detenerTracking();
     super.dispose();
   }
 
@@ -95,6 +105,7 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
         _pedido = pedido;
         _novedades = novedades;
       });
+      _sincronizarTracking(pedido);
     } on ApiException catch (error) {
       setState(() => _error = error.message);
     } on ApiSinConexionException catch (error) {
@@ -102,6 +113,62 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     } finally {
       if (mounted) setState(() => _cargando = false);
     }
+  }
+
+  /// Prende/apaga el streaming de posición según el estado del pedido —
+  /// solo transmite mientras está `en_camino_entrega` (PRD 2.2, "bajo
+  /// demanda"): ni antes (todavía no hace falta) ni después (ya
+  /// entregó, seguir mandando GPS sería gastar batería/datos de más).
+  void _sincronizarTracking(PedidoActivo? pedido) {
+    final enCamino = pedido?.estado == 'en_camino_entrega';
+    if (enCamino && _trackingSocket == null) {
+      unawaited(_iniciarTracking(pedido!.id));
+    } else if (!enCamino && _trackingSocket != null) {
+      _detenerTracking();
+    }
+  }
+
+  Future<void> _iniciarTracking(String solicitudId) async {
+    if (!await Geolocator.isLocationServiceEnabled()) return;
+    var permiso = await Geolocator.checkPermission();
+    if (permiso == LocationPermission.denied) {
+      permiso = await Geolocator.requestPermission();
+    }
+    if (permiso == LocationPermission.denied || permiso == LocationPermission.deniedForever) {
+      return;
+    }
+    if (!mounted) return;
+
+    final socket = TrackingSocketService();
+    _trackingSocket = socket;
+    unawaited(socket.conectarYSuscribir(ref.read(apiClientProvider), solicitudId));
+
+    _posicionSub = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(distanceFilter: 10),
+    ).listen((posicion) {
+      _ultimaPosicionConocida = posicion;
+      socket.enviarPosicion(solicitudId, posicion.latitude, posicion.longitude);
+    });
+
+    // Filtro híbrido: el stream de arriba solo dispara por distancia —
+    // esto cubre el "cada 15s fijo" aunque el domiciliario esté
+    // detenido (semáforo, tráfico) reemitiendo la última posición.
+    _tickerTracking = Timer.periodic(const Duration(seconds: 15), (_) {
+      final ultima = _ultimaPosicionConocida;
+      if (ultima != null) {
+        socket.enviarPosicion(solicitudId, ultima.latitude, ultima.longitude);
+      }
+    });
+  }
+
+  void _detenerTracking() {
+    _posicionSub?.cancel();
+    _posicionSub = null;
+    _tickerTracking?.cancel();
+    _tickerTracking = null;
+    _trackingSocket?.desconectar();
+    _trackingSocket = null;
+    _ultimaPosicionConocida = null;
   }
 
   /// Refresco disparado por el WebSocket: nunca mientras hay una acción
@@ -123,6 +190,7 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
         _pedido = pedido;
         _novedades = novedades;
       });
+      _sincronizarTracking(pedido);
     } on ApiException {
       // silencioso a propósito, ver doc del método
     } on ApiSinConexionException {

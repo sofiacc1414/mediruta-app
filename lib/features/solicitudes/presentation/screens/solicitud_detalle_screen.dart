@@ -12,6 +12,7 @@ import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
 import '../../../../shared/widgets/entrega_confirmada_screen.dart';
 import '../../../../shared/widgets/snackbar_exito.dart';
+import '../../../tracking/presentation/seguimiento_mapa_screen.dart';
 import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/novedad_resumen.dart';
@@ -383,6 +384,18 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
             icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
+          actions: [
+            if (solicitud != null && solicitud.estado == 'en_camino_entrega')
+              IconButton(
+                icon: const Icon(Icons.map_outlined, color: AppColors.navy),
+                tooltip: 'Seguimiento en vivo',
+                onPressed: () => Navigator.pushNamed(
+                  context,
+                  SeguimientoMapaScreen.routeName,
+                  arguments: widget.solicitudId,
+                ),
+              ),
+          ],
           // HU-07 (ronda 7) — "Pedido" y "Novedades" en tabs separados:
           // antes convivían en un solo scroll larguísimo, con el reporte
           // y el historial de novedades metidos en medio de los datos
