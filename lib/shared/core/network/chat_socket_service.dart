@@ -38,6 +38,14 @@ class ChatSocketService {
           .setAuth({'token': token})
           .disableAutoConnect()
           .setTimeout(45000)
+          // `socket_io_client` multiplexa por scheme/host/port (ver
+          // `io()` en socket_io_client.dart) — sin esto, esta conexión
+          // puede terminar compartiendo el Manager/Socket interno con
+          // `EventosSocketService` (misma `AppConfig.apiBaseUrl`), pese
+          // a pasarle un `path` distinto acá. Bug real reportado: los
+          // mensajes no llegaban en vivo porque el join a `/ws-chat`
+          // nunca se completaba como conexión propia.
+          .enableForceNew()
           .build(),
     );
 

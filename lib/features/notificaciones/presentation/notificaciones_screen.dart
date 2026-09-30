@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/core/network/api_exception.dart';
 import '../../../shared/core/theme/app_colors.dart';
 import '../../../shared/widgets/app_error_banner.dart';
+import '../../chat/presentation/chat_screen.dart';
 import '../../solicitudes/presentation/providers/solicitud_providers.dart';
 import '../../solicitudes/presentation/screens/mi_pedido_activo_screen.dart';
 import '../../solicitudes/presentation/screens/pedido_completado_screen.dart';
@@ -117,6 +118,10 @@ class _NotificacionesScreenState extends ConsumerState<NotificacionesScreen> {
         await ref.read(authSessionProvider.notifier).refrescarIdentidad();
         if (!mounted) return;
         await Navigator.pushNamed(context, PerfilScreen.routeName);
+      case DestinoNotificacion.chatPedido:
+        final id = item.referenciaId;
+        if (id == null) return;
+        await Navigator.pushNamed(context, ChatScreen.routeName, arguments: id);
       case DestinoNotificacion.sinPermiso:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No puedes abrir esta información.')),

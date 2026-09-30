@@ -37,4 +37,18 @@ void main() {
       DestinoNotificacion.sinPermiso,
     );
   });
+
+  test('un mensaje de chat abre el chat del pedido, para paciente', () {
+    expect(
+      destinoNotificacion(tipo: 'mensaje_chat', modo: 'PACIENTE'),
+      DestinoNotificacion.chatPedido,
+    );
+  });
+
+  test('un mensaje de chat abre el chat del pedido, para domiciliario', () {
+    expect(
+      destinoNotificacion(tipo: 'mensaje_chat', modo: 'DOMICILIARIO'),
+      DestinoNotificacion.chatPedido,
+    );
+  });
 }
