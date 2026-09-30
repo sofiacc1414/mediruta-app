@@ -12,6 +12,7 @@ import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/entrega_confirmada_screen.dart';
+import '../../../chat/presentation/chat_screen.dart';
 import '../../../usuarios/presentation/providers/disponibilidad_domiciliario_provider.dart';
 import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
@@ -406,6 +407,18 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
           centerTitle: true,
           elevation: 0,
           backgroundColor: Colors.transparent,
+          actions: [
+            if (pedido != null)
+              IconButton(
+                icon: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.navy),
+                tooltip: 'Chat con el paciente',
+                onPressed: () => Navigator.pushNamed(
+                  context,
+                  ChatScreen.routeName,
+                  arguments: pedido.id,
+                ),
+              ),
+          ],
           // HU-07/HU-09 (ronda 7) — "Pedido" y "Novedades" en tabs
           // separados, mismo criterio que la pantalla equivalente del
           // Paciente (`SolicitudDetalleScreen`).

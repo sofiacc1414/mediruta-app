@@ -12,6 +12,7 @@ import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
 import '../../../../shared/widgets/entrega_confirmada_screen.dart';
 import '../../../../shared/widgets/snackbar_exito.dart';
+import '../../../chat/presentation/chat_screen.dart';
 import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/novedad_resumen.dart';
@@ -359,6 +360,13 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     ).showSnackBar(const SnackBar(content: Text('Código copiado.')));
   }
 
+  // El chat requiere domiciliario asignado (lo valida igual la API) —
+  // acá solo se evita mostrar el botón antes de tiempo, cuando seguro
+  // rebotaría. Estados previos: borrador/pendiente_revision/en_asignacion.
+  bool _tieneDomiciliarioAsignado(String estado) {
+    return !const {'borrador', 'pendiente_revision', 'en_asignacion'}.contains(estado);
+  }
+
   @override
   Widget build(BuildContext context) {
     final solicitud = _solicitud;
@@ -383,6 +391,18 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
             icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
+          actions: [
+            if (solicitud != null && _tieneDomiciliarioAsignado(solicitud.estado))
+              IconButton(
+                icon: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.navy),
+                tooltip: 'Chat con el domiciliario',
+                onPressed: () => Navigator.pushNamed(
+                  context,
+                  ChatScreen.routeName,
+                  arguments: widget.solicitudId,
+                ),
+              ),
+          ],
           // HU-07 (ronda 7) — "Pedido" y "Novedades" en tabs separados:
           // antes convivían en un solo scroll larguísimo, con el reporte
           // y el historial de novedades metidos en medio de los datos

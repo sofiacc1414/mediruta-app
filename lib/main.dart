@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'features/chat/presentation/chat_screen.dart';
 import 'features/solicitudes/presentation/screens/historial_pedidos_screen.dart';
 import 'features/solicitudes/presentation/screens/mi_pedido_activo_screen.dart';
 import 'features/solicitudes/presentation/screens/mis_solicitudes_screen.dart';
@@ -85,6 +86,12 @@ class MediRutaApp extends ConsumerWidget {
           final solicitudId = settings.arguments as String;
           return MaterialPageRoute(
             builder: (_) => PedidoCompletadoScreen(solicitudId: solicitudId),
+          );
+        }
+        if (settings.name == ChatScreen.routeName) {
+          final solicitudId = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (_) => ChatScreen(solicitudId: solicitudId),
           );
         }
         return null;
