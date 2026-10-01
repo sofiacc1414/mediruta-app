@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../shared/core/network/api_exception.dart';
 import '../../../shared/core/network/chat_socket_service.dart';
@@ -146,14 +147,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     setState(() => _enviando = true);
     _controller.clear();
     try {
-      // Vía WebSocket cuando está conectado (más rápido, llega a la
-      // otra punta al instante); si el socket falló, se cae al REST —
-      // ambos caminos pasan por el mismo `EnviarMensajeChatUseCase` del
-      // lado de la API, así que el resultado es idéntico.
+      // Solo por REST — el broadcast a la otra punta lo hace la API
+      // (`ChatEventosPort`, ver `EnviarMensajeChatUseCase`) apenas se
+      // guarda, sin importar el canal. Emitir ACÁ además por WS
+      // duplicaba el mensaje: cada canal insertaba su propia fila.
       final mensaje = await ref
           .read(chatDatasourceProvider)
           .enviarMensaje(chatId, contenido);
-      _socket.enviarMensaje(chatId, contenido);
       if (!mounted) return;
       if (!_mensajes.any((existente) => existente.id == mensaje.id)) {
         setState(() => _mensajes = [..._mensajes, mensaje]);
@@ -187,9 +187,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
-        title: const Text(
-          'Chat del pedido',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.navy),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/logo_mediruta.png',
+              height: 28,
+              filterQuality: FilterQuality.high,
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Chat del pedido',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.navy),
+            ),
+          ],
         ),
         centerTitle: true,
         elevation: 0,
@@ -199,44 +210,56 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: _cargando
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                    ? Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: AppErrorBanner(mensaje: _error!),
-                      )
-                    : Column(
-                        children: [
-                          Expanded(
-                            child: _mensajes.isEmpty
-                                ? const _ChatVacio()
-                                : ListView.builder(
-                                    controller: _scrollController,
-                                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                                    itemCount: _mensajes.length,
-                                    itemBuilder: (context, index) => _BurbujaMensaje(
-                                      mensaje: _mensajes[index],
-                                      esPropio: _mensajes[index].remitenteId == _miUsuarioId(),
-                                    ),
-                                  ),
-                          ),
-                          if (_soloLectura)
-                            const _AvisoSoloLectura()
-                          else
-                            _CampoEnvio(
-                              controller: _controller,
-                              enviando: _enviando,
+      body: Stack(
+        children: [
+          // Fondo tipo WhatsApp — un patrón de íconos médicos, sutil,
+          // detrás de los mensajes. Pedido explícito del usuario.
+          Positioned.fill(
+            child: SvgPicture.asset(
+              'assets/images/chat_fondo.svg',
+              fit: BoxFit.cover,
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: _cargando
+                    ? const Center(child: CircularProgressIndicator())
+                    : _error != null
+                        ? Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: AppErrorBanner(mensaje: _error!),
+                          )
+                        : Column(
+                            children: [
+                              Expanded(
+                                child: _mensajes.isEmpty
+                                    ? const _ChatVacio()
+                                    : ListView.builder(
+                                        controller: _scrollController,
+                                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                                        itemCount: _mensajes.length,
+                                        itemBuilder: (context, index) => _BurbujaMensaje(
+                                          mensaje: _mensajes[index],
+                                          esPropio: _mensajes[index].remitenteId == _miUsuarioId(),
+                                        ),
+                                      ),
+                              ),
+                              if (_soloLectura)
+                                const _AvisoSoloLectura()
+                              else
+                                _CampoEnvio(
+                                  controller: _controller,
+                                  enviando: _enviando,
                               onEnviar: _enviar,
                             ),
-                        ],
-                      ),
+                            ],
+                          ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -282,13 +305,23 @@ class _BurbujaMensaje extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
         decoration: BoxDecoration(
-          color: esPropio ? AppColors.teal : AppColors.skyBlue.withValues(alpha: 0.55),
+          // Sólido (no semi-transparente) — con el fondo tipo WhatsApp
+          // detrás, una burbuja translúcida dejaba el texto ilegible
+          // donde el patrón de íconos quedaba justo debajo.
+          color: esPropio ? AppColors.teal : AppColors.skyBlue,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
             bottomLeft: Radius.circular(esPropio ? 16 : 4),
             bottomRight: Radius.circular(esPropio ? 4 : 16),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.navy.withValues(alpha: 0.12),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,

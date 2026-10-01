@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="400" height="400" viewBox="0 0 400 400">
+    <defs>
+    <g id="syrup"><rect x="-8" y="-14" width="16" height="28" rx="3"/><line x1="-4" y1="-14" x2="4" y2="-14"/><rect x="-3" y="-20" width="6" height="6" rx="1"/><path d="M15,2 C15,8 20,8 20,2 L20,-12"/><rect fill="#8FA8BC" fill-opacity=".35" x="-8" y="2" width="16" height="12" rx="3"/></g>
+    <g id="pill"><rect x="-12" y="-6" width="24" height="12" rx="6"/><line x1="0" y1="-6" x2="0" y2="6"/></g>
+    <g id="caps"><rect x="-12" y="-6" width="24" height="12" rx="6"/><path fill="#8FA8BC" fill-opacity=".35" d="M0,-6 H6 A6,6 0 0 1 6,6 H0 Z"/></g>
+    <g id="cross"><path d="M-4,-12 H4 V-4 H12 V4 H4 V12 H-4 V4 H-12 V-4 H-4 Z"/></g>
+    <g id="crossf"><path fill="#8FA8BC" fill-opacity=".35" d="M-4,-12 H4 V-4 H12 V4 H4 V12 H-4 V4 H-12 V-4 H-4 Z"/></g>
+    <g id="blister"><rect x="-12" y="-18" width="24" height="36" rx="4"/><circle cx="-6" cy="-11" r="2"/><circle cx="6" cy="-11" r="2"/><circle fill="#8FA8BC" fill-opacity=".35" cx="-6" cy="0" r="2"/><circle cx="6" cy="0" r="2"/><circle cx="-6" cy="11" r="2"/><circle fill="#8FA8BC" fill-opacity=".35" cx="6" cy="11" r="2"/></g>
+    <g id="thermo"><path d="M-17,-17 L8,8 M4,4 L11,11 C13,13 15,13 17,11 C19,9 19,7 17,5 L10,-2"/><rect x="-13" y="-11" width="10" height="4" rx="1" transform="rotate(45 -8 -9)"/></g>
+    <g id="band"><rect x="-14" y="-5" width="28" height="10" rx="3" transform="rotate(45)"/><rect fill="#8FA8BC" fill-opacity=".35" x="-14" y="-5" width="28" height="10" rx="3" transform="rotate(-45)"/><circle r="1"/></g>
+    <g id="tube"><path d="M-8,-12 H8 L5,12 H-5 Z"/><rect x="-3" y="-18" width="6" height="6"/><line x1="-6" y1="8" x2="6" y2="8"/></g>
+    <g id="heart"><path d="M0,-8 C-5,-13 -12,-10 -12,-3 C-12,4 0,12 0,12 C0,12 12,4 12,-3 C12,-10 5,-13 0,-8 Z"/><path d="M-8,-2 H-4 L-2,-6 L1,2 L4,-4 L6,-2 H9"/></g>
+    <g id="drop"><path d="M-10,10 L3,-3 M1,-5 L7,-11 C9,-13 11,-11 12,-9 L9,-6"/><path d="M-12,12 C-13,13 -14,15 -13,17 L-12,18"/><ellipse cx="11" cy="-13" rx="4" ry="3" transform="rotate(45 11 -13)"/></g>
+    <g id="syr"><rect x="-14" y="-4" width="22" height="8" rx="2"/><line x1="8" y1="0" x2="19" y2="0"/><line x1="-14" y1="0" x2="-20" y2="0"/><line x1="-20" y1="-6" x2="-20" y2="6"/><line x1="-8" y1="-4" x2="-8" y2="0"/><line x1="-2" y1="-4" x2="-2" y2="0"/><line x1="4" y1="-4" x2="4" y2="0"/></g>
+    <g id="receipt"><path d="M-9,-13 H9 V13 L6,11 L3,13 L0,11 L-3,13 L-6,11 L-9,13 Z"/><path d="M-5,-7 H5 M-5,-2 H5 M-5,3 H2"/></g>
+    <g id="person"><circle cx="0" cy="-7" r="5"/><path d="M-11,12 V10 C-11,5 -6,3 0,3 C6,3 11,5 11,10 V12 Z"/></g>
+    <g id="bottle"><rect x="-8" y="-6" width="16" height="20" rx="3"/><rect x="-6" y="-12" width="12" height="6" rx="1"/><rect fill="#8FA8BC" fill-opacity=".35" x="-5" y="1" width="10" height="7" rx="1"/></g>
+    <g id="wdrop"><path d="M0,-12 C6,-4 9,0 9,5 C9,10 5,13 0,13 C-5,13 -9,10 -9,5 C-9,0 -6,-4 0,-12 Z"/><path d="M-4,6 C-4,8 -2,9 0,9"/></g>
+    <g id="cal"><rect x="-11" y="-10" width="22" height="22" rx="3"/><path d="M-11,-3 H11 M-6,-14 V-8 M6,-14 V-8"/><circle fill="#8FA8BC" fill-opacity=".35" cx="-4" cy="4" r="2"/><circle cx="3" cy="4" r="1.2"/></g>
+    <g id="chat"><path d="M-12,-9 H12 V6 H0 L-6,12 V6 H-12 Z"/><path d="M-6,-3 H6 M-6,1 H2"/></g>
+    <g id="mag"><circle cx="-2" cy="-2" r="8"/><path d="M4,4 L11,11"/></g>
+    <g id="tab"><circle fill="#8FA8BC" fill-opacity=".35" r="8"/><circle r="8"/><line x1="-8" y1="0" x2="8" y2="0"/></g>
+    <g id="plus"><path d="M-3,0 H3 M0,-3 V3"/></g>
+    <g id="dot"><circle r="2"/></g>
+
+    <g id="tile">
+      <use xlink:href="#blister" href="#blister" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(200 130) rotate(12) scale(1.7)"/>
+      <use xlink:href="#heart" href="#heart" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(355 70) rotate(10) scale(1.8)"/>
+      <use xlink:href="#syrup" href="#syrup" fill="none" stroke="#E9D5AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(30 140) rotate(-12) scale(1.5)"/>
+      <use xlink:href="#thermo" href="#thermo" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(200 300) rotate(-8) scale(1.7)"/>
+      <use xlink:href="#bottle" href="#bottle" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(185 215) rotate(-8) scale(1.3)"/>
+      <use xlink:href="#receipt" href="#receipt" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(360 300) rotate(8) scale(1.6)"/>
+      <use xlink:href="#person" href="#person" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(40 290) scale(1.5)"/>
+      <use xlink:href="#pill" href="#pill" fill="none" stroke="#E9D5AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(270 50) rotate(35) scale(1.3)"/>
+      <use xlink:href="#caps" href="#caps" fill="none" stroke="#E9D5AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(275 115) rotate(-30) scale(1.3)"/>
+      <use xlink:href="#crossf" href="#crossf" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(20 78) scale(.8)"/>
+      <use xlink:href="#band" href="#band" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(275 262) rotate(-10) scale(1.2)"/>
+      <use xlink:href="#tube" href="#tube" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(115 135) rotate(-25) scale(1.2)"/>
+      <use xlink:href="#drop" href="#drop" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(330 140) rotate(20) scale(1.1)"/>
+      <use xlink:href="#syr" href="#syr" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(100 385) rotate(-30) scale(1.2)"/>
+      <use xlink:href="#wdrop" href="#wdrop" fill="none" stroke="#D0E0ED" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(135 165) scale(.9)"/>
+      <use xlink:href="#cal" href="#cal" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(320 248)"/>
+      <use xlink:href="#chat" href="#chat" fill="none" stroke="#D0E0ED" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(55 350) rotate(-8) scale(1.1)"/>
+      <use xlink:href="#mag" href="#mag" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(200 385) scale(1.2)"/>
+      <use xlink:href="#pill" href="#pill" fill="none" stroke="#E9D5AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(22 250) rotate(60) scale(.6)"/>
+      <use xlink:href="#crossf" href="#crossf" fill="none" stroke="#E9D5AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(375 135) scale(.8)"/>
+      <use xlink:href="#heart" href="#heart" fill="none" stroke="#D0E0ED" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(255 325) rotate(-15) scale(.7)"/>
+      <use xlink:href="#tab" href="#tab" fill="none" stroke="#E9D5AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(150 260)"/>
+      <use xlink:href="#tab" href="#tab" fill="none" stroke="#D0E0ED" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(300 320) scale(.8)"/>
+      <use xlink:href="#tab" href="#tab" fill="none" stroke="#E9D5AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(385 230) scale(.7)"/>
+      <use xlink:href="#caps" href="#caps" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(70 175) rotate(50) scale(.8)"/>
+      <use xlink:href="#blister" href="#blister" fill="none" stroke="#D0E0ED" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(385 350) rotate(-20) scale(.7)"/>
+      <use xlink:href="#wdrop" href="#wdrop" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(215 30) rotate(-10) scale(.7)"/>
+      <use xlink:href="#receipt" href="#receipt" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(140 350) rotate(-12) scale(.7)"/>
+      <use xlink:href="#band" href="#band" fill="none" stroke="#D0E0ED" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(385 390) rotate(15) scale(.7)"/>
+      <use xlink:href="#cal" href="#cal" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(225 75) rotate(8) scale(.7)"/>
+      <use xlink:href="#cross" href="#cross" fill="none" stroke="#D0E0ED" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(25 20) scale(.6)"/>
+      <use xlink:href="#cross" href="#cross" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(380 20) rotate(20) scale(.6)"/>
+      <use xlink:href="#person" href="#person" fill="none" stroke="#D0E0ED" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(150 50) scale(.6)"/>
+      <use xlink:href="#mag" href="#mag" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(20 395) scale(.7)"/>
+      <use xlink:href="#dot" href="#dot" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(110 195)"/>
+      <use xlink:href="#dot" href="#dot" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(240 110) scale(.7)"/>
+      <use xlink:href="#dot" href="#dot" fill="none" stroke="#E9D5AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(340 160) scale(1.2)"/>
+      <use xlink:href="#dot" href="#dot" fill="none" stroke="#D0E0ED" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(165 225) scale(.8)"/>
+      <use xlink:href="#dot" href="#dot" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(30 60) scale(.8)"/>
+      <use xlink:href="#dot" href="#dot" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(240 300) scale(.6)"/>
+      <use xlink:href="#dot" href="#dot" fill="none" stroke="#E9D5AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(388 88) scale(.8)"/>
+      <use xlink:href="#dot" href="#dot" fill="none" stroke="#D0E0ED" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 300) scale(1.1)"/>
+      <use xlink:href="#plus" href="#plus" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(120 100) scale(1.3)"/>
+      <use xlink:href="#plus" href="#plus" fill="none" stroke="#E9D5AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(330 30) scale(1.1)"/>
+      <use xlink:href="#plus" href="#plus" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(270 290)"/>
+      <use xlink:href="#plus" href="#plus" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(55 170) scale(1.2)"/>
+      <use xlink:href="#plus" href="#plus" fill="none" stroke="#D0E0ED" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(190 250) scale(.9)"/>
+      <use xlink:href="#plus" href="#plus" fill="none" stroke="#E9D5AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(385 270) scale(1.2)"/>
+      <use xlink:href="#plus" href="#plus" fill="none" stroke="#A5B9C8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(180 345) scale(1.1)"/>
+      <use xlink:href="#plus" href="#plus" fill="none" stroke="#B6CEE2" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(10 100)"/>
+      <use xlink:href="#plus" href="#plus" fill="none" stroke="#D0E0ED" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(245 160) scale(1.2)"/>
+      <use xlink:href="#plus" href="#plus" fill="none" stroke="#E9D5AE" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(345 345)"/>
+    </g>
+  </defs>
+
+  <rect fill="#F2F7FC" width="400" height="400"/>
+
+  <g opacity="0.5">
+    <use xlink:href="#tile" href="#tile"/>
+    <use xlink:href="#tile" href="#tile" transform="translate(-400 0)"/>
+    <use xlink:href="#tile" href="#tile" transform="translate(400 0)"/>
+    <use xlink:href="#tile" href="#tile" transform="translate(0 -400)"/>
+    <use xlink:href="#tile" href="#tile" transform="translate(0 400)"/>
+    <use xlink:href="#tile" href="#tile" transform="translate(-400 -400)"/>
+    <use xlink:href="#tile" href="#tile" transform="translate(400 -400)"/>
+    <use xlink:href="#tile" href="#tile" transform="translate(-400 400)"/>
+    <use xlink:href="#tile" href="#tile" transform="translate(400 400)"/>
+  </g>
+</svg>
