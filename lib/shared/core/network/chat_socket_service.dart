@@ -71,10 +71,6 @@ class ChatSocketService {
     socket.connect();
   }
 
-  void enviarMensaje(String chatId, String contenido) {
-    _socket?.emit('chat:enviar_mensaje', {'chatId': chatId, 'contenido': contenido});
-  }
-
   void desconectar() {
     _socket?.dispose();
     _socket = null;
