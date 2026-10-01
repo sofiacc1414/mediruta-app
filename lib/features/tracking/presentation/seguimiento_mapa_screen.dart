@@ -140,6 +140,18 @@ class _SeguimientoMapaScreenState extends ConsumerState<SeguimientoMapaScreen> {
     }
   }
 
+  void _acercar() => _cambiarZoom(1);
+  void _alejar() => _cambiarZoom(-1);
+
+  void _cambiarZoom(double delta) {
+    try {
+      final camara = _mapController.camera;
+      _mapController.move(camara.center, (camara.zoom + delta).clamp(3, 18));
+    } catch (_) {
+      // El mapa puede no estar montado todavía.
+    }
+  }
+
   /// PRD 5.1 — trazado inicial de la ruta vial vía OSRM (servidor
   /// público demo, gratis, sin SLA — igual que Nominatim: si falla, el
   /// mapa se queda sin la polyline pero los marcadores igual sirven).
@@ -272,8 +284,49 @@ class _SeguimientoMapaScreenState extends ConsumerState<SeguimientoMapaScreen> {
                           texto: 'Ubicación temporalmente no disponible.',
                         ),
                       ),
+                    // Controles para manipular el mapa — zoom y volver a
+                    // centrar en la moto, sin depender de gestos
+                    // multitouch (el panel corre también en Web/desktop).
+                    Positioned(
+                      right: 12,
+                      bottom: (_finalizado || _sinSenal) ? 84 : 16,
+                      child: Column(
+                        children: [
+                          _ControlMapa(icono: Icons.add, onPressed: _acercar),
+                          const SizedBox(height: 8),
+                          _ControlMapa(icono: Icons.remove, onPressed: _alejar),
+                          const SizedBox(height: 8),
+                          _ControlMapa(icono: Icons.my_location_rounded, onPressed: _centrarMapa),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
+    );
+  }
+}
+
+class _ControlMapa extends StatelessWidget {
+  const _ControlMapa({required this.icono, required this.onPressed});
+
+  final IconData icono;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.white,
+      shape: const CircleBorder(),
+      elevation: 3,
+      shadowColor: AppColors.navy.withValues(alpha: 0.35),
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Icon(icono, color: AppColors.navy, size: 20),
+        ),
+      ),
     );
   }
 }

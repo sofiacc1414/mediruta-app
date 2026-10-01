@@ -11,8 +11,8 @@ import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
 import '../../../../shared/widgets/entrega_confirmada_screen.dart';
+import '../../../../shared/widgets/botones_flotantes_pedido.dart';
 import '../../../../shared/widgets/snackbar_exito.dart';
-import '../../../tracking/presentation/seguimiento_mapa_screen.dart';
 import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/novedad_resumen.dart';
@@ -360,6 +360,13 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     ).showSnackBar(const SnackBar(content: Text('Código copiado.')));
   }
 
+  // El chat requiere domiciliario asignado (lo valida igual la API) —
+  // acá solo se evita mostrar el botón antes de tiempo, cuando seguro
+  // rebotaría. Estados previos: borrador/pendiente_revision/en_asignacion.
+  bool _tieneDomiciliarioAsignado(String estado) {
+    return !const {'borrador', 'pendiente_revision', 'en_asignacion'}.contains(estado);
+  }
+
   @override
   Widget build(BuildContext context) {
     final solicitud = _solicitud;
@@ -384,18 +391,6 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
             icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
-          actions: [
-            if (solicitud != null && solicitud.estado == 'en_camino_entrega')
-              IconButton(
-                icon: const Icon(Icons.map_outlined, color: AppColors.navy),
-                tooltip: 'Seguimiento en vivo',
-                onPressed: () => Navigator.pushNamed(
-                  context,
-                  SeguimientoMapaScreen.routeName,
-                  arguments: widget.solicitudId,
-                ),
-              ),
-          ],
           // HU-07 (ronda 7) — "Pedido" y "Novedades" en tabs separados:
           // antes convivían en un solo scroll larguísimo, con el reporte
           // y el historial de novedades metidos en medio de los datos
@@ -413,34 +408,44 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                 ),
         ),
         bottomNavigationBar: const MainBottomBar(),
-        body: _cargando
-            ? const Center(child: CircularProgressIndicator())
-            : solicitud == null
-                ? Center(
-                    child: _error != null
-                        ? Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: AppErrorBanner(mensaje: _error!),
-                          )
-                        : const SizedBox.shrink(),
-                  )
-                : Column(
-                    children: [
-                      if (_error != null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                          child: AppErrorBanner(mensaje: _error!),
-                        ),
-                      Expanded(
-                        child: TabBarView(
-                          children: [
-                            _tabPedido(solicitud),
-                            _tabNovedades(solicitud),
-                          ],
-                        ),
+        body: Stack(
+          children: [
+            _cargando
+                ? const Center(child: CircularProgressIndicator())
+                : solicitud == null
+                    ? Center(
+                        child: _error != null
+                            ? Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: AppErrorBanner(mensaje: _error!),
+                              )
+                            : const SizedBox.shrink(),
+                      )
+                    : Column(
+                        children: [
+                          if (_error != null)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                              child: AppErrorBanner(mensaje: _error!),
+                            ),
+                          Expanded(
+                            child: TabBarView(
+                              children: [
+                                _tabPedido(solicitud),
+                                _tabNovedades(solicitud),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+            if (solicitud != null)
+              BotonesFlotantesPedido(
+                solicitudId: widget.solicitudId,
+                mostrarChat: _tieneDomiciliarioAsignado(solicitud.estado),
+                mostrarSeguimiento: solicitud.estado == 'en_camino_entrega',
+              ),
+          ],
+        ),
       ),
     );
   }

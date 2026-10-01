@@ -12,6 +12,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
+import '../../../../shared/widgets/botones_flotantes_pedido.dart';
 import '../../../../shared/widgets/entrega_confirmada_screen.dart';
 import '../../../usuarios/presentation/providers/disponibilidad_domiciliario_provider.dart';
 import '../../../usuarios/presentation/providers/usuario_providers.dart';
@@ -490,7 +491,9 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
                 ),
         ),
         bottomNavigationBar: const MainBottomBar(),
-        body: _cargando
+        body: Stack(
+          children: [
+            _cargando
             ? const Center(child: CircularProgressIndicator())
             : pedido == null
                 ? RefreshIndicator(
@@ -554,6 +557,10 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
                       ),
                     ],
                   ),
+            if (pedido != null)
+              BotonesFlotantesPedido(solicitudId: pedido.id, mostrarChat: true),
+          ],
+        ),
       ),
     );
   }
