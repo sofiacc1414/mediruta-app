@@ -7,6 +7,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../shared/core/auth/biometria_perfil_provider.dart';
+import '../../../../shared/core/auth/biometria_service.dart';
 import '../../../../shared/core/data/colombia_departamentos.dart';
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
@@ -114,6 +116,15 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   final _guardandoCambiosNotifier = ValueNotifier<bool>(false);
   bool _notificacionesActivas = true;
 
+  // Segundo factor local (huella/clave del teléfono) para entrar al
+  // perfil — se re-evalúa cada vez que se abre la pantalla, nunca
+  // queda "recordado" entre visitas.
+  final _biometria = BiometriaService();
+  bool _requiereBiometria = false;
+  bool _desbloqueado = false;
+  bool _verificandoBiometria = false;
+  bool _biometriaDisponibleDispositivo = false;
+
   @override
   void initState() {
     super.initState();
@@ -122,6 +133,50 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     _correoController = TextEditingController(text: usuarioInicial?.correo ?? '');
     _pacienteDireccionFocus.addListener(_onFocoDireccionPacienteCambio);
     _cargarPerfil();
+    unawaited(_prepararGateBiometrico());
+  }
+
+  Future<void> _prepararGateBiometrico() async {
+    final disponible = await _biometria.disponibleEnEsteDispositivo();
+    if (!mounted) return;
+    setState(() => _biometriaDisponibleDispositivo = disponible);
+    final activa = ref.read(biometriaPerfilProvider);
+    if (!activa || !disponible) return;
+    setState(() => _requiereBiometria = true);
+    await _intentarDesbloqueo();
+  }
+
+  Future<void> _onCambiarBiometria(bool valor) async {
+    if (!valor) {
+      await ref.read(biometriaPerfilProvider.notifier).cambiar(false);
+      return;
+    }
+    // Se exige un desbloqueo exitoso ANTES de persistir en true — evita
+    // que alguien lo prenda sin saber si su huella/clave realmente
+    // responde y quede bloqueado afuera de su propio perfil después.
+    final ok = await _biometria.autenticar(
+      motivo: 'Confirmá tu huella o clave para activar esta protección',
+    );
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo confirmar — probá de nuevo.')),
+      );
+      return;
+    }
+    await ref.read(biometriaPerfilProvider.notifier).cambiar(true);
+  }
+
+  Future<void> _intentarDesbloqueo() async {
+    setState(() => _verificandoBiometria = true);
+    final ok = await _biometria.autenticar(
+      motivo: 'Confirmá tu identidad para ver tu perfil',
+    );
+    if (!mounted) return;
+    setState(() {
+      _verificandoBiometria = false;
+      if (ok) _desbloqueado = true;
+    });
   }
 
   @override
@@ -529,6 +584,12 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_requiereBiometria && !_desbloqueado) {
+      return _PantallaBloqueoBiometrico(
+        verificando: _verificandoBiometria,
+        onReintentar: _intentarDesbloqueo,
+      );
+    }
     final estado = ref.watch(authSessionProvider);
     final usuario = estado is AuthAutenticado ? estado.usuario : null;
     final roles = usuario?.roles ?? const [];
@@ -724,6 +785,17 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                           ),
                         ),
                       ),
+                      _CardSwitch(
+                        icon: Icons.fingerprint,
+                        iconColor: AppColors.navy,
+                        titulo: 'Pedir huella al entrar al perfil',
+                        subtitulo: _biometriaDisponibleDispositivo
+                            ? 'Huella o clave del teléfono como segundo factor'
+                            : 'No disponible en este dispositivo',
+                        valor: ref.watch(biometriaPerfilProvider),
+                        onChanged: _biometriaDisponibleDispositivo ? _onCambiarBiometria : null,
+                      ),
+                      const SizedBox(height: 12),
                       _CardAccion(
                         icon: Icons.lock_outline,
                         iconColor: AppColors.navy,
@@ -1568,6 +1640,73 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
   }
 }
 
+/// Gate de segundo factor local — reemplaza TODO el contenido de
+/// `PerfilScreen` mientras no se confirme la huella/clave del
+/// teléfono (toggle "Seguridad" activo). Nunca persiste el
+/// desbloqueo: se vuelve a pedir cada vez que se entra a la pantalla.
+class _PantallaBloqueoBiometrico extends StatelessWidget {
+  const _PantallaBloqueoBiometrico({required this.verificando, required this.onReintentar});
+
+  final bool verificando;
+  final VoidCallback onReintentar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          'Tu perfil',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.navy),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      bottomNavigationBar: const MainBottomBar(),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  color: AppColors.skyBlue.withValues(alpha: 0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.fingerprint, color: AppColors.navy, size: 44),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Tu perfil está protegido',
+                style: TextStyle(color: AppColors.navy, fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Confirmá tu huella o la clave de tu teléfono para verlo.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.teal, fontSize: 13.5, height: 1.4),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  label: verificando ? 'Verificando…' : 'Desbloquear',
+                  isLoading: verificando,
+                  onPressed: verificando ? null : onReintentar,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CardSwitch extends StatelessWidget {
   const _CardSwitch({
     required this.icon,
@@ -1583,7 +1722,9 @@ class _CardSwitch extends StatelessWidget {
   final String titulo;
   final String subtitulo;
   final bool valor;
-  final ValueChanged<bool> onChanged;
+  // Nullable: `null` deshabilita el switch (ver uso en el toggle de
+  // biometría, cuando el dispositivo no soporta huella/clave).
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
