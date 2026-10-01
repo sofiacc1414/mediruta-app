@@ -255,7 +255,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
       builder: (context) => AlertDialog(
         title: const Text('No veo mi código de entrega'),
         content: const Text(
-          'Le avisamos a un administrador para que te lo genere de nuevo o te lo reenvíe por correo.',
+          'Te generamos un código nuevo al instante y te lo mandamos por correo.',
         ),
         actions: [
           TextButton(
@@ -281,7 +281,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           snackBarExito(
-            'Reportamos el problema — el administrador te lo va a enviar de nuevo.',
+            'Listo — te mandamos el código nuevo por correo.',
           ),
         );
       }
