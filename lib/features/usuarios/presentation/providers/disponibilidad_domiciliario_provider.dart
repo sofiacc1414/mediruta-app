@@ -53,11 +53,25 @@ class DisponibilidadDomiciliarioNotifier extends StateNotifier<DisponibilidadDom
       double? lat;
       double? lng;
       if (valor) {
+        // Bug real reportado: "tengo el permiso dado en el celular pero
+        // la app igual dice que falta" — el mensaje genérico mezclaba
+        // dos fallas distintas (GPS apagado a nivel sistema operativo
+        // vs. permiso de la app denegado) bajo el mismo texto, que
+        // siempre hablaba de "permiso" aunque el problema real fuera
+        // que el GPS del teléfono estaba apagado.
+        if (!await Geolocator.isLocationServiceEnabled()) {
+          state = state.copyWith(
+            actualizando: false,
+            error: 'Activá la ubicación (GPS) del teléfono para poder ponerte "Disponible".',
+          );
+          return;
+        }
         final posicion = await _obtenerUbicacionActual();
         if (posicion == null) {
           state = state.copyWith(
             actualizando: false,
-            error: 'Necesitamos permiso de ubicación para activar "Disponible".',
+            error:
+                'No tenés permiso de ubicación para la app — activalo desde Ajustes del teléfono.',
           );
           return;
         }
