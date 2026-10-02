@@ -24,6 +24,18 @@ import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
 import '../widgets/tarjeta_novedad.dart';
 
+/// Estados en los que el domiciliario transmite su ubicación en vivo
+/// (y el paciente puede verla) — desde que acepta hasta `en_sitio`.
+/// Mismo conjunto que valida `app.actualizar_ubicacion_en_vivo` del
+/// lado de la API.
+const _estadosTrackingActivo = {
+  'asignado_en_camino_farmacia',
+  'en_farmacia',
+  'medicamentos_recogidos',
+  'en_camino_entrega',
+  'en_sitio',
+};
+
 /// HU-09/HU-07 — el pedido que el Domiciliario tiene en curso: mismo
 /// `AppTrackingTimeline` que ve el Paciente, con el botón de acción del
 /// paso actual embebido junto al punto en curso, y "Reportar novedad"
@@ -117,13 +129,14 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
   }
 
   /// Prende/apaga el streaming de posición según el estado del pedido —
-  /// solo transmite mientras está `en_camino_entrega` (PRD 2.2, "bajo
-  /// demanda"): ni antes (todavía no hace falta) ni después (ya
-  /// entregó, seguir mandando GPS sería gastar batería/datos de más).
+  /// transmite durante todo el tramo activo de la entrega (desde que
+  /// acepta hasta `en_sitio`, pedido explícito: antes solo arrancaba en
+  /// `en_camino_entrega`), ni antes de aceptar ni después de entregar
+  /// (seguir mandando GPS sería gastar batería/datos de más).
   void _sincronizarTracking(PedidoActivo? pedido) {
-    final enCamino = pedido?.estado == 'en_camino_entrega';
+    final enCamino = pedido != null && _estadosTrackingActivo.contains(pedido.estado);
     if (enCamino && _trackingSocket == null) {
-      unawaited(_iniciarTracking(pedido!.id));
+      unawaited(_iniciarTracking(pedido.id));
     } else if (!enCamino && _trackingSocket != null) {
       _detenerTracking();
     }

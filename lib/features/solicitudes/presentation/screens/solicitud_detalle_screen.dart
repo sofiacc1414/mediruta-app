@@ -25,6 +25,17 @@ import '../widgets/tarjeta_precio_pedido.dart';
 import 'nueva_solicitud_screen.dart';
 import 'solicitar_edicion_pedido_screen.dart';
 
+/// Estados en los que hay seguimiento en vivo disponible — desde que el
+/// domiciliario acepta hasta `en_sitio`. Mismo conjunto que acepta
+/// `app.obtener_posicion_en_vivo` del lado de la API.
+const _estadosTrackingActivo = {
+  'asignado_en_camino_farmacia',
+  'en_farmacia',
+  'medicamentos_recogidos',
+  'en_camino_entrega',
+  'en_sitio',
+};
+
 /// G03/G05/G06 — HU-03, con el tracking de HU-07/HU-09.
 class SolicitudDetalleScreen extends ConsumerStatefulWidget {
   const SolicitudDetalleScreen({super.key, required this.solicitudId});
@@ -443,7 +454,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
               BotonesFlotantesPedido(
                 solicitudId: widget.solicitudId,
                 mostrarChat: _tieneDomiciliarioAsignado(solicitud.estado),
-                mostrarSeguimiento: solicitud.estado == 'en_camino_entrega',
+                mostrarSeguimiento: _estadosTrackingActivo.contains(solicitud.estado),
               ),
           ],
         ),
