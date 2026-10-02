@@ -13,6 +13,7 @@ import '../../../usuarios/presentation/providers/usuario_providers.dart';
 import '../../../usuarios/presentation/screens/perfil_screen.dart';
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/solicitud_resumen.dart';
+import '../../../calificaciones/presentation/screens/pedidos_calificacion_screen.dart';
 import '../providers/solicitud_providers.dart';
 import 'nueva_solicitud_screen.dart';
 import 'solicitud_detalle_screen.dart';
@@ -231,7 +232,23 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => Navigator.of(context).pushNamed(
+                            PedidosCalificacionScreen.routeName,
+                          ),
+                          child: const Text(
+                            'Calificar entregas',
+                            style: TextStyle(
+                              color: AppColors.teal,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
 
                       if (visibles.isEmpty && _error == null)
                         Padding(

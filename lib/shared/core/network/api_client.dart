@@ -101,6 +101,10 @@ class ApiClient {
     return _request('PATCH', path, body: body, autenticado: autenticado);
   }
 
+  Future<dynamic> delete(String path, {bool autenticado = false}) {
+    return _request('DELETE', path, autenticado: autenticado);
+  }
+
   /// POST multipart a `path` con un único archivo (campo `archivo`, mismo
   /// nombre que espera `FileInterceptor('archivo')` en la API) y campos de
   /// texto adicionales opcionales (ej. `tipo` para documentos del
@@ -196,6 +200,7 @@ class ApiClient {
           headers: headers,
           body: body != null ? jsonEncode(body) : null,
         ),
+        'DELETE' => await _http.delete(uri, headers: headers),
         _ => throw UnsupportedError('Método HTTP no soportado: $metodo'),
       };
     } on http.ClientException {
