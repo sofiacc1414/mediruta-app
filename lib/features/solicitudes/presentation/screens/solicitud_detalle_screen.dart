@@ -20,6 +20,7 @@ import '../../domain/entities/solicitud.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
 import '../widgets/tarjeta_novedad.dart';
+import '../../../calificaciones/presentation/widgets/seccion_calificacion_pedido.dart';
 import '../widgets/tarjeta_precio_pedido.dart';
 import 'nueva_solicitud_screen.dart';
 import 'solicitar_edicion_pedido_screen.dart';
@@ -484,6 +485,11 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                     Flexible(child: AppStatusPill(estado: solicitud.estado)),
                   ],
                 ),
+              ),
+              SeccionCalificacionPedido(
+                pedidoId: solicitud.id,
+                codigoPedido: solicitud.codigoPedido,
+                estadoPedido: solicitud.estado,
               ),
               if (solicitud.codigoEntrega != null) ...[
                 const SizedBox(height: 16),

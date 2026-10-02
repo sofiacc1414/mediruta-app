@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'features/calificaciones/presentation/screens/calificacion_confirmacion_screen.dart';
+import 'features/calificaciones/presentation/screens/calificacion_form_screen.dart';
+import 'features/calificaciones/presentation/screens/pedidos_calificacion_screen.dart';
 import 'features/chat/presentation/chat_screen.dart';
 import 'features/solicitudes/presentation/screens/historial_pedidos_screen.dart';
 import 'features/solicitudes/presentation/screens/mi_pedido_activo_screen.dart';
@@ -65,6 +68,7 @@ class MediRutaApp extends ConsumerWidget {
         HomeScreen.routeName: (_) => const HomeScreen(),
         NotificacionesScreen.routeName: (_) => const NotificacionesScreen(),
         MisSolicitudesScreen.routeName: (_) => const MisSolicitudesScreen(),
+        PedidosCalificacionScreen.routeName: (_) => const PedidosCalificacionScreen(),
         NuevaSolicitudScreen.routeName: (_) => const NuevaSolicitudScreen(),
         PedidosDisponiblesScreen.routeName: (_) => const PedidosDisponiblesScreen(),
         MiPedidoActivoScreen.routeName: (_) => const MiPedidoActivoScreen(),
@@ -81,6 +85,18 @@ class MediRutaApp extends ConsumerWidget {
           final solicitudId = settings.arguments as String;
           return MaterialPageRoute(
             builder: (_) => SolicitudDetalleScreen(solicitudId: solicitudId),
+          );
+        }
+        if (settings.name == CalificacionFormScreen.routeName) {
+          final args = settings.arguments as CalificacionFormArgs;
+          return MaterialPageRoute(
+            builder: (_) => CalificacionFormScreen(args: args),
+          );
+        }
+        if (settings.name == CalificacionConfirmacionScreen.routeName) {
+          final pedidoId = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (_) => CalificacionConfirmacionScreen(pedidoId: pedidoId),
           );
         }
         if (settings.name == PedidoCompletadoScreen.routeName) {
