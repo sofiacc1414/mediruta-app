@@ -12,6 +12,13 @@ import '../../../shared/core/theme/app_colors.dart';
 import '../../usuarios/presentation/providers/usuario_providers.dart';
 import '../domain/posicion_en_vivo.dart';
 
+/// Estados en los que el domiciliario todavía no recogió el pedido —
+/// mientras esté acá, la ruta trazada va hacia la FARMACIA, no hacia
+/// el paciente (bug real reportado: el mapa siempre trazaba la ruta al
+/// domicilio del paciente, aunque el domiciliario todavía estuviera
+/// yendo a la farmacia o parado en ella).
+const _estadosAntesDeRecoger = {'asignado_en_camino_farmacia', 'en_farmacia'};
+
 /// Seguimiento GPS en vivo del domiciliario — Paciente y Admin lo ven
 /// como espectadores pasivos mientras el pedido está en camino. No
 /// reinventa ninguna regla de negocio (quién puede verlo, cuándo
@@ -107,8 +114,11 @@ class _SeguimientoMapaScreenState extends ConsumerState<SeguimientoMapaScreen> {
       _entrega = entrega;
     });
     _resetearTimerSinSenal();
-    if (domiciliario != null && entrega != null) {
-      unawaited(_pedirRuta(domiciliario, entrega));
+    // Antes de recoger el pedido, la ruta va hacia la farmacia; de ahí
+    // en adelante, hacia el paciente — ver `_estadosAntesDeRecoger`.
+    final destino = _estadosAntesDeRecoger.contains(posicion.estado) ? farmacia : entrega;
+    if (domiciliario != null && destino != null) {
+      unawaited(_pedirRuta(domiciliario, destino));
     }
     WidgetsBinding.instance.addPostFrameCallback((_) => _centrarMapa());
   }
