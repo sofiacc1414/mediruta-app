@@ -375,7 +375,7 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
   }
 
   static const _mensajeFueraDeFarmacia =
-      'No tienes acceso a los documentos porque no estás exactamente en la dirección autorizada de la farmacia.';
+      'No tienes acceso a los documentos porque tu ubicación actual está fuera del rango permitido alrededor de la farmacia (estás fuera de la cerca). Acércate más a la entrada y volvé a intentar.';
 
   String _mensajeDocumentos(ApiException error) {
     final mensaje = error.message.trim();
