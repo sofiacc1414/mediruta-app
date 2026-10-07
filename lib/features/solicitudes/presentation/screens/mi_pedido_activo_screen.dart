@@ -932,7 +932,7 @@ class _HojaDocumentosPaciente extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Mostrá solo la cédula del paciente para retirar el pedido.',
+                'Mostrá la cédula y la fórmula médica del paciente para retirar el pedido.',
                 style: TextStyle(color: AppColors.teal, fontSize: 13),
               ),
               const SizedBox(height: 20),
@@ -942,6 +942,8 @@ class _HojaDocumentosPaciente extends StatelessWidget {
                 _FotoDocumento(label: 'Cédula — Frente', url: documentos?.cedulaFrenteUrl),
                 const SizedBox(height: 16),
                 _FotoDocumento(label: 'Cédula — Reverso', url: documentos?.cedulaReversoUrl),
+                const SizedBox(height: 16),
+                _FotoDocumento(label: 'Fórmula médica', url: documentos?.recetaUrl),
               ],
             ],
           ),
