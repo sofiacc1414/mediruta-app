@@ -148,7 +148,16 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     _direccionEntrega.text = datos.direccionEntrega ?? '';
     _direccionFarmacia.text = datos.direccionFarmacia ?? '';
     if (datos.recetaFechaVencimiento != null) {
-      _recetaFechaVencimiento = DateTime.tryParse(datos.recetaFechaVencimiento!);
+      final fecha = DateTime.tryParse(datos.recetaFechaVencimiento!);
+      // Bug real reportado: una fecha de vencimiento ya vencida,
+      // guardada en un borrador local de antes de este fix (o editando
+      // una solicitud vieja), se restauraba tal cual sin revalidar —
+      // el picker ya no deja ELEGIR una fecha pasada, pero esto
+      // restauraba una sin pasar por el picker. Se limpia en vez de
+      // dejarla puesta; calcularFaltantes ya la pide de nuevo.
+      final ahora = DateTime.now();
+      final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+      _recetaFechaVencimiento = (fecha != null && !fecha.isBefore(hoy)) ? fecha : null;
     }
   }
 
