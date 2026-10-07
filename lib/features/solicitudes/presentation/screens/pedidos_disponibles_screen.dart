@@ -354,7 +354,7 @@ class _PedidoDisponibleCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '\$0', // Temporal: recompensa no disponible
+                      pedido.total != null ? _formatearPrecio(pedido.total!) : 'Por confirmar',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -394,4 +394,14 @@ class _PedidoDisponibleCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatearPrecio(num precio) {
+  final texto = precio.round().toString();
+  final buffer = StringBuffer();
+  for (var i = 0; i < texto.length; i++) {
+    if (i > 0 && (texto.length - i) % 3 == 0) buffer.write('.');
+    buffer.write(texto[i]);
+  }
+  return '\$$buffer';
 }
