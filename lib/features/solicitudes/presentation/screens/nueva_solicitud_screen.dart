@@ -623,10 +623,19 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
 
   Future<void> _elegirFechaReceta() async {
     final ahora = DateTime.now();
+    // Bug real reportado: el picker dejaba elegir cualquier fecha de los
+    // últimos 2 años — una "fecha de vencimiento" en el pasado siempre es
+    // inválida (la receta ya estaría vencida al momento de pedirla).
+    // `calcularFaltantes` ya lo rechazaba al enviar, pero el picker
+    // debería impedirlo desde el momento de elegirla, no solo avisar
+    // después.
+    final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+    var inicial = _recetaFechaVencimiento ?? hoy;
+    if (inicial.isBefore(hoy)) inicial = hoy;
     final seleccionada = await showDatePicker(
       context: context,
-      initialDate: _recetaFechaVencimiento ?? ahora,
-      firstDate: DateTime(ahora.year - 2),
+      initialDate: inicial,
+      firstDate: hoy,
       lastDate: DateTime(ahora.year + 5),
     );
     if (seleccionada != null) {
