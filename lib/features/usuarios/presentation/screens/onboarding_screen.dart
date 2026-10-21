@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../chatbot/presentation/boton_asistente_chatbot.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({
@@ -111,6 +112,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               right: 0,
               child: _buildPageIndicator(),
             ),
+
+            const BotonAsistenteChatbot(),
           ],
         ),
       ),

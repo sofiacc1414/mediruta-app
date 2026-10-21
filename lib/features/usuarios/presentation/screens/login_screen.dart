@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
 import '../../../../shared/core/theme/app_colors.dart';
+import '../../../chatbot/presentation/boton_asistente_chatbot.dart';
 import '../../../../shared/widgets/app_form_notice.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field_glass.dart';
@@ -209,6 +210,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           children: [
             // --- Burbujas Animadas ---
             _buildBurbujas(),
+
+            const BotonAsistenteChatbot(),
 
             // --- Contenido Principal ---
             SafeArea(
