@@ -543,9 +543,16 @@ Future<ArchivoElegido?> mostrarSelectorArchivo(BuildContext context) async {
     nombre = archivo.name;
     contentType = 'application/pdf';
   } else {
+    // Bug real reportado: con `imageQuality: 85`, `image_picker_for_web`
+    // recomprime la foto en un canvas antes de devolverla — el texto
+    // chico y denso de una fórmula médica (código/nombre del
+    // medicamento) queda ilegible para Tesseract aunque el resto del
+    // documento (fechas, en letra más grande) sobreviva (reproducido:
+    // "pg ATA" en vez del nombre real del medicamento). Esta foto se
+    // usa para OCR — la fidelidad del texto importa más que ahorrar
+    // unos MB de subida, así que se pide sin compresión.
     final archivo = await ImagePicker().pickImage(
       source: origen == OrigenArchivo.camara ? ImageSource.camera : ImageSource.gallery,
-      imageQuality: 85,
     );
     if (archivo == null) return null;
     bytes = await archivo.readAsBytes();

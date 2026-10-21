@@ -13,6 +13,7 @@ import '../../../usuarios/presentation/providers/perfil_providers.dart'
     hide autocompletarDireccionUseCaseProvider;
 import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/datos_solicitud.dart';
+import '../../domain/entities/formula_extraida.dart';
 import '../../domain/entities/medicamento.dart';
 import '../../domain/entities/precio_pedido.dart';
 import '../providers/solicitud_providers.dart';
@@ -43,6 +44,10 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
   List<int>? _recetaBytesPendiente;
   String? _recetaNombrePendiente;
   String? _recetaContentTypePendiente;
+  // Módulo 1 (OCR) — mientras se lee la foto recién elegida para
+  // precargar medicamentos/fecha. Best-effort: si falla, el Paciente
+  // sigue pudiendo llenar todo a mano (ver `_extraerDatosDeFormula`).
+  bool _extrayendoFormula = false;
 
   bool get _editandoExistente => widget.solicitudId != null;
   String? _solicitudIdRemoto;
@@ -663,6 +668,91 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       _recetaContentTypePendiente = elegido.contentType;
     });
     _onCambioCampo();
+
+    await _extraerDatosDeFormula(elegido.bytes, elegido.nombre, elegido.contentType);
+  }
+
+  /// Módulo 1 (OCR) — al elegir la foto, se manda a leer de inmediato
+  /// para precargar medicamentos y fecha (pedido explícito: "que se
+  /// tome la foto y se carguen los medicamentos, fechas, etc., con
+  /// opción de corrección"). Nunca bloquea el flujo: si el servicio
+  /// falla o la imagen sale ilegible, el Paciente sigue pudiendo llenar
+  /// todo a mano, igual que siempre.
+  Future<void> _extraerDatosDeFormula(
+    List<int> bytes,
+    String nombreArchivo,
+    String contentType,
+  ) async {
+    setState(() => _extrayendoFormula = true);
+    try {
+      final formula = await ref.read(extraerDatosFormulaUseCaseProvider).execute(
+            bytes: bytes,
+            nombreArchivo: nombreArchivo,
+            contentType: contentType,
+          );
+      if (!mounted) return;
+      _aplicarFormulaExtraida(formula);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${error.message} Podés completar los medicamentos y la fecha a mano.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se pudieron leer los datos de la fórmula automáticamente. Completa los campos a mano.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _extrayendoFormula = false);
+    }
+  }
+
+  void _aplicarFormulaExtraida(FormulaExtraida formula) {
+    final medicamentosLeidos = formula.medicamentos.where((m) => !m.estaVacio).toList();
+    var seCargoFecha = false;
+
+    setState(() {
+      if (medicamentosLeidos.isNotEmpty) {
+        _medicamentos.removeWhere((m) => m.estaVacio);
+        _medicamentos.addAll(medicamentosLeidos);
+      }
+
+      // `fechaVencimiento` es el dato real que trae la fórmula (ej.
+      // "Fecha de vencimiento: 22 Abr 2025") — no se infiere a partir
+      // de `fechaEmision`, que es una fecha distinta (cuándo se
+      // expidió, no hasta cuándo es válida).
+      if (formula.fechaVencimiento != null) {
+        final fecha = DateTime.tryParse(formula.fechaVencimiento!);
+        final ahora = DateTime.now();
+        final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+        // Misma regla que el picker/`_rellenar`: una fecha ya vencida
+        // no se precarga — el Paciente la corrige a mano si aplica.
+        if (fecha != null && !fecha.isBefore(hoy)) {
+          _recetaFechaVencimiento = fecha;
+          seCargoFecha = true;
+        }
+      }
+    });
+
+    if (medicamentosLeidos.isEmpty && !seCargoFecha) {
+      return;
+    }
+
+    _onCambioCampo();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Datos de la fórmula cargados — revisá y corregí lo que falte.'),
+      ),
+    );
   }
 
   @override
@@ -808,8 +898,25 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                           bytesLocal: _recetaBytesPendiente,
                           esPdfLocal: _recetaContentTypePendiente == 'application/pdf',
                           urlServidor: _recetaUrlServidor,
-                          onElegir: _guardando ? null : _elegirFotoReceta,
+                          onElegir: (_guardando || _extrayendoFormula) ? null : _elegirFotoReceta,
                         ),
+                        if (_extrayendoFormula) ...[
+                          const SizedBox(height: 8),
+                          const Row(
+                            children: [
+                              SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Leyendo medicamentos y fecha de la fórmula...',
+                                style: TextStyle(fontSize: 12, color: AppColors.teal),
+                              ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 12),
                         _CampoFecha(
                           label: 'Fecha de vencimiento de la receta',

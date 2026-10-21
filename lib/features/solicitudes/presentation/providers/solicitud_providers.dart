@@ -17,6 +17,7 @@ import '../../domain/usecases/crear_solicitud_usecase.dart';
 import '../../domain/usecases/entregar_pedido_usecase.dart';
 import '../../domain/usecases/enviar_solicitud_usecase.dart';
 import '../../domain/usecases/estimar_precio_pedido_usecase.dart';
+import '../../domain/usecases/extraer_datos_formula_usecase.dart';
 import '../../domain/usecases/iniciar_entrega_usecase.dart';
 import '../../domain/usecases/listar_historial_pedidos_usecase.dart';
 import '../../domain/usecases/listar_novedades_solicitud_usecase.dart';
@@ -64,6 +65,10 @@ final actualizarSolicitudUseCaseProvider = Provider(
 
 final subirRecetaUseCaseProvider = Provider(
   (ref) => SubirRecetaUseCase(ref.watch(solicitudRepositoryProvider)),
+);
+
+final extraerDatosFormulaUseCaseProvider = Provider(
+  (ref) => ExtraerDatosFormulaUseCase(ref.watch(solicitudRepositoryProvider)),
 );
 
 final enviarSolicitudUseCaseProvider = Provider(

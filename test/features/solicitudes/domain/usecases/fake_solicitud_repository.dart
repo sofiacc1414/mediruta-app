@@ -1,5 +1,6 @@
 import 'package:mediruta_app/features/solicitudes/domain/entities/datos_solicitud.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/documentos_paciente_para_recoger.dart';
+import 'package:mediruta_app/features/solicitudes/domain/entities/formula_extraida.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/medicamento.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/novedad_resumen.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_activo.dart';
@@ -31,6 +32,12 @@ class FakeSolicitudRepository implements SolicitudRepository {
   List<NovedadResumen> novedadesSolicitudARetornar = const [];
   PrecioPedido precioEstimadoARetornar = PrecioPedido.noDisponible('sin_ubicaciones');
   List<CandidatoDireccion> candidatosAutocompletarARetornar = const [];
+  FormulaExtraida formulaExtraidaARetornar = const FormulaExtraida(
+    fechaEmision: null,
+    fechaVencimiento: null,
+    farmaciaIpsOrigen: null,
+    medicamentos: [],
+  );
 
   Map<String, dynamic>? ultimaLlamada;
 
@@ -86,6 +93,21 @@ class FakeSolicitudRepository implements SolicitudRepository {
       'contentType': contentType,
     });
     _lanzarSiCorresponde();
+  }
+
+  @override
+  Future<FormulaExtraida> extraerDatosFormula({
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  }) async {
+    _registrar('extraerDatosFormula', {
+      'bytes': bytes,
+      'nombreArchivo': nombreArchivo,
+      'contentType': contentType,
+    });
+    _lanzarSiCorresponde();
+    return formulaExtraidaARetornar;
   }
 
   @override

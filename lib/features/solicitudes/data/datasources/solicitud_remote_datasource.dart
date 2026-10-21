@@ -52,6 +52,21 @@ class SolicitudRemoteDatasource {
     );
   }
 
+  Future<Map<String, dynamic>> extraerDatosFormula({
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  }) async {
+    final respuesta = await _apiClient.postMultipart(
+      '/formulas/extraer',
+      bytes: bytes,
+      nombreArchivo: nombreArchivo,
+      contentType: contentType,
+      autenticado: true,
+    );
+    return respuesta as Map<String, dynamic>;
+  }
+
   /// Estimado en vivo mientras se arma el borrador, antes de enviar —
   /// ver `EstimarPrecioPedidoUseCase` del lado de la API. Devuelve el
   /// mismo shape que el `precio` de `obtener()`.

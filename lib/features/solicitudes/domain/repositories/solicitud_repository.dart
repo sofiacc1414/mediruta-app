@@ -1,5 +1,6 @@
 import '../entities/datos_solicitud.dart';
 import '../entities/documentos_paciente_para_recoger.dart';
+import '../entities/formula_extraida.dart';
 import '../entities/medicamento.dart';
 import '../entities/novedad_resumen.dart';
 import '../entities/pedido_activo.dart';
@@ -30,6 +31,18 @@ abstract class SolicitudRepository {
   /// Sube/reemplaza la foto de la receta.
   Future<void> subirReceta({
     required String solicitudId,
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  });
+
+  /// Módulo 1 (OCR) — lee fecha, IPS/farmacia y medicamentos de una
+  /// foto/PDF de fórmula antes de crear la solicitud (no requiere que
+  /// exista todavía, por eso no pide `solicitudId`). Puede lanzar
+  /// `ApiException` (400 si el archivo no es válido, 422 si la imagen
+  /// salió ilegible) — quien llama decide si deja seguir el flujo
+  /// manual en vez de bloquear.
+  Future<FormulaExtraida> extraerDatosFormula({
     required List<int> bytes,
     required String nombreArchivo,
     required String contentType,

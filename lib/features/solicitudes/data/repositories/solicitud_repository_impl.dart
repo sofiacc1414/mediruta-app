@@ -1,5 +1,6 @@
 import '../../domain/entities/datos_solicitud.dart';
 import '../../domain/entities/documentos_paciente_para_recoger.dart';
+import '../../domain/entities/formula_extraida.dart';
 import '../../domain/entities/medicamento.dart';
 import '../../domain/entities/novedad_resumen.dart';
 import '../../domain/entities/pedido_activo.dart';
@@ -54,6 +55,20 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
       nombreArchivo: nombreArchivo,
       contentType: contentType,
     );
+  }
+
+  @override
+  Future<FormulaExtraida> extraerDatosFormula({
+    required List<int> bytes,
+    required String nombreArchivo,
+    required String contentType,
+  }) async {
+    final respuesta = await _datasource.extraerDatosFormula(
+      bytes: bytes,
+      nombreArchivo: nombreArchivo,
+      contentType: contentType,
+    );
+    return FormulaExtraida.fromJson(respuesta);
   }
 
   @override
