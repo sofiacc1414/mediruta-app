@@ -16,6 +16,7 @@ import '../../../solicitudes/presentation/screens/historial_pedidos_screen.dart'
 import '../../../solicitudes/presentation/screens/mi_pedido_activo_screen.dart';
 import '../../../solicitudes/presentation/screens/mis_solicitudes_screen.dart';
 import '../../../solicitudes/presentation/screens/pedidos_disponibles_screen.dart';
+import '../../../chatbot/presentation/chatbot_screen.dart';
 import '../../../notificaciones/presentation/notificaciones_provider.dart';
 import '../../../notificaciones/presentation/notificaciones_screen.dart';
 import '../../../solicitudes/presentation/screens/solicitud_detalle_screen.dart';
@@ -608,6 +609,11 @@ class _Encabezado extends StatelessWidget {
           // HU-XX — selector de modo Paciente/Domiciliario para cuentas
           // con los 2 roles; el propio widget se oculta si la cuenta
           // tiene un solo rol (ver `BotonCambiarModo`).
+          IconButton(
+            tooltip: 'Asistente MediRuta',
+            onPressed: () => Navigator.pushNamed(context, ChatbotScreen.routeName),
+            icon: const Icon(Icons.support_agent_outlined, color: AppColors.navy),
+          ),
           IconButton(
             onPressed: onNotificaciones,
             icon: Badge(

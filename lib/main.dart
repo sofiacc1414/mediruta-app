@@ -6,6 +6,7 @@ import 'features/calificaciones/presentation/screens/calificacion_confirmacion_s
 import 'features/calificaciones/presentation/screens/calificacion_form_screen.dart';
 import 'features/calificaciones/presentation/screens/pedidos_calificacion_screen.dart';
 import 'features/chat/presentation/chat_screen.dart';
+import 'features/chatbot/presentation/chatbot_screen.dart';
 import 'features/solicitudes/presentation/screens/historial_pedidos_screen.dart';
 import 'features/solicitudes/presentation/screens/mi_pedido_activo_screen.dart';
 import 'features/solicitudes/presentation/screens/mis_solicitudes_screen.dart';
@@ -67,6 +68,7 @@ class MediRutaApp extends ConsumerWidget {
         PerfilScreen.routeName: (_) => const PerfilScreen(),
         HomeScreen.routeName: (_) => const HomeScreen(),
         NotificacionesScreen.routeName: (_) => const NotificacionesScreen(),
+        ChatbotScreen.routeName: (_) => const ChatbotScreen(),
         MisSolicitudesScreen.routeName: (_) => const MisSolicitudesScreen(),
         PedidosCalificacionScreen.routeName: (_) => const PedidosCalificacionScreen(),
         NuevaSolicitudScreen.routeName: (_) => const NuevaSolicitudScreen(),
