@@ -49,8 +49,9 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
   final List<_MensajeLocal> _mensajes = [
     const _MensajeLocal(
       texto:
-          'Hola, soy el asistente de MediRuta. Preguntame sobre registro, pedidos, el chat con '
-          'el domiciliario, reclamos en farmacia, copagos o farmacias de tu EPS.',
+          'Hola, soy el asistente de MediRuta. Preguntame sobre registro, contraseña, pedidos, '
+          'tarifas y cobros, cancelaciones, el chat con el domiciliario, reclamos en farmacia, '
+          'copagos o farmacias de tu EPS.',
       esUsuario: false,
     ),
   ];
