@@ -662,10 +662,21 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     final elegido = await mostrarSelectorArchivo(context);
     if (elegido == null) return;
 
+    // Pedido explícito: si ya había una receta (se está reemplazando,
+    // no es la primera foto), los medicamentos cargados a partir de
+    // ESA foto ya no corresponden a la nueva — se bajan antes de leer
+    // la nueva, para no mezclar/duplicar medicamentos de dos fórmulas
+    // distintas. En la primera foto (sin receta previa) no se toca
+    // nada: pueden existir medicamentos cargados a mano de antes.
+    final esReemplazo = _recetaBytesPendiente != null || _recetaUrlServidor != null;
+
     setState(() {
       _recetaBytesPendiente = elegido.bytes;
       _recetaNombrePendiente = elegido.nombre;
       _recetaContentTypePendiente = elegido.contentType;
+      if (esReemplazo) {
+        _medicamentos.clear();
+      }
     });
     _onCambioCampo();
 
