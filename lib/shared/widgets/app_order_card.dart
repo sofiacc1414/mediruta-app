@@ -29,19 +29,13 @@ class AppOrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.navy.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
@@ -51,7 +45,7 @@ class AppOrderCard extends StatelessWidget {
                 children: [
                   Text(
                     titulo,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.navy,
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
@@ -60,7 +54,7 @@ class AppOrderCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitulo,
-                    style: const TextStyle(color: AppColors.teal, fontSize: 13),
+                    style: TextStyle(color: AppColors.teal, fontSize: 13),
                   ),
                 ],
               ),
@@ -71,7 +65,7 @@ class AppOrderCard extends StatelessWidget {
             else if (estado != null)
               Flexible(child: AppStatusPill(estado: estado!))
             else
-              const Icon(Icons.chevron_right, color: AppColors.navy),
+              Icon(Icons.chevron_right, color: AppColors.navy),
           ],
         ),
       ),

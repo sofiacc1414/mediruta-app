@@ -2,8 +2,6 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../core/theme/app_colors.dart';
-
 /// Abre la imagen (bytes locales todavía no subidos, o ya subida vía
 /// `url` firmada) en pantalla completa, con zoom/pan (`InteractiveViewer`
 /// nativo — sin agregar un paquete nuevo solo para esto). Pensado para
@@ -40,9 +38,9 @@ class _VisorImagenPantallaCompleta extends StatelessWidget {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: AppColors.white,
+        foregroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.white),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: GestureDetector(
         onTap: () => Navigator.of(context).pop(),
@@ -57,11 +55,11 @@ class _VisorImagenPantallaCompleta extends StatelessWidget {
                     fit: BoxFit.contain,
                     loadingBuilder: (context, child, progress) {
                       if (progress == null) return child;
-                      return const CircularProgressIndicator(color: AppColors.white);
+                      return const CircularProgressIndicator(color: Colors.white);
                     },
                     errorBuilder: (context, error, stackTrace) => const Icon(
                       Icons.image_not_supported_outlined,
-                      color: AppColors.white,
+                      color: Colors.white,
                       size: 48,
                     ),
                   ),

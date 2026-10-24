@@ -26,6 +26,11 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <!-- Notificaciones push (FCM) — Android 13+ (API 33) exige este
+         permiso en runtime (POST_NOTIFICATIONS) para poder mostrar
+         cualquier notificación; sin declararlo acá, el diálogo de
+         `requestPermission` nunca aparece. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
         android:label="mediruta_app"
         android:name="${applicationName}"

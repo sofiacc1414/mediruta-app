@@ -2,10 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-const _beige = Color(0xFFF5EFEB);
-const _cielo = Color(0xFFC8D9E6);
-const _navy = Color(0xFF2F4156);
-const _teal = Color(0xFF567C8D);
+import '../../../../shared/core/theme/app_colors.dart';
+
 const _oroClaro = Color(0xFFFFF3CC);
 const _oro = Color(0xFFE4B15A);
 const _oroProfundo = Color(0xFFB8862F);
@@ -29,11 +27,11 @@ class ExperienciaFondo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [_beige, _cielo],
+          colors: [AppColors.beige, AppColors.skyBlue],
         ),
       ),
       child: child,
@@ -132,7 +130,7 @@ class _ColumnaCierre extends StatelessWidget {
       style: TextStyle(
         fontFamily: 'Georgia',
         fontFamilyFallback: const ['Times New Roman', 'serif'],
-        color: _navy,
+        color: AppColors.navy,
         fontSize: compacto ? 22 : 30,
         height: 1.05,
         fontWeight: FontWeight.w400,
@@ -155,7 +153,7 @@ class _ColumnaCierre extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: _navy, fontSize: 13),
+              style: TextStyle(color: AppColors.navy, fontSize: 13),
             ),
           ),
         CierreExperiencia(
@@ -167,7 +165,7 @@ class _ColumnaCierre extends StatelessWidget {
           TextButton(
             onPressed: enviando ? null : onRetirar,
             style: TextButton.styleFrom(
-              foregroundColor: _teal,
+              foregroundColor: AppColors.teal,
               minimumSize: const Size.fromHeight(34),
             ),
             child: const Text(
@@ -335,20 +333,20 @@ class _VolumenPainter extends CustomPainter {
       canvas.drawCircle(
         centro,
         radio * 1.35,
-        Paint()..color = (dorada ? _oro : _cielo).withValues(alpha: 0.45),
+        Paint()..color = (dorada ? _oro : AppColors.skyBlue).withValues(alpha: 0.45),
       );
     }
     canvas.drawPath(
       path.shift(const Offset(0, 3)),
       Paint()
-        ..color = _navy.withValues(alpha: dorada ? 0.18 : 0.08)
+        ..color = AppColors.navy.withValues(alpha: dorada ? 0.18 : 0.08)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
     );
     final colores = dorada
         ? [_oroClaro, _oro, _oroProfundo]
         : [
             const Color(0xFFF7FBFE).withValues(alpha: 0.9),
-            _cielo.withValues(alpha: 0.85),
+            AppColors.skyBlue.withValues(alpha: 0.85),
             const Color(0xFF8FB0C2).withValues(alpha: 0.75),
           ];
     canvas.drawPath(
@@ -410,7 +408,7 @@ class _FraseCierre extends StatelessWidget {
             style: TextStyle(
               fontFamily: 'Georgia',
               fontFamilyFallback: const ['Times New Roman', 'serif'],
-              color: elegida ? _navy : _teal,
+              color: elegida ? AppColors.navy : AppColors.teal,
               fontSize: elegida ? (compacto ? 15 : 18) : 14,
               height: 1.15,
             ),
@@ -435,11 +433,11 @@ class CartaMomento extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: _beige,
+        color: AppColors.beige,
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
-            color: _navy.withValues(alpha: 0.06),
+            color: AppColors.navy.withValues(alpha: 0.06),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -450,28 +448,28 @@ class CartaMomento extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Comparte tu momento',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontFamily: 'Georgia',
-                fontFamilyFallback: ['Times New Roman', 'serif'],
-                color: _navy,
+                fontFamilyFallback: const ['Times New Roman', 'serif'],
+                color: AppColors.navy,
                 fontSize: 16,
                 height: 1.1,
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
+            Text(
               '¿Qué fue lo que más valoraste de tu experiencia?',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontFamily: 'Georgia',
-                fontFamilyFallback: ['Times New Roman', 'serif'],
+                fontFamilyFallback: const ['Times New Roman', 'serif'],
                 fontStyle: FontStyle.italic,
-                color: _teal,
+                color: AppColors.teal,
                 fontSize: 12.5,
                 height: 1.2,
               ),
@@ -483,27 +481,27 @@ class CartaMomento extends StatelessWidget {
                 maxLines: 2,
                 minLines: 1,
                 onChanged: (_) => onChanged(),
-                cursorColor: _teal,
+                cursorColor: AppColors.teal,
                 textCapitalization: TextCapitalization.sentences,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Georgia',
-                  fontFamilyFallback: ['Times New Roman', 'serif'],
-                  color: _navy,
+                  fontFamilyFallback: const ['Times New Roman', 'serif'],
+                  color: AppColors.navy,
                   fontSize: 15,
                   height: 1.25,
                 ),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Escribe aquí...',
                   hintStyle: TextStyle(
                     fontFamily: 'Georgia',
-                    fontFamilyFallback: ['Times New Roman', 'serif'],
+                    fontFamilyFallback: const ['Times New Roman', 'serif'],
                     fontStyle: FontStyle.italic,
-                    color: _teal,
+                    color: AppColors.teal,
                     fontSize: 15,
                   ),
                   filled: false,
                   isCollapsed: true,
-                  contentPadding: EdgeInsets.only(top: 6),
+                  contentPadding: const EdgeInsets.only(top: 6),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
@@ -552,7 +550,7 @@ class _CierreExperienciaState extends State<CierreExperiencia> {
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: _navy.withValues(alpha: 0.14),
+                color: AppColors.navy.withValues(alpha: 0.14),
                 blurRadius: 16,
                 offset: const Offset(0, 7),
               ),
@@ -561,18 +559,18 @@ class _CierreExperienciaState extends State<CierreExperiencia> {
           child: FilledButton(
             onPressed: widget.cargando ? null : widget.onPressed,
             style: FilledButton.styleFrom(
-              backgroundColor: _navy,
-              foregroundColor: _beige,
-              disabledBackgroundColor: _navy.withValues(alpha: 0.4),
+              backgroundColor: AppColors.enfasis,
+              foregroundColor: AppColors.sobreEnfasis,
+              disabledBackgroundColor: AppColors.enfasis.withValues(alpha: 0.4),
               minimumSize: const Size.fromHeight(50),
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             ),
             child: widget.cargando
-                ? const SizedBox(
+                ? SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: _beige),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.sobreEnfasis),
                   )
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,

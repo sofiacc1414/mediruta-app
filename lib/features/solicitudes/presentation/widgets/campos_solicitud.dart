@@ -26,7 +26,7 @@ class TituloSeccionSolicitud extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       texto,
-      style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 16),
+      style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 16),
     );
   }
 }
@@ -57,7 +57,7 @@ class CampoTextoBlanco extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
@@ -65,7 +65,7 @@ class CampoTextoBlanco extends StatelessWidget {
         controller: controller,
         focusNode: focusNode,
         enabled: enabled,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 15,
           color: AppColors.navy,
         ),
@@ -187,7 +187,7 @@ class _CampoFormaFarmaceuticaState extends State<CampoFormaFarmaceutica> {
           child: Material(
             elevation: 4,
             borderRadius: BorderRadius.circular(12),
-            color: Colors.white,
+            color: AppColors.white,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 200),
               child: ListView.builder(
@@ -199,7 +199,7 @@ class _CampoFormaFarmaceuticaState extends State<CampoFormaFarmaceutica> {
                   return ListTile(
                     title: Text(
                       sugerencia,
-                      style: const TextStyle(color: AppColors.navy, fontSize: 14),
+                      style: TextStyle(color: AppColors.navy, fontSize: 14),
                     ),
                     onTap: () {
                       widget.controller.text = sugerencia;
@@ -230,13 +230,13 @@ class _CampoFormaFarmaceuticaState extends State<CampoFormaFarmaceutica> {
       link: _layerLink,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(left: 16),
               child: Icon(Icons.medication_outlined, color: AppColors.teal, size: 20),
             ),
@@ -244,7 +244,7 @@ class _CampoFormaFarmaceuticaState extends State<CampoFormaFarmaceutica> {
               child: TextField(
                 controller: widget.controller,
                 focusNode: _focusNode,
-                style: const TextStyle(color: AppColors.navy, fontSize: 15),
+                style: TextStyle(color: AppColors.navy, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: 'Forma farmacéutica (Obligatorio)',
                   hintStyle: TextStyle(color: Colors.grey.withValues(alpha: 0.6), fontSize: 13),
@@ -316,20 +316,20 @@ class _DialogoMedicamentoState extends State<DialogoMedicamento> {
       showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
+          title: Text(
             'Forma farmacéutica no disponible',
             style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700),
           ),
-          content: const Text(
+          content: Text(
             'Elegí una de las opciones sugeridas — escribí para buscarla y tocá la que corresponda.',
             style: TextStyle(color: AppColors.navy),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Entendido', style: TextStyle(color: AppColors.teal)),
+              child: Text('Entendido', style: TextStyle(color: AppColors.teal)),
             ),
           ],
         ),
@@ -350,11 +350,11 @@ class _DialogoMedicamentoState extends State<DialogoMedicamento> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(
         widget.inicial == null ? 'Agregar medicamento' : 'Editar medicamento',
-        style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.navy),
+        style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.navy),
       ),
       content: SizedBox(
         width: 360,
@@ -399,13 +399,13 @@ class _DialogoMedicamentoState extends State<DialogoMedicamento> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar', style: TextStyle(color: AppColors.navy)),
+          child: Text('Cancelar', style: TextStyle(color: AppColors.navy)),
         ),
         AnimatedBuilder(
           animation: Listenable.merge([_nombre, _concentracion, _formaFarmaceutica, _cantidad]),
           builder: (context, _) => TextButton(
             onPressed: _datosCompletos ? _aceptar : null,
-            child: const Text('Aceptar', style: TextStyle(color: AppColors.teal)),
+            child: Text('Aceptar', style: TextStyle(color: AppColors.teal)),
           ),
         ),
       ],
@@ -442,7 +442,7 @@ class FilaResumenMedicamento extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
         ),
@@ -451,11 +451,11 @@ class FilaResumenMedicamento extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.white,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
               ),
-              child: const Icon(Icons.medication_outlined, color: AppColors.navy, size: 20),
+              child: Icon(Icons.medication_outlined, color: AppColors.navy, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -464,17 +464,17 @@ class FilaResumenMedicamento extends StatelessWidget {
                 children: [
                   Text(
                     medicamento.nombre ?? 'Medicamento sin nombre',
-                    style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
                   ),
                   if (detalle.isNotEmpty) ...[
                     const SizedBox(height: 2),
-                    Text(detalle, style: const TextStyle(color: AppColors.teal, fontSize: 13)),
+                    Text(detalle, style: TextStyle(color: AppColors.teal, fontSize: 13)),
                   ],
                 ],
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.close, color: AppColors.teal),
+              icon: Icon(Icons.close, color: AppColors.teal),
               tooltip: 'Quitar',
               onPressed: enabled ? onQuitar : null,
             ),
@@ -503,7 +503,7 @@ class ArchivoElegido {
 Future<ArchivoElegido?> mostrarSelectorArchivo(BuildContext context) async {
   final origen = await showModalBottomSheet<OrigenArchivo>(
     context: context,
-    backgroundColor: Colors.white,
+    backgroundColor: AppColors.white,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -512,17 +512,17 @@ Future<ArchivoElegido?> mostrarSelectorArchivo(BuildContext context) async {
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
-            leading: const Icon(Icons.photo_camera_outlined, color: AppColors.teal),
+            leading: Icon(Icons.photo_camera_outlined, color: AppColors.teal),
             title: const Text('Tomar foto'),
             onTap: () => Navigator.of(context).pop(OrigenArchivo.camara),
           ),
           ListTile(
-            leading: const Icon(Icons.photo_library_outlined, color: AppColors.teal),
+            leading: Icon(Icons.photo_library_outlined, color: AppColors.teal),
             title: const Text('Elegir de la galería'),
             onTap: () => Navigator.of(context).pop(OrigenArchivo.galeria),
           ),
           ListTile(
-            leading: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.teal),
+            leading: Icon(Icons.picture_as_pdf_outlined, color: AppColors.teal),
             title: const Text('Elegir PDF'),
             onTap: () => Navigator.of(context).pop(OrigenArchivo.pdf),
           ),
@@ -599,7 +599,7 @@ class FilaFotoReceta extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
         ),
@@ -619,7 +619,7 @@ class FilaFotoReceta extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.white,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                   ),
@@ -633,7 +633,7 @@ class FilaFotoReceta extends StatelessWidget {
                 tieneArchivo
                     ? (_esImagenVisible ? 'Foto de la receta — toca para verla' : 'Receta (PDF) subida')
                     : 'Foto de la receta — no subida',
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.navy,
                   fontSize: 14,
                 ),
@@ -647,7 +647,7 @@ class FilaFotoReceta extends StatelessWidget {
               onPressed: onElegir,
               child: Text(
                 tieneArchivo ? 'Reemplazar' : 'Subir',
-                style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
+                style: TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -659,22 +659,22 @@ class FilaFotoReceta extends StatelessWidget {
   Widget _contenidoCentral() {
     if (bytesLocal != null) {
       if (esPdfLocal) {
-        return const Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 24);
+        return Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 24);
       }
       return Image.memory(Uint8List.fromList(bytesLocal!), fit: BoxFit.cover);
     }
     if (urlServidor != null) {
       if (_urlEsPdf) {
-        return const Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 24);
+        return Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 24);
       }
       return Image.network(
         urlServidor!,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) =>
-            const Icon(Icons.image_not_supported_outlined, color: AppColors.navy, size: 20),
+            Icon(Icons.image_not_supported_outlined, color: AppColors.navy, size: 20),
       );
     }
-    return const Icon(Icons.description_outlined, color: AppColors.navy, size: 24);
+    return Icon(Icons.description_outlined, color: AppColors.navy, size: 24);
   }
 }
 
@@ -771,7 +771,7 @@ class MensajeConfirmacionDireccion extends StatelessWidget {
             children: [
               Text(
                 texto,
-                style: const TextStyle(color: AppColors.navy, fontSize: 12, height: 1.3),
+                style: TextStyle(color: AppColors.navy, fontSize: 12, height: 1.3),
               ),
               if (enlace != null)
                 InkWell(
@@ -780,7 +780,7 @@ class MensajeConfirmacionDireccion extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       enlace,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.navy,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -823,7 +823,7 @@ Future<CandidatoDireccion?> mostrarSelectorDireccion(
 }) {
   return showModalBottomSheet<CandidatoDireccion>(
     context: context,
-    backgroundColor: Colors.white,
+    backgroundColor: AppColors.white,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -835,7 +835,7 @@ Future<CandidatoDireccion?> mostrarSelectorDireccion(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Elegí la dirección correcta',
                 style: TextStyle(
                   color: AppColors.navy,
@@ -844,7 +844,7 @@ Future<CandidatoDireccion?> mostrarSelectorDireccion(
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Encontramos varias coincidencias — elegí la que corresponde.',
                 style: TextStyle(color: AppColors.teal, fontSize: 13),
               ),
@@ -858,7 +858,7 @@ Future<CandidatoDireccion?> mostrarSelectorDireccion(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF2F4F7),
+                      color: AppColors.skyBlue.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -874,7 +874,7 @@ Future<CandidatoDireccion?> mostrarSelectorDireccion(
                         Expanded(
                           child: Text(
                             candidato.direccionResuelta,
-                            style: const TextStyle(color: AppColors.navy, fontSize: 13),
+                            style: TextStyle(color: AppColors.navy, fontSize: 13),
                           ),
                         ),
                       ],
@@ -883,7 +883,7 @@ Future<CandidatoDireccion?> mostrarSelectorDireccion(
                 ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text(
+                child: Text(
                   'Ninguna — seguir con la escrita',
                   style: TextStyle(color: AppColors.teal),
                 ),

@@ -22,12 +22,12 @@ class AppErrorBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline, color: AppColors.navy, size: 20),
+          Icon(Icons.info_outline, color: AppColors.navy, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               mensaje,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.navy,
                 fontWeight: FontWeight.w600,
               ),

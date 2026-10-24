@@ -24,6 +24,8 @@ import '../../../calificaciones/presentation/widgets/seccion_calificacion_pedido
 import '../widgets/tarjeta_precio_pedido.dart';
 import 'nueva_solicitud_screen.dart';
 import 'solicitar_edicion_pedido_screen.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 /// Estados en los que hay seguimiento en vivo disponible — desde que el
 /// domiciliario acepta hasta `en_sitio`. Mismo conjunto que acepta
@@ -184,14 +186,14 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.fondoPagina,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Cancelar solicitud', style: TextStyle(color: AppColors.navy)),
+        title: Text('Cancelar solicitud', style: TextStyle(color: AppColors.navy)),
         content: const Text('¿Querés cancelar esta solicitud? Esta acción no se puede deshacer.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Volver', style: TextStyle(color: AppColors.navy)),
+            child: Text('Volver', style: TextStyle(color: AppColors.navy)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -311,9 +313,9 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
     final detalle = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.fondoPagina,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Reportar novedad', style: TextStyle(color: AppColors.navy)),
+        title: Text('Reportar novedad', style: TextStyle(color: AppColors.navy)),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -321,25 +323,25 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
           decoration: InputDecoration(
             labelText: 'Contanos qué pasó',
             hintText: 'Ej.: el domiciliario no contesta',
-            labelStyle: const TextStyle(color: AppColors.teal),
+            labelStyle: TextStyle(color: AppColors.teal),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.teal, width: 2),
+              borderSide: BorderSide(color: AppColors.teal, width: 2),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar', style: TextStyle(color: AppColors.navy)),
+            child: Text('Cancelar', style: TextStyle(color: AppColors.navy)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: const Text('Reportar', style: TextStyle(color: AppColors.teal)),
+            child: Text('Reportar', style: TextStyle(color: AppColors.teal)),
           ),
         ],
       ),
@@ -381,14 +383,19 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     final solicitud = _solicitud;
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.fondoPagina,
         appBar: AppBar(
-          title: const Text(
+          title: Text(
             'Detalle de solicitud',
             style: TextStyle(
               fontWeight: FontWeight.w700,
@@ -400,7 +407,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
           elevation: 0,
           backgroundColor: Colors.transparent,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
+            icon: Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           // HU-07 (ronda 7) — "Pedido" y "Novedades" en tabs separados:
@@ -409,7 +416,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
           // del pedido.
           bottom: solicitud == null
               ? null
-              : const TabBar(
+              : TabBar(
                   labelColor: AppColors.navy,
                   unselectedLabelColor: AppColors.teal,
                   indicatorColor: AppColors.navy,
@@ -477,16 +484,16 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Text(
                         solicitud.codigoPedido ?? 'Borrador de solicitud',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.navy,
                           fontWeight: FontWeight.w800,
                           fontSize: 18,
@@ -504,18 +511,18 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
               ),
               if (solicitud.codigoEntrega != null) ...[
                 const SizedBox(height: 16),
-                // ====== CAJÓN DEL CÓDIGO DE ENTREGA (AZUL CLARO #DBEAFE) ======
+                // ====== CAJÓN DEL CÓDIGO DE ENTREGA ======
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDBEAFE), // Azul claro
+                    color: AppColors.skyBlue,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Código de entrega — dáselo al domiciliario',
                         style: TextStyle(
                           color: AppColors.navy,
@@ -529,7 +536,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                           Expanded(
                             child: Text(
                               solicitud.codigoEntrega!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.navy,
                                 fontSize: 28,
                                 fontWeight: FontWeight.w800,
@@ -538,7 +545,7 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.copy_outlined, color: AppColors.navy),
+                            icon: Icon(Icons.copy_outlined, color: AppColors.navy),
                             onPressed: () => _copiarCodigoEntrega(solicitud.codigoEntrega!),
                           ),
                         ],
@@ -653,17 +660,17 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF7F8FA),
+                    color: AppColors.skyBlue.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Todavía no reportaste nada sobre este pedido.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.teal, fontSize: 13),
                   ),
                 ),
               ] else ...[
-                const Text(
+                Text(
                   'Tus reportes sobre este pedido',
                   style: TextStyle(
                     color: AppColors.navy,
@@ -738,7 +745,7 @@ class _BotonGrisClaro extends StatelessWidget {
       child: ElevatedButton(
         onPressed: cargando ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFF7F8FA),
+          backgroundColor: AppColors.skyBlue.withValues(alpha: 0.3),
           foregroundColor: AppColors.navy,
           disabledBackgroundColor: Colors.grey.withValues(alpha: 0.1),
           disabledForegroundColor: Colors.grey,
@@ -748,7 +755,7 @@ class _BotonGrisClaro extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24),
         ),
         child: cargando
-            ? const SizedBox(
+            ? SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.navy),
@@ -794,7 +801,7 @@ class _HojaOpcionesReporte extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               '¿Qué pasa con tu pedido?',
               style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 18),
             ),
@@ -862,13 +869,13 @@ class _OpcionReporteTile extends StatelessWidget {
                 children: [
                   Text(
                     titulo,
-                    style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700),
+                    style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700),
                   ),
-                  Text(subtitulo, style: const TextStyle(color: AppColors.teal, fontSize: 12)),
+                  Text(subtitulo, style: TextStyle(color: AppColors.teal, fontSize: 12)),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.teal),
+            Icon(Icons.chevron_right, color: AppColors.teal),
           ],
         ),
       ),
@@ -900,9 +907,9 @@ class _Tarjeta extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
@@ -918,7 +925,7 @@ class _Tarjeta extends StatelessWidget {
                 child: Image.asset(
                   'assets/images/pastillera.png',
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
+                  errorBuilder: (context, error, stackTrace) => Icon(
                     Icons.medication_outlined,
                     color: AppColors.navy,
                     size: 32,
@@ -933,7 +940,7 @@ class _Tarjeta extends StatelessWidget {
                 children: [
                   Text(
                     titulo,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.navy,
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
@@ -948,7 +955,7 @@ class _Tarjeta extends StatelessWidget {
                           children: [
                             TextSpan(
                               text: '${entrada.key}: ',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.teal,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 11,
@@ -956,7 +963,7 @@ class _Tarjeta extends StatelessWidget {
                             ),
                             TextSpan(
                               text: entrada.value ?? '—',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.navy,
                                 fontSize: 11,
                               ),
@@ -976,16 +983,16 @@ class _Tarjeta extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             titulo,
-            style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 16),
+            style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 16),
           ),
           for (final entrada in miniaturas.entries) ...[
             const SizedBox(height: 8),
@@ -1000,7 +1007,7 @@ class _Tarjeta extends StatelessWidget {
                         : (entrada.value!.split('?').first.toLowerCase().endsWith('.pdf')
                               ? entrada.key
                               : '${entrada.key} — toca para verla'),
-                    style: const TextStyle(color: AppColors.navy),
+                    style: TextStyle(color: AppColors.navy),
                   ),
                 ),
               ],
@@ -1015,11 +1022,11 @@ class _Tarjeta extends StatelessWidget {
                   children: [
                     TextSpan(
                       text: '${entrada.key}: ',
-                      style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600),
                     ),
                     TextSpan(
                       text: entrada.value ?? '—',
-                      style: const TextStyle(color: AppColors.navy),
+                      style: TextStyle(color: AppColors.navy),
                     ),
                   ],
                 ),
@@ -1051,7 +1058,7 @@ class _Miniatura extends StatelessWidget {
           shape: BoxShape.circle,
           border: Border.all(color: Colors.grey.withValues(alpha: 0.3), width: 2),
         ),
-        child: const Icon(Icons.add, color: AppColors.teal, size: 16),
+        child: Icon(Icons.add, color: AppColors.teal, size: 16),
       );
     }
 
@@ -1067,7 +1074,7 @@ class _Miniatura extends StatelessWidget {
             border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
           ),
           child: _esPdf
-              ? const Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 22)
+              ? Icon(Icons.picture_as_pdf_outlined, color: AppColors.navy, size: 22)
               : Image.network(
                   url!,
                   fit: BoxFit.cover,
@@ -1082,7 +1089,7 @@ class _Miniatura extends StatelessWidget {
                     );
                   },
                   errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.image_not_supported_outlined, color: AppColors.navy, size: 20),
+                      Icon(Icons.image_not_supported_outlined, color: AppColors.navy, size: 20),
                 ),
         ),
       ),

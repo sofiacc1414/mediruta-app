@@ -24,7 +24,7 @@ class BotonAsistenteChatbot extends StatelessWidget {
             elevation: 2,
             child: IconButton(
               tooltip: 'Asistente MediRuta',
-              icon: const Icon(Icons.support_agent_outlined, color: AppColors.navy),
+              icon: Icon(Icons.support_agent_outlined, color: AppColors.navy),
               onPressed: () => Navigator.of(context).pushNamed(ChatbotScreen.routeName),
             ),
           ),

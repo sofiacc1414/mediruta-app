@@ -92,7 +92,7 @@ class _SeccionCalificacionPedidoState extends ConsumerState<SeccionCalificacionP
                   ),
                 ],
               ),
-              child: const Column(
+              child: Column(
                 children: [
                   Text(
                     'Tu experiencia',
@@ -139,7 +139,7 @@ class _SeccionCalificacionPedidoState extends ConsumerState<SeccionCalificacionP
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Tu experiencia',
                     style: TextStyle(
@@ -163,7 +163,7 @@ class _SeccionCalificacionPedidoState extends ConsumerState<SeccionCalificacionP
                     );
                     _cargar();
                   },
-                  child: const Text('Editar', style: TextStyle(color: AppColors.teal)),
+                  child: Text('Editar', style: TextStyle(color: AppColors.teal)),
                 ),
               ],
             ),
@@ -172,7 +172,7 @@ class _SeccionCalificacionPedidoState extends ConsumerState<SeccionCalificacionP
             const SizedBox(height: 8),
             Text(
               fraseExperiencia(calificacion.puntuacion),
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.navy,
                 fontWeight: FontWeight.w600,
                 height: 1.3,
@@ -181,7 +181,7 @@ class _SeccionCalificacionPedidoState extends ConsumerState<SeccionCalificacionP
             const SizedBox(height: 6),
             Text(
               _fecha(calificacion.creadoEn),
-              style: const TextStyle(color: AppColors.teal, fontSize: 12),
+              style: TextStyle(color: AppColors.teal, fontSize: 12),
             ),
             if (calificacion.comentario != null && calificacion.comentario!.isNotEmpty) ...[
               const SizedBox(height: 14),
@@ -194,7 +194,7 @@ class _SeccionCalificacionPedidoState extends ConsumerState<SeccionCalificacionP
                 ),
                 child: Text(
                   calificacion.comentario!,
-                  style: const TextStyle(color: AppColors.navy, height: 1.4),
+                  style: TextStyle(color: AppColors.navy, height: 1.4),
                 ),
               ),
             ],

@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../core/theme/app_colors.dart';
 import 'app_form_notice.dart';
+
+// Solo se usa en las pantallas previas al login (login/registro/recuperar/
+// restablecer contraseña), que mantienen su aspecto de marca siempre en
+// claro — ver el mismo criterio en esas pantallas.
+const _navy = Color(0xFF2F4156);
+const _skyBlue = Color(0xFFC8D9E6);
+const _beige = Color(0xFFF5EFEB);
 
 class AppTextFieldGlass extends StatefulWidget {
   const AppTextFieldGlass({
@@ -75,14 +81,14 @@ class _AppTextFieldGlassState extends State<AppTextFieldGlass>
           decoration: BoxDecoration(
             // Antes un tostado hardcodeado (0xFFE8DDD0) que no es
             // ninguno de los 5 colores oficiales — se veía "naranja"
-            // contra el resto de la pantalla. AppColors.beige es el
+            // contra el resto de la pantalla. _beige es el
             // mismo fill que ya usa AppTextField (el otro campo de
             // texto reutilizable), así quedan consistentes entre sí.
-            color: hasError ? AppColors.skyBlue : AppColors.beige,
+            color: hasError ? _skyBlue : _beige,
             borderRadius: BorderRadius.circular(30),
             boxShadow: [
               BoxShadow(
-                color: AppColors.navy.withValues(alpha: 0.04),
+                color: _navy.withValues(alpha: 0.04),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -110,7 +116,7 @@ class _AppTextFieldGlassState extends State<AppTextFieldGlass>
               });
             },
             style: GoogleFonts.poppins(
-              color: AppColors.navy,
+              color: _navy,
               fontSize: 14,
               fontWeight: FontWeight.w500,
               letterSpacing: 0.2,
@@ -120,8 +126,8 @@ class _AppTextFieldGlassState extends State<AppTextFieldGlass>
               labelText: widget.label,
               labelStyle: GoogleFonts.poppins(
                 color: isFocused
-                    ? AppColors.navy
-                    : AppColors.navy.withValues(alpha: 0.5),
+                    ? _navy
+                    : _navy.withValues(alpha: 0.5),
                 fontSize: isFocused ? 11 : 14,
                 fontWeight: isFocused ? FontWeight.w600 : FontWeight.w400,
               ),
@@ -148,8 +154,8 @@ class _AppTextFieldGlassState extends State<AppTextFieldGlass>
                       child: Icon(
                         widget.icono,
                         color: isFocused
-                            ? AppColors.navy
-                            : AppColors.navy.withValues(alpha: 0.4),
+                            ? _navy
+                            : _navy.withValues(alpha: 0.4),
                         size: 18,
                       ),
                     ),
@@ -186,8 +192,8 @@ class _AppTextFieldGlassState extends State<AppTextFieldGlass>
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
                         color: isFocused
-                            ? AppColors.navy
-                            : AppColors.navy.withValues(alpha: 0.3),
+                            ? _navy
+                            : _navy.withValues(alpha: 0.3),
                         size: 18,
                       ),
                       onPressed: () {

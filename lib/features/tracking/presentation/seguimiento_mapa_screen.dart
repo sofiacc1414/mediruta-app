@@ -11,6 +11,8 @@ import '../../../shared/core/network/tracking_socket_service.dart';
 import '../../../shared/core/theme/app_colors.dart';
 import '../../usuarios/presentation/providers/usuario_providers.dart';
 import '../domain/posicion_en_vivo.dart';
+import '../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../shared/core/theme/modo_oscuro_provider.dart';
 
 /// Estados en los que el domiciliario todavía no recogió el pedido —
 /// mientras esté acá, la ruta trazada va hacia la FARMACIA, no hacia
@@ -190,10 +192,15 @@ class _SeguimientoMapaScreenState extends ConsumerState<SeguimientoMapaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Seguimiento en vivo',
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.navy),
         ),
@@ -201,7 +208,7 @@ class _SeguimientoMapaScreenState extends ConsumerState<SeguimientoMapaScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
@@ -238,14 +245,14 @@ class _SeguimientoMapaScreenState extends ConsumerState<SeguimientoMapaScreen> {
                                 point: _farmacia!,
                                 width: 36,
                                 height: 36,
-                                child: const Icon(Icons.storefront_rounded, color: AppColors.navy, size: 30),
+                                child: Icon(Icons.storefront_rounded, color: AppColors.navy, size: 30),
                               ),
                             if (_entrega != null)
                               Marker(
                                 point: _entrega!,
                                 width: 36,
                                 height: 36,
-                                child: const Icon(Icons.home_rounded, color: AppColors.navy, size: 30),
+                                child: Icon(Icons.home_rounded, color: AppColors.navy, size: 30),
                               ),
                             if (_domiciliario != null)
                               Marker(
@@ -257,12 +264,12 @@ class _SeguimientoMapaScreenState extends ConsumerState<SeguimientoMapaScreen> {
                                   duration: const Duration(milliseconds: 400),
                                   builder: (context, escala, child) => Transform.scale(scale: escala, child: child),
                                   child: Container(
-                                    decoration: const BoxDecoration(
+                                    decoration: BoxDecoration(
                                       color: AppColors.teal,
                                       shape: BoxShape.circle,
                                     ),
                                     padding: const EdgeInsets.all(8),
-                                    child: const Icon(
+                                    child: Icon(
                                       Icons.two_wheeler_rounded,
                                       color: AppColors.white,
                                       size: 20,
@@ -364,7 +371,7 @@ class _AvisoMapa extends StatelessWidget {
           Expanded(
             child: Text(
               texto,
-              style: const TextStyle(color: AppColors.navy, fontSize: 12.5, fontWeight: FontWeight.w600),
+              style: TextStyle(color: AppColors.navy, fontSize: 12.5, fontWeight: FontWeight.w600),
             ),
           ),
         ],

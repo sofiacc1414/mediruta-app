@@ -15,10 +15,15 @@ import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/datos_solicitud.dart';
 import '../../domain/entities/formula_extraida.dart';
 import '../../domain/entities/medicamento.dart';
+import '../../domain/entities/medios_pago_habilitados.dart';
 import '../../domain/entities/precio_pedido.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/campos_solicitud.dart';
+import '../widgets/pantalla_validando_pago.dart';
+import '../widgets/selector_metodo_pago.dart';
 import '../widgets/tarjeta_precio_pedido.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 /// G01/G04 — HU-03. Crear una solicitud nueva o editar una existente en Borrador.
 class NuevaSolicitudScreen extends ConsumerStatefulWidget {
@@ -83,6 +88,15 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
   String? _farmaciaConfirmadaPara;
   String? _entregaConfirmadaPara;
 
+  // Módulo 4 — método de pago elegido al pedir el servicio: define el
+  // flujo (tarjeta/transferencia deben resolverse antes de publicar el
+  // pedido; efectivo sigue igual que siempre). `null` mientras no se
+  // sabe qué medios habilitó el admin — se asume solo efectivo (el
+  // comportamiento histórico) hasta que cargue.
+  MediosPagoHabilitados? _mediosPago;
+  String _metodoPago = 'efectivo';
+  final _numeroTarjeta = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -97,6 +111,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     _direccionFarmacia.addListener(_refrescarUI);
     _focusDireccionFarmacia.addListener(_onFocoCambioDireccion);
     _focusDireccionEntrega.addListener(_onFocoCambioDireccion);
+    _numeroTarjeta.addListener(_refrescarUI);
     _inicializar();
   }
 
@@ -106,6 +121,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     _direccionFarmacia.dispose();
     _focusDireccionFarmacia.dispose();
     _focusDireccionEntrega.dispose();
+    _numeroTarjeta.dispose();
     super.dispose();
   }
 
@@ -146,6 +162,49 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     // la dirección de entrega vino sola del perfil) — sin esto, el
     // estimado recién aparecía tras la primera tecla que se tocara.
     _onCambioDireccionParaPrecio();
+    unawaited(_cargarMediosPago());
+  }
+
+  /// Módulo 4 — best-effort: si falla, se queda con solo "efectivo"
+  /// habilitado (el comportamiento de siempre), no bloquea el resto
+  /// del formulario.
+  Future<void> _cargarMediosPago() async {
+    try {
+      final medios = await ref.read(obtenerMediosPagoHabilitadosUseCaseProvider).execute();
+      if (!mounted) return;
+      setState(() {
+        _mediosPago = medios;
+        if (!_metodoHabilitado(_metodoPago, medios)) {
+          _metodoPago = 'efectivo';
+        }
+      });
+    } catch (_) {
+      // Sin esto disponible, el selector ofrece solo "efectivo".
+    }
+  }
+
+  /// Módulo 4 — además de los faltantes de siempre (medicamentos,
+  /// receta, direcciones), tarjeta necesita el número. Transferencia ya
+  /// no pide nada extra acá — se aprueba automático con la pasarela
+  /// simulada, igual que tarjeta pero sin comprobante.
+  bool get _pagoListo {
+    switch (_metodoPago) {
+      case 'tarjeta':
+        return _numeroTarjeta.text.trim().isNotEmpty;
+      default:
+        return true;
+    }
+  }
+
+  bool _metodoHabilitado(String metodo, MediosPagoHabilitados medios) {
+    switch (metodo) {
+      case 'tarjeta':
+        return medios.pagoTarjetaHabilitado;
+      case 'transferencia':
+        return medios.pagoTransferenciaHabilitado;
+      default:
+        return medios.pagoEfectivoHabilitado;
+    }
   }
 
   void _rellenar(DatosSolicitud datos) {
@@ -184,7 +243,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
               'Medicamento editado exitosamente',
               style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
             ),
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.fondoPagina,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -201,7 +260,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
               'Medicamento registrado con éxito',
               style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
             ),
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.fondoPagina,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -512,18 +571,48 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       _guardando = true;
       _error = null;
     });
+
+    // Tarjeta y transferencia pasan por la pasarela simulada — se
+    // muestra la pantalla de validación (estilo PSE) mientras se hace
+    // la llamada real a la API; efectivo sigue el flujo de siempre, sin
+    // pasarela de por medio.
+    final pasaPorPasarela = _metodoPago == 'tarjeta' || _metodoPago == 'transferencia';
+    PantallaValidandoPagoController? validacion;
+    if (pasaPorPasarela && mounted) {
+      validacion = PantallaValidandoPagoController.mostrar(context);
+    }
+
     try {
       final id = await _persistir();
+
+      final inicioValidacion = DateTime.now();
       final codigoPedido = await ref.read(enviarSolicitudUseCaseProvider).execute(
             id,
             farmaciaVerificada: _farmaciaVerificada,
             entregaVerificada: _entregaVerificada,
+            metodoPago: _metodoPago,
+            numeroTarjeta: _metodoPago == 'tarjeta' ? _numeroTarjeta.text.trim() : null,
           );
+
+      if (validacion != null) {
+        // Si la API respondió casi al instante, el salto directo a
+        // "Pago exitoso" se siente brusco — se completa el segundo que
+        // falte para que el estado de carga llegue a verse.
+        final transcurrido = DateTime.now().difference(inicioValidacion);
+        final restante = const Duration(seconds: 1) - transcurrido;
+        if (restante > Duration.zero) await Future.delayed(restante);
+        validacion.mostrarExito();
+        await Future.delayed(const Duration(milliseconds: 1200));
+        validacion.cerrar();
+      }
+
       if (mounted) await _mostrarPedidoConfirmado(codigoPedido);
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (error) {
+      validacion?.cerrar();
       setState(() => _error = error.message);
     } on ApiSinConexionException catch (error) {
+      validacion?.cerrar();
       setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _guardando = false);
@@ -534,7 +623,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.fondoPagina,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           '¡Tu solicitud fue exitosa!',
@@ -575,22 +664,22 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.fondoPagina,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Text('Cambios sin guardar'),
           content: const Text('¿Guardás los cambios antes de salir?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Seguir editando', style: TextStyle(color: AppColors.navy)),
+              child: Text('Seguir editando', style: TextStyle(color: AppColors.navy)),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Descartar', style: TextStyle(color: AppColors.navy)),
+              child: Text('Descartar', style: TextStyle(color: AppColors.navy)),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Guardar', style: TextStyle(color: AppColors.teal)),
+              child: Text('Guardar', style: TextStyle(color: AppColors.teal)),
             ),
           ],
         ),
@@ -604,7 +693,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.fondoPagina,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('¿Continuar con este pedido más tarde?'),
         content: const Text(
@@ -613,15 +702,15 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Seguir editando', style: TextStyle(color: AppColors.navy)),
+            child: Text('Seguir editando', style: TextStyle(color: AppColors.navy)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Descartar', style: TextStyle(color: AppColors.navy)),
+            child: Text('Descartar', style: TextStyle(color: AppColors.navy)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Guardar para después', style: TextStyle(color: AppColors.teal)),
+            child: Text('Guardar para después', style: TextStyle(color: AppColors.teal)),
           ),
         ],
       ),
@@ -768,6 +857,11 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     final datosActuales = _datosActuales();
     final faltantes = datosActuales.calcularFaltantes(
       tieneRecetaSubida: _recetaBytesPendiente != null || _recetaUrlServidor != null,
@@ -783,9 +877,9 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.fondoPagina,
         appBar: AppBar(
-          title: const Text(
+          title: Text(
             'Nueva solicitud',
             style: TextStyle(
               fontWeight: FontWeight.w700,
@@ -797,7 +891,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
           elevation: 0,
           backgroundColor: Colors.transparent,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
+            icon: Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
             onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
           ),
         ),
@@ -819,7 +913,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                             'assets/images/hero_medicamentos.png',
                             height: 180,
                             fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
+                            errorBuilder: (context, error, stackTrace) => Icon(
                               Icons.medication_outlined,
                               color: AppColors.navy,
                               size: 60,
@@ -837,14 +931,14 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.white,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                            border: Border.all(color: AppColors.border),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              const Text(
+                              Text(
                                 'Medicamentos',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
@@ -854,12 +948,12 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              const Text(
+                              Text(
                                 'Una fórmula puede traer más de uno',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: AppColors.teal, fontSize: 13),
                               ),
-                              const Text(
+                              Text(
                                 'Agrega una línea por cada uno',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: AppColors.teal, fontSize: 13),
@@ -882,12 +976,12 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF2F4F7),
+                                      color: AppColors.skyBlue.withValues(alpha: 0.3),
                                       borderRadius: BorderRadius.circular(30),
                                     ),
                                     child: Text(
                                       _medicamentos.isEmpty ? 'Agregar medicamento' : 'Agregar otro medicamento',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppColors.navy,
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
@@ -913,14 +1007,14 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                         ),
                         if (_extrayendoFormula) ...[
                           const SizedBox(height: 8),
-                          const Row(
+                          Row(
                             children: [
-                              SizedBox(
+                              const SizedBox(
                                 width: 14,
                                 height: 14,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               ),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Text(
                                 'Leyendo medicamentos y fecha de la fórmula...',
                                 style: TextStyle(fontSize: 12, color: AppColors.teal),
@@ -939,7 +1033,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                         // ====== SECCIÓN: FARMACIA ======
                         const TituloSeccionSolicitud('Farmacia'),
                         const SizedBox(height: 4),
-                        const Text(
+                        Text(
                           'Dónde el domiciliario retira el medicamento.',
                           style: TextStyle(color: AppColors.teal, fontSize: 13),
                         ),
@@ -1006,6 +1100,29 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                           const SizedBox(height: 24),
                         ],
 
+                        SelectorMetodoPago(
+                          metodoSeleccionado: _metodoPago,
+                          medios: _mediosPago,
+                          enabled: !_guardando,
+                          onCambiar: (metodo) {
+                            setState(() => _metodoPago = metodo);
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        if (_metodoPago == 'tarjeta') ...[
+                          TextField(
+                            controller: _numeroTarjeta,
+                            enabled: !_guardando,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Número de tarjeta',
+                              helperText: 'Pasarela simulada — no se cobra nada real.',
+                              prefixIcon: Icon(Icons.credit_card_outlined, color: AppColors.teal),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
                         AppLoadingButton(
                           label: 'Guardar borrador',
                           variante: AppButtonVariante.secondary,
@@ -1016,15 +1133,24 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                         AppLoadingButton(
                           label: 'Enviar solicitud',
                           cargando: _guardando,
-                          onPressed: faltantes.isEmpty && _direccionesConfirmadas
+                          onPressed: faltantes.isEmpty &&
+                                  _direccionesConfirmadas &&
+                                  _pagoListo
                               ? _onEnviar
                               : null,
                         ),
+                        if (!_pagoListo) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Para enviar, completá el número de tarjeta.',
+                            style: TextStyle(color: AppColors.teal, fontSize: 13),
+                          ),
+                        ],
                         if (faltantes.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           Text(
                             'Para enviar falta: ${faltantes.join(', ')}.',
-                            style: const TextStyle(color: AppColors.teal, fontSize: 13),
+                            style: TextStyle(color: AppColors.teal, fontSize: 13),
                           ),
                         ] else if (!_direccionesConfirmadas) ...[
                           // Bug real reportado: antes se dejaba enviar
@@ -1033,7 +1159,7 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
                           // direcciones — el domiciliario terminaba
                           // sin ubicación real para navegar.
                           const SizedBox(height: 8),
-                          const Text(
+                          Text(
                             'Para enviar, esperá a que las dos direcciones queden confirmadas arriba.',
                             style: TextStyle(color: AppColors.teal, fontSize: 13),
                           ),
@@ -1063,21 +1189,21 @@ class _CampoFecha extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+          border: Border.all(color: AppColors.border),
         ),
         child: InputDecorator(
           decoration: InputDecoration(
             labelText: label,
-            labelStyle: const TextStyle(color: AppColors.teal, fontSize: 13),
-            prefixIcon: const Icon(Icons.event_outlined, color: AppColors.teal),
+            labelStyle: TextStyle(color: AppColors.teal, fontSize: 13),
+            prefixIcon: Icon(Icons.event_outlined, color: AppColors.teal),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
           ),
           child: Text(
             fecha != null ? _isoFecha(fecha!) : 'Selecciona una fecha',
-            style: const TextStyle(color: AppColors.navy),
+            style: TextStyle(color: AppColors.navy),
           ),
         ),
       ),

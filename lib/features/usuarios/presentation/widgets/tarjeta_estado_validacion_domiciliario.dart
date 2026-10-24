@@ -22,7 +22,7 @@ class TarjetaEstadoValidacionDomiciliario extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
       ),
@@ -37,7 +37,7 @@ class TarjetaEstadoValidacionDomiciliario extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             rechazado ? 'Solicitud rechazada' : 'Cuenta en proceso de validación',
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.navy,
               fontWeight: FontWeight.w700,
               fontSize: 16,
@@ -50,7 +50,7 @@ class TarjetaEstadoValidacionDomiciliario extends StatelessWidget {
                     'Revisá el motivo y tus datos desde tu Perfil.'
                 : 'Un administrador está revisando tus datos y documentos. '
                     'Vas a poder recibir pedidos apenas se apruebe tu cuenta.',
-            style: const TextStyle(color: AppColors.teal, fontSize: 14, height: 1.4),
+            style: TextStyle(color: AppColors.teal, fontSize: 14, height: 1.4),
           ),
         ],
       ),

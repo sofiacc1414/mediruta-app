@@ -34,14 +34,14 @@ class AppSegmentedTabs extends StatelessWidget {
                   duration: const Duration(milliseconds: 150),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    color: i == seleccionado ? AppColors.navy : Colors.transparent,
+                    color: i == seleccionado ? AppColors.enfasis : Colors.transparent,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     opciones[i],
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: i == seleccionado ? AppColors.white : AppColors.navy,
+                      color: i == seleccionado ? AppColors.sobreEnfasis : AppColors.navy,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),

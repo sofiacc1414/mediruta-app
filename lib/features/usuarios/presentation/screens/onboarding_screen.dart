@@ -2,12 +2,20 @@ import 'dart:async';
 import 'dart:math' as math; // ← IMPORTANTE: Importar math
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../chatbot/presentation/boton_asistente_chatbot.dart';
 
-class OnboardingScreen extends StatefulWidget {
+// Pantalla previa al login — mantiene su gradiente de marca siempre en
+// claro, sin importar el modo oscuro elegido en Perfil (ese ajuste es de
+// la sesión autenticada, no aplica antes de iniciar sesión).
+const _navy = Color(0xFF2F4156);
+const _teal = Color(0xFF567C8D);
+const _skyBlue = Color(0xFFC8D9E6);
+const _beige = Color(0xFFF5EFEB);
+
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({
     super.key,
     required this.onComenzar,
@@ -16,10 +24,10 @@ class OnboardingScreen extends StatefulWidget {
   final VoidCallback onComenzar;
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen>
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     with SingleTickerProviderStateMixin {
   late PageController _pageController;
   late AnimationController _animationController;
@@ -76,15 +84,16 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppColors.white,
-              AppColors.beige,
-              AppColors.skyBlue.withOpacity(0.3),
+              Colors.white,
+              _beige,
+              _skyBlue.withOpacity(0.3),
             ],
             stops: const [0.0, 0.4, 0.9],
           ),
@@ -151,7 +160,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               _buildTypewriterText(
                 "Salud",
                 style: GoogleFonts.poppins(
-                  color: AppColors.navy,
+                  color: _navy,
                   fontSize: 56,
                   height: 1.0,
                   fontWeight: FontWeight.w700,
@@ -162,7 +171,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               _buildTypewriterText(
                 "que llega a ti.",
                 style: GoogleFonts.poppins(
-                  color: AppColors.teal,
+                  color: _teal,
                   fontSize: 38,
                   height: 1.1,
                   fontWeight: FontWeight.w300,
@@ -190,7 +199,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   "Domiciliarios de confianza,\nmedicamentos seguros,\ntranquilidad para ti.",
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
-                    color: AppColors.navy.withOpacity(0.6),
+                    color: _navy.withOpacity(0.6),
                     fontSize: 15,
                     height: 1.7,
                     fontWeight: FontWeight.w400,
@@ -223,8 +232,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 colors: [
                   Colors.transparent,
                   Colors.transparent,
-                  AppColors.navy.withOpacity(0.6),
-                  AppColors.navy.withOpacity(0.8),
+                  _navy.withOpacity(0.6),
+                  _navy.withOpacity(0.8),
                 ],
                 stops: const [0.0, 0.3, 0.7, 1.0],
               ),
@@ -254,7 +263,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       "Tu salud,\nnuestra prioridad",
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
-                        color: AppColors.white,
+                        color: Colors.white,
                         fontSize: 32,
                         height: 1.1,
                         fontWeight: FontWeight.w700,
@@ -282,7 +291,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       "Entrega segura y confiable\nde tus medicamentos",
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
-                        color: AppColors.white.withOpacity(0.8),
+                        color: Colors.white.withOpacity(0.8),
                         fontSize: 15,
                         height: 1.5,
                         fontWeight: FontWeight.w300,
@@ -329,11 +338,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.white.withOpacity(0.95),
-              AppColors.white.withOpacity(0.8),
+              Colors.white.withOpacity(0.95),
+              Colors.white.withOpacity(0.8),
             ],
           ),
-          iconColor: AppColors.navy,
+          iconColor: _navy,
           delay: 0.1,
         ),
         const SizedBox(width: 10),
@@ -345,11 +354,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.white.withOpacity(0.95),
-              AppColors.white.withOpacity(0.8),
+              Colors.white.withOpacity(0.95),
+              Colors.white.withOpacity(0.8),
             ],
           ),
-          iconColor: AppColors.teal,
+          iconColor: _teal,
           delay: 0.3,
         ),
         const SizedBox(width: 10),
@@ -361,11 +370,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.white.withOpacity(0.95),
-              AppColors.white.withOpacity(0.8),
+              Colors.white.withOpacity(0.95),
+              Colors.white.withOpacity(0.8),
             ],
           ),
-          iconColor: AppColors.skyBlue,
+          iconColor: _skyBlue,
           delay: 0.5,
         ),
       ],
@@ -385,14 +394,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  AppColors.white,
-                  AppColors.white.withOpacity(0.9),
+                  Colors.white,
+                  Colors.white.withOpacity(0.9),
                 ],
               ),
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.white.withOpacity(0.3),
+                  color: Colors.white.withOpacity(0.3),
                   blurRadius: 30,
                   offset: const Offset(0, 10),
                 ),
@@ -402,7 +411,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               onPressed: widget.onComenzar,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
-                foregroundColor: AppColors.navy,
+                foregroundColor: _navy,
                 minimumSize: const Size(double.infinity, 56),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -425,13 +434,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppColors.navy.withOpacity(0.1),
+                      color: _navy.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.arrow_forward_rounded,
                       size: 20,
-                      color: AppColors.navy,
+                      color: _navy,
                     ),
                   ),
                 ],
@@ -470,7 +479,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       center: const Alignment(0.3, 0.3),
                       radius: 0.7,
                       colors: [
-                        AppColors.skyBlue.withOpacity(0.25),
+                        _skyBlue.withOpacity(0.25),
                         Colors.transparent,
                       ],
                     ),
@@ -491,7 +500,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       center: const Alignment(0.7, 0.5),
                       radius: 0.6,
                       colors: [
-                        AppColors.teal.withOpacity(0.08),
+                        _teal.withOpacity(0.08),
                         Colors.transparent,
                       ],
                     ),
@@ -539,8 +548,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(5),
         color: _currentPage == index 
-            ? AppColors.navy 
-            : AppColors.navy.withOpacity(0.2),
+            ? _navy 
+            : _navy.withOpacity(0.2),
       ),
     );
   }
@@ -624,7 +633,7 @@ class _AnimatedCardState extends State<_AnimatedCard>
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.navy.withOpacity(0.1),
+                  color: _navy.withOpacity(0.1),
                   blurRadius: 15,
                   offset: const Offset(0, 4),
                 ),
@@ -648,7 +657,7 @@ class _AnimatedCardState extends State<_AnimatedCard>
                 Text(
                   widget.title,
                   style: GoogleFonts.poppins(
-                    color: AppColors.navy,
+                    color: _navy,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -656,7 +665,7 @@ class _AnimatedCardState extends State<_AnimatedCard>
                 Text(
                   widget.subtitle,
                   style: GoogleFonts.poppins(
-                    color: AppColors.navy.withOpacity(0.6),
+                    color: _navy.withOpacity(0.6),
                     fontSize: 9,
                     fontWeight: FontWeight.w400,
                   ),

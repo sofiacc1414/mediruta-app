@@ -44,7 +44,7 @@ class AppStatTile extends StatelessWidget {
           Container(
             width: 36,
             height: 36,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.beige,
               shape: BoxShape.circle,
             ),
@@ -53,7 +53,7 @@ class AppStatTile extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             valor,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.navy,
               fontSize: 22,
               fontWeight: FontWeight.w700,
@@ -62,7 +62,7 @@ class AppStatTile extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(color: AppColors.teal, fontSize: 12),
+            style: TextStyle(color: AppColors.teal, fontSize: 12),
           ),
           if (delta != null) ...[
             const SizedBox(height: 8),
@@ -77,7 +77,7 @@ class AppStatTile extends StatelessWidget {
                 const SizedBox(width: 2),
                 Text(
                   delta!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.navy,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,

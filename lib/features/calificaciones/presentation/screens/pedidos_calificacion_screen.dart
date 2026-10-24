@@ -9,6 +9,8 @@ import '../../domain/entities/calificacion.dart';
 import '../providers/calificacion_providers.dart';
 import '../widgets/experiencia_cierre_visual.dart';
 import 'calificacion_form_screen.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 /// Pantalla 1 — pedidos del paciente, con filtro Entregados y acceso a calificar.
 class PedidosCalificacionScreen extends ConsumerStatefulWidget {
@@ -71,9 +73,14 @@ class _PedidosCalificacionScreenState extends ConsumerState<PedidosCalificacionS
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     final visibles = _visibles;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5EFEB),
+      backgroundColor: AppColors.beige,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -83,13 +90,13 @@ class _PedidosCalificacionScreenState extends ConsumerState<PedidosCalificacionS
       bottomNavigationBar: const MainBottomBar(),
       body: ExperienciaFondo(
         child: _cargando
-            ? const Center(child: CircularProgressIndicator(color: AppColors.teal))
+            ? Center(child: CircularProgressIndicator(color: AppColors.teal))
             : RefreshIndicator(
                 onRefresh: _cargar,
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 56, 20, 24),
                   children: [
-                    const Text(
+                    Text(
                       '¿Qué entrega quieres valorar?',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -101,7 +108,7 @@ class _PedidosCalificacionScreenState extends ConsumerState<PedidosCalificacionS
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Comparte cómo fue tu experiencia con MediRuta',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.teal, height: 1.35, fontSize: 15),
@@ -114,8 +121,8 @@ class _PedidosCalificacionScreenState extends ConsumerState<PedidosCalificacionS
                     const SizedBox(height: 18),
                     if (_error != null) AppErrorBanner(mensaje: _error!),
                     if (visibles.isEmpty && _error == null)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 48),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 48),
                         child: Text(
                           'Todavía no hay un momento para compartir aquí.',
                           textAlign: TextAlign.center,
@@ -252,7 +259,7 @@ class _TarjetaPedido extends StatelessWidget {
                       'Pedido $codigo',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Georgia',
                         fontFamilyFallback: ['Times New Roman', 'serif'],
                         color: AppColors.navy,
@@ -262,19 +269,19 @@ class _TarjetaPedido extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       entregado ? 'Entregada' : _estadoHumano(pedido.estado),
-                      style: const TextStyle(color: AppColors.navy, fontSize: 13),
+                      style: TextStyle(color: AppColors.navy, fontSize: 13),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       _fecha(pedido.creadoEn),
-                      style: const TextStyle(color: AppColors.teal, fontSize: 13),
+                      style: TextStyle(color: AppColors.teal, fontSize: 13),
                     ),
                     if (pedido.cantidadMedicamentos > 0)
                       Text(
                         pedido.cantidadMedicamentos == 1
                             ? '1 medicamento'
                             : '${pedido.cantidadMedicamentos} medicamentos',
-                        style: const TextStyle(color: AppColors.teal, fontSize: 13),
+                        style: TextStyle(color: AppColors.teal, fontSize: 13),
                       ),
                   ],
                 ),

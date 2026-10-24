@@ -227,7 +227,7 @@ class _FilaPaso extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       fechaHora!,
-                      style: const TextStyle(color: AppColors.teal, fontSize: 12),
+                      style: TextStyle(color: AppColors.teal, fontSize: 12),
                     ),
                   ],
                   if (accion != null) ...[

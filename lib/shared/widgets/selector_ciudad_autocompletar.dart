@@ -29,7 +29,7 @@ class SelectorCiudadAutocompletar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
@@ -62,7 +62,7 @@ class SelectorCiudadAutocompletar extends StatelessWidget {
                       dense: true,
                       title: Text(
                         opcion,
-                        style: const TextStyle(fontSize: 14, color: AppColors.navy),
+                        style: TextStyle(fontSize: 14, color: AppColors.navy),
                       ),
                       onTap: () => onSelected(opcion),
                     );
@@ -86,7 +86,7 @@ class SelectorCiudadAutocompletar extends StatelessWidget {
               }
               onSubmitted();
             },
-            style: const TextStyle(fontSize: 15, color: AppColors.navy),
+            style: TextStyle(fontSize: 15, color: AppColors.navy),
             decoration: InputDecoration(
               labelText: label,
               hintText: 'Escribí para buscar…',
@@ -104,7 +104,7 @@ class SelectorCiudadAutocompletar extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: AppColors.teal, width: 2),
+                borderSide: BorderSide(color: AppColors.teal, width: 2),
               ),
               disabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),

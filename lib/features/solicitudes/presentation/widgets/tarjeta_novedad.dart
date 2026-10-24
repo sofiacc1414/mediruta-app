@@ -48,7 +48,7 @@ class TarjetaNovedad extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
@@ -57,10 +57,10 @@ class TarjetaNovedad extends StatelessWidget {
         children: [
           Text(
             _etiquetaTipo,
-            style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 14),
+            style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 14),
           ),
           const SizedBox(height: 4),
-          Text(novedad.detalle, style: const TextStyle(color: AppColors.teal, fontSize: 13)),
+          Text(novedad.detalle, style: TextStyle(color: AppColors.teal, fontSize: 13)),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,7 +70,7 @@ class TarjetaNovedad extends StatelessWidget {
               Expanded(
                 child: Text(
                   mensaje,
-                  style: const TextStyle(color: AppColors.navy, fontSize: 13, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: AppColors.navy, fontSize: 13, fontWeight: FontWeight.w600),
                 ),
               ),
             ],

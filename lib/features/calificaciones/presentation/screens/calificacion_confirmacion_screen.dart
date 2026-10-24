@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/core/theme/app_colors.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 import '../widgets/aviso_calificacion.dart';
 import 'pedidos_calificacion_screen.dart';
 
-class CalificacionConfirmacionScreen extends StatefulWidget {
+class CalificacionConfirmacionScreen extends ConsumerStatefulWidget {
   const CalificacionConfirmacionScreen({super.key, required this.pedidoId});
 
   static const routeName = '/pedidos-calificacion/gracias';
@@ -12,11 +15,12 @@ class CalificacionConfirmacionScreen extends StatefulWidget {
   final String pedidoId;
 
   @override
-  State<CalificacionConfirmacionScreen> createState() =>
+  ConsumerState<CalificacionConfirmacionScreen> createState() =>
       _CalificacionConfirmacionScreenState();
 }
 
-class _CalificacionConfirmacionScreenState extends State<CalificacionConfirmacionScreen>
+class _CalificacionConfirmacionScreenState
+    extends ConsumerState<CalificacionConfirmacionScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
@@ -31,6 +35,8 @@ class _CalificacionConfirmacionScreenState extends State<CalificacionConfirmacio
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     final escala = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
     final fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     return Scaffold(
@@ -60,7 +66,7 @@ class _CalificacionConfirmacionScreenState extends State<CalificacionConfirmacio
                     const SizedBox(height: 12),
                     FadeTransition(
                       opacity: fade,
-                      child: const Column(
+                      child: Column(
                         children: [
                           Text(
                             '¡Gracias por compartir!',

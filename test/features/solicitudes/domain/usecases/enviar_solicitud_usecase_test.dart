@@ -19,6 +19,8 @@ void main() {
         'solicitudId': 'solicitud-uuid',
         'farmaciaVerificada': null,
         'entregaVerificada': null,
+        'metodoPago': 'efectivo',
+        'numeroTarjeta': null,
       });
     });
 
@@ -38,6 +40,28 @@ void main() {
         'solicitudId': 'solicitud-uuid',
         'farmaciaVerificada': farmaciaVerificada,
         'entregaVerificada': null,
+        'metodoPago': 'efectivo',
+        'numeroTarjeta': null,
+      });
+    });
+
+    test('Módulo 4 — delega metodoPago y numeroTarjeta cuando se eligió tarjeta', () async {
+      final repo = FakeSolicitudRepository()..codigoPedidoARetornar = 'MR-000123';
+      final useCase = EnviarSolicitudUseCase(repo);
+
+      await useCase.execute(
+        'solicitud-uuid',
+        metodoPago: 'tarjeta',
+        numeroTarjeta: '4242424242424242',
+      );
+
+      expect(repo.ultimaLlamada, {
+        'metodo': 'enviar',
+        'solicitudId': 'solicitud-uuid',
+        'farmaciaVerificada': null,
+        'entregaVerificada': null,
+        'metodoPago': 'tarjeta',
+        'numeroTarjeta': '4242424242424242',
       });
     });
 

@@ -48,7 +48,7 @@ class SelectorRol extends StatelessWidget {
                   onTap: () => onChanged(opcion.codigo),
                 ),
                 if (tipoRegistroSeleccionado == opcion.codigo)
-                  const Positioned(
+                  Positioned(
                     top: 6,
                     right: 6,
                     child: IgnorePointer(

@@ -9,22 +9,22 @@ class AppIconBadge extends StatelessWidget {
     super.key,
     required this.icono,
     this.tamano = 96,
-    this.colorFondo = AppColors.skyBlue,
-    this.colorIcono = AppColors.navy,
+    this.colorFondo,
+    this.colorIcono,
   });
 
   final IconData icono;
   final double tamano;
-  final Color colorFondo;
-  final Color colorIcono;
+  final Color? colorFondo;
+  final Color? colorIcono;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: tamano,
       height: tamano,
-      decoration: BoxDecoration(color: colorFondo, shape: BoxShape.circle),
-      child: Icon(icono, size: tamano * 0.45, color: colorIcono),
+      decoration: BoxDecoration(color: colorFondo ?? AppColors.skyBlue, shape: BoxShape.circle),
+      child: Icon(icono, size: tamano * 0.45, color: colorIcono ?? AppColors.navy),
     );
   }
 }

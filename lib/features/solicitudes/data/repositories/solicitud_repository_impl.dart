@@ -2,6 +2,7 @@ import '../../domain/entities/datos_solicitud.dart';
 import '../../domain/entities/documentos_paciente_para_recoger.dart';
 import '../../domain/entities/formula_extraida.dart';
 import '../../domain/entities/medicamento.dart';
+import '../../domain/entities/medios_pago_habilitados.dart';
 import '../../domain/entities/novedad_resumen.dart';
 import '../../domain/entities/pedido_activo.dart';
 import '../../domain/entities/pedido_disponible.dart';
@@ -76,13 +77,23 @@ class SolicitudRepositoryImpl implements SolicitudRepository {
     String solicitudId, {
     VerificacionDireccionPrevia? farmaciaVerificada,
     VerificacionDireccionPrevia? entregaVerificada,
+    String metodoPago = 'efectivo',
+    String? numeroTarjeta,
   }) async {
     final respuesta = await _datasource.enviar(
       solicitudId,
       farmaciaVerificada: farmaciaVerificada,
       entregaVerificada: entregaVerificada,
+      metodoPago: metodoPago,
+      numeroTarjeta: numeroTarjeta,
     );
     return respuesta['codigoPedido'] as String;
+  }
+
+  @override
+  Future<MediosPagoHabilitados> obtenerMediosPagoHabilitados() async {
+    final respuesta = await _datasource.obtenerMediosPagoHabilitados();
+    return MediosPagoHabilitados.fromJson(respuesta);
   }
 
   @override

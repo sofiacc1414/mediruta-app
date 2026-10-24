@@ -14,6 +14,8 @@ class PedidoActivo {
     required this.direccionEntrega,
     required this.direccionFarmacia,
     required this.creadoEn,
+    required this.metodoPago,
+    required this.montoACobrar,
     required this.historial,
     required this.novedadPropiaAbierta,
   });
@@ -24,6 +26,15 @@ class PedidoActivo {
   final String? direccionEntrega;
   final String? direccionFarmacia;
   final String creadoEn;
+
+  /// Módulo 4 — decide el flujo al entregar: 'efectivo' abre la
+  /// pantalla de cobro antes de finalizar; 'tarjeta'/'transferencia' ya
+  /// están pagados, el código finaliza directo.
+  final String metodoPago;
+
+  /// Módulo 4 — cuánto cobrar en la pantalla de cobro (solo relevante
+  /// si `metodoPago == 'efectivo'`).
+  final double montoACobrar;
   final List<EventoHistorial> historial;
 
   /// Si el propio Domiciliario ya reportó una novedad sobre este pedido
@@ -38,6 +49,8 @@ class PedidoActivo {
       direccionEntrega: json['direccionEntrega'] as String?,
       direccionFarmacia: json['direccionFarmacia'] as String?,
       creadoEn: json['creadoEn'] as String,
+      metodoPago: json['metodoPago'] as String? ?? 'efectivo',
+      montoACobrar: (json['montoACobrar'] as num?)?.toDouble() ?? 0,
       historial: (json['historial'] as List<dynamic>)
           .map((e) => EventoHistorial.fromJson(e as Map<String, dynamic>))
           .toList(),

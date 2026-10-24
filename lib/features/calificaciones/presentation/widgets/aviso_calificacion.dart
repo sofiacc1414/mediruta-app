@@ -37,7 +37,7 @@ class AvisoCalificacion extends StatelessWidget {
           Container(
             width: 72,
             height: 72,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.beige,
               shape: BoxShape.circle,
             ),
@@ -47,7 +47,7 @@ class AvisoCalificacion extends StatelessWidget {
           Text(
             titulo,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.navy,
               fontWeight: FontWeight.w700,
               fontSize: 20,
@@ -58,7 +58,7 @@ class AvisoCalificacion extends StatelessWidget {
           Text(
             explicacion,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.teal, height: 1.45, fontSize: 15),
+            style: TextStyle(color: AppColors.teal, height: 1.45, fontSize: 15),
           ),
         ],
       ),
@@ -172,7 +172,7 @@ class ComparteTuExperiencia extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Comparte tu momento favorito',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -193,14 +193,14 @@ class ComparteTuExperiencia extends StatelessWidget {
             onChanged: (_) => onChanged(),
             cursorColor: AppColors.teal,
             textCapitalization: TextCapitalization.sentences,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Georgia',
               fontFamilyFallback: ['Times New Roman', 'serif'],
               color: AppColors.navy,
               height: 1.25,
               fontSize: 15,
             ),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Si quieres, deja aquí una nota',
               hintStyle: TextStyle(
                 fontFamily: 'Georgia',
@@ -234,7 +234,7 @@ class FondoExperiencia extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -282,7 +282,7 @@ class IlustracionExperiencia extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.check_rounded, color: AppColors.teal, size: 48),
+                  child: Icon(Icons.check_rounded, color: AppColors.teal, size: 48),
                 )
               : const SizedBox.shrink(),
             ),

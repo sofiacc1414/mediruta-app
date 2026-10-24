@@ -75,7 +75,7 @@ class MensajeConfirmacionDireccionPerfil extends StatelessWidget {
             children: [
               Text(
                 texto,
-                style: const TextStyle(color: AppColors.navy, fontSize: 12, height: 1.3),
+                style: TextStyle(color: AppColors.navy, fontSize: 12, height: 1.3),
               ),
               if (enlace != null)
                 InkWell(
@@ -84,7 +84,7 @@ class MensajeConfirmacionDireccionPerfil extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       enlace,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.navy,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -123,7 +123,7 @@ Future<CandidatoDireccionPerfil?> mostrarSelectorDireccionPerfil(
 }) {
   return showModalBottomSheet<CandidatoDireccionPerfil>(
     context: context,
-    backgroundColor: Colors.white,
+    backgroundColor: AppColors.white,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -135,12 +135,12 @@ Future<CandidatoDireccionPerfil?> mostrarSelectorDireccionPerfil(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Elegí la dirección correcta',
                 style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 16),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Encontramos varias coincidencias — elegí la que corresponde.',
                 style: TextStyle(color: AppColors.teal, fontSize: 13),
               ),
@@ -154,7 +154,7 @@ Future<CandidatoDireccionPerfil?> mostrarSelectorDireccionPerfil(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF2F4F7),
+                      color: AppColors.skyBlue.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -168,7 +168,7 @@ Future<CandidatoDireccionPerfil?> mostrarSelectorDireccionPerfil(
                         Expanded(
                           child: Text(
                             candidato.direccionResuelta,
-                            style: const TextStyle(color: AppColors.navy, fontSize: 13),
+                            style: TextStyle(color: AppColors.navy, fontSize: 13),
                           ),
                         ),
                       ],
@@ -177,7 +177,7 @@ Future<CandidatoDireccionPerfil?> mostrarSelectorDireccionPerfil(
                 ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Ninguna — seguir con la escrita', style: TextStyle(color: AppColors.teal)),
+                child: Text('Ninguna — seguir con la escrita', style: TextStyle(color: AppColors.teal)),
               ),
             ],
           ),

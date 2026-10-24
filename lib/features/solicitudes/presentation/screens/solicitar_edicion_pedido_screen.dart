@@ -11,6 +11,8 @@ import '../../domain/entities/medicamento.dart';
 import '../../domain/entities/solicitud.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/campos_solicitud.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 /// HU-07 (ronda 4) — el Paciente pide corregir direcciones,
 /// medicamentos y/o la foto de la receta de un pedido ya enviado.
@@ -155,10 +157,15 @@ class _SolicitarEdicionPedidoScreenState
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.fondoPagina,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Pedir corrección de datos',
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.navy),
         ),
@@ -166,7 +173,7 @@ class _SolicitarEdicionPedidoScreenState
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
           onPressed: () => Navigator.of(context).pop(false),
         ),
       ),
@@ -183,7 +190,7 @@ class _SolicitarEdicionPedidoScreenState
                   AppErrorBanner(mensaje: _error!),
                   const SizedBox(height: 16),
                 ],
-                const Text(
+                Text(
                   'Un administrador revisa los cambios antes de aplicarlos — cambia solo lo que necesites corregir.',
                   style: TextStyle(color: AppColors.teal, fontSize: 13),
                 ),
@@ -212,7 +219,7 @@ class _SolicitarEdicionPedidoScreenState
                 // ====== MEDICAMENTOS ======
                 const TituloSeccionSolicitud('Medicamentos'),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Corrige, quita o agrega una línea por cada medicamento.',
                   style: TextStyle(color: AppColors.teal, fontSize: 13),
                 ),
@@ -238,7 +245,7 @@ class _SolicitarEdicionPedidoScreenState
                       ),
                       child: Text(
                         _medicamentos.isEmpty ? 'Agregar medicamento' : 'Agregar otro medicamento',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.navy,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,

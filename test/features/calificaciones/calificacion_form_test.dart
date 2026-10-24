@@ -4,12 +4,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mediruta_app/features/calificaciones/presentation/screens/calificacion_confirmacion_screen.dart';
 import 'package:mediruta_app/features/calificaciones/presentation/screens/calificacion_form_screen.dart';
 import 'package:mediruta_app/features/calificaciones/presentation/widgets/aviso_calificacion.dart';
+import 'package:mediruta_app/shared/core/storage/shared_preferences_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  // Sin esto, `modoOscuroProvider`/`modoAltoContrasteProvider` (ahora
+  // observados en cada pantalla, para repintarse al togglear modo
+  // oscuro/alto contraste desde Perfil) revientan con
+  // `sharedPreferencesProvider debe overridearse en main()`.
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('pedido no entregado muestra el bloqueo', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
+      ProviderScope(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        child: const MaterialApp(
         home: CalificacionFormScreen(
           args: CalificacionFormArgs(
             pedidoId: '11111111-1111-1111-1111-111111111111',
@@ -35,9 +47,11 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
+      ProviderScope(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        child: const MaterialApp(
         home: CalificacionFormScreen(
           args: CalificacionFormArgs(
             pedidoId: '11111111-1111-1111-1111-111111111111',
@@ -94,9 +108,11 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
+      ProviderScope(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        child: const MaterialApp(
           home: CalificacionConfirmacionScreen(pedidoId: '11111111-1111-1111-1111-111111111111'),
         ),
       ),
@@ -114,9 +130,11 @@ Future<void> _montarCrear(WidgetTester tester, Size tamano) async {
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  final prefs = await SharedPreferences.getInstance();
   await tester.pumpWidget(
-    const ProviderScope(
-      child: MaterialApp(
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const MaterialApp(
         home: CalificacionFormScreen(
           args: CalificacionFormArgs(
             pedidoId: '11111111-1111-1111-1111-111111111111',

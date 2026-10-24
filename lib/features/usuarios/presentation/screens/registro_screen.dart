@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
-import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/core/utils/politica_contrasena.dart';
 import '../../../../shared/widgets/app_checkbox_row.dart';
 import '../../../../shared/widgets/app_form_notice.dart';
@@ -13,6 +12,14 @@ import '../../../../shared/widgets/snackbar_exito.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/usuario_providers.dart';
 import '../widgets/selector_rol.dart';
+
+// Pantalla previa al login — mantiene su gradiente de marca siempre en
+// claro, sin importar el modo oscuro elegido en Perfil (ese ajuste es
+// de la sesión autenticada, no aplica antes de iniciar sesión).
+const _navy = Color(0xFF2F4156);
+const _teal = Color(0xFF567C8D);
+const _skyBlue = Color(0xFFC8D9E6);
+const _beige = Color(0xFFF5EFEB);
 
 class RegistroScreen extends ConsumerStatefulWidget {
   const RegistroScreen({super.key});
@@ -139,16 +146,16 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: Colors.white,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppColors.white,
-              AppColors.beige,
-              AppColors.skyBlue.withOpacity(0.15),
+              Colors.white,
+              _beige,
+              _skyBlue.withOpacity(0.15),
             ],
             stops: const [0.0, 0.3, 0.85],
           ),
@@ -182,7 +189,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                       'Crear cuenta',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
-                        color: AppColors.navy,
+                        color: _navy,
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.3,
@@ -195,7 +202,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                       'Únete a MediRuta',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
-                        color: AppColors.teal,
+                        color: _teal,
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
                       ),
@@ -267,7 +274,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                         label: Text(
                           'También como Paciente',
                           style: GoogleFonts.poppins(
-                            color: AppColors.navy,
+                            color: _navy,
                             fontSize: 11.5,
                           ),
                         ),
@@ -282,7 +289,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                       label: Text(
                         'Acepto Términos y Política de Privacidad',
                         style: GoogleFonts.poppins(
-                          color: AppColors.navy,
+                          color: _navy,
                           fontSize: 11.5,
                         ),
                       ),
@@ -309,7 +316,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                         child: Text(
                           '¿Ya tienes cuenta? Inicia sesión',
                           style: GoogleFonts.poppins(
-                            color: AppColors.navy,
+                            color: _navy,
                             fontSize: 11.5,
                             fontWeight: FontWeight.w500,
                           ),
@@ -335,7 +342,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
         Text(
           'Selecciona tu rol',
           style: GoogleFonts.poppins(
-            color: AppColors.navy,
+            color: _navy,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
@@ -349,11 +356,11 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
               subtitle: 'Solicita medicamentos',
               isSelected: _tipoRegistro == 'PACIENTE',
               onTap: () => setState(() => _tipoRegistro = 'PACIENTE'),
-              color: AppColors.navy,
+              color: _navy,
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.navy, AppColors.navy.withOpacity(0.7)],
+                colors: [_navy, _navy.withOpacity(0.7)],
               ),
             ),
             const SizedBox(width: 8),
@@ -363,11 +370,11 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
               subtitle: 'Entrega con confianza',
               isSelected: _tipoRegistro == 'DOMICILIARIO',
               onTap: () => setState(() => _tipoRegistro = 'DOMICILIARIO'),
-              color: AppColors.teal,
+              color: _teal,
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.teal, AppColors.teal.withOpacity(0.7)],
+                colors: [_teal, _teal.withOpacity(0.7)],
               ),
             ),
           ],
@@ -389,16 +396,16 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen>
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  AppColors.navy,
+                  _navy,
                   const Color(0xFF3D5A73),
-                  AppColors.navy.withOpacity(0.9),
+                  _navy.withOpacity(0.9),
                 ],
                 stops: const [0.0, 0.5, 1.0],
               ),
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.navy.withOpacity(0.2),
+                  color: _navy.withOpacity(0.2),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -530,15 +537,15 @@ class _RolCardPremiumState extends State<_RolCardPremium>
                       ? widget.gradient
                       : LinearGradient(
                           colors: [
-                            AppColors.white.withOpacity(0.5),
-                            AppColors.white.withOpacity(0.2),
+                            Colors.white.withOpacity(0.5),
+                            Colors.white.withOpacity(0.2),
                           ],
                         ),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: widget.isSelected
                         ? widget.color
-                        : AppColors.navy.withOpacity(0.06),
+                        : _navy.withOpacity(0.06),
                     width: widget.isSelected ? 2 : 1,
                   ),
                   boxShadow: widget.isSelected
@@ -551,7 +558,7 @@ class _RolCardPremiumState extends State<_RolCardPremium>
                         ]
                       : [
                           BoxShadow(
-                            color: AppColors.navy.withOpacity(0.02),
+                            color: _navy.withOpacity(0.02),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -563,14 +570,14 @@ class _RolCardPremiumState extends State<_RolCardPremium>
                       padding: const EdgeInsets.all(5),
                       decoration: BoxDecoration(
                         color: widget.isSelected
-                            ? AppColors.white.withOpacity(0.2)
+                            ? Colors.white.withOpacity(0.2)
                             : widget.color.withOpacity(0.06),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         widget.icon,
                         color: widget.isSelected
-                            ? AppColors.white
+                            ? Colors.white
                             : widget.color,
                         size: 20,
                       ),
@@ -581,8 +588,8 @@ class _RolCardPremiumState extends State<_RolCardPremium>
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         color: widget.isSelected
-                            ? AppColors.white
-                            : AppColors.navy,
+                            ? Colors.white
+                            : _navy,
                         fontSize: 12,
                         fontWeight: widget.isSelected
                             ? FontWeight.w700
@@ -595,8 +602,8 @@ class _RolCardPremiumState extends State<_RolCardPremium>
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         color: widget.isSelected
-                            ? AppColors.white.withOpacity(0.85)
-                            : AppColors.navy.withOpacity(0.4),
+                            ? Colors.white.withOpacity(0.85)
+                            : _navy.withOpacity(0.4),
                         fontSize: 8.5,
                         fontWeight: FontWeight.w400,
                       ),
@@ -606,8 +613,8 @@ class _RolCardPremiumState extends State<_RolCardPremium>
                       Container(
                         width: 14,
                         height: 14,
-                        decoration: const BoxDecoration(
-                          color: AppColors.white,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -644,7 +651,7 @@ class _AyudaCorreo extends StatelessWidget {
           Icon(
             cumplido ? Icons.check_box : Icons.check_box_outline_blank,
             size: 14,
-            color: cumplido ? AppColors.teal : AppColors.navy.withOpacity(0.45),
+            color: cumplido ? _teal : _navy.withOpacity(0.45),
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -652,9 +659,9 @@ class _AyudaCorreo extends StatelessWidget {
               'El correo electrónico debe contener @ y .com',
               style: GoogleFonts.poppins(
                 fontSize: 11,
-                color: cumplido ? AppColors.teal : AppColors.navy.withOpacity(0.55),
+                color: cumplido ? _teal : _navy.withOpacity(0.55),
                 decoration: cumplido ? TextDecoration.lineThrough : null,
-                decorationColor: AppColors.teal,
+                decorationColor: _teal,
               ),
             ),
           ),
@@ -693,8 +700,8 @@ class _RequisitosContrasena extends StatelessWidget {
                     requisito.$2 ? Icons.check_box : Icons.check_box_outline_blank,
                     size: 14,
                     color: requisito.$2
-                        ? AppColors.teal
-                        : AppColors.navy.withOpacity(0.45),
+                        ? _teal
+                        : _navy.withOpacity(0.45),
                   ),
                   const SizedBox(width: 6),
                   Expanded(
@@ -703,10 +710,10 @@ class _RequisitosContrasena extends StatelessWidget {
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: requisito.$2
-                            ? AppColors.teal
-                            : AppColors.navy.withOpacity(0.55),
+                            ? _teal
+                            : _navy.withOpacity(0.55),
                         decoration: requisito.$2 ? TextDecoration.lineThrough : null,
-                        decorationColor: AppColors.teal,
+                        decorationColor: _teal,
                       ),
                     ),
                   ),

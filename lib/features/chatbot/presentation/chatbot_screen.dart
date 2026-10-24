@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/core/network/api_exception.dart';
 import '../../../shared/core/theme/app_colors.dart';
 import 'chatbot_provider.dart';
+import '../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../shared/core/theme/modo_oscuro_provider.dart';
 
 class _MensajeLocal {
   const _MensajeLocal({required this.texto, required this.esUsuario});
@@ -175,10 +177,15 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Asistente MediRuta',
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.navy),
         ),
@@ -186,7 +193,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
@@ -303,7 +310,7 @@ class _OpcionesCopago extends StatelessWidget {
                   : () => pidiendoRango ? onRango(valor) : onRegimen(valor),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.navy,
-                side: const BorderSide(color: AppColors.teal),
+                side: BorderSide(color: AppColors.teal),
               ),
               child: Text(etiqueta),
             ),
@@ -353,7 +360,7 @@ class _CampoEnvio extends StatelessWidget {
           const SizedBox(width: 8),
           IconButton(
             onPressed: enviando ? null : onEnviar,
-            icon: const Icon(Icons.send_rounded, color: AppColors.teal),
+            icon: Icon(Icons.send_rounded, color: AppColors.teal),
           ),
         ],
       ),

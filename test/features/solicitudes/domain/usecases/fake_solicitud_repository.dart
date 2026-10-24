@@ -2,6 +2,7 @@ import 'package:mediruta_app/features/solicitudes/domain/entities/datos_solicitu
 import 'package:mediruta_app/features/solicitudes/domain/entities/documentos_paciente_para_recoger.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/formula_extraida.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/medicamento.dart';
+import 'package:mediruta_app/features/solicitudes/domain/entities/medios_pago_habilitados.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/novedad_resumen.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_activo.dart';
 import 'package:mediruta_app/features/solicitudes/domain/entities/pedido_disponible.dart';
@@ -115,14 +116,31 @@ class FakeSolicitudRepository implements SolicitudRepository {
     String solicitudId, {
     VerificacionDireccionPrevia? farmaciaVerificada,
     VerificacionDireccionPrevia? entregaVerificada,
+    String metodoPago = 'efectivo',
+    String? numeroTarjeta,
   }) async {
     _registrar('enviar', {
       'solicitudId': solicitudId,
       'farmaciaVerificada': farmaciaVerificada,
       'entregaVerificada': entregaVerificada,
+      'metodoPago': metodoPago,
+      'numeroTarjeta': numeroTarjeta,
     });
     _lanzarSiCorresponde();
     return codigoPedidoARetornar;
+  }
+
+  MediosPagoHabilitados mediosPagoARetornar = const MediosPagoHabilitados(
+    pagoEfectivoHabilitado: true,
+    pagoTarjetaHabilitado: false,
+    pagoTransferenciaHabilitado: false,
+  );
+
+  @override
+  Future<MediosPagoHabilitados> obtenerMediosPagoHabilitados() async {
+    _registrar('obtenerMediosPagoHabilitados', {});
+    _lanzarSiCorresponde();
+    return mediosPagoARetornar;
   }
 
   @override

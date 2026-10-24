@@ -137,7 +137,7 @@ class _SugerenciasDireccionState extends State<SugerenciasDireccion> {
     return Container(
       margin: const EdgeInsets.only(top: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
         boxShadow: [
@@ -158,12 +158,12 @@ class _SugerenciasDireccionState extends State<SugerenciasDireccion> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 child: Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 16, color: AppColors.navy),
+                    Icon(Icons.location_on_outlined, size: 16, color: AppColors.navy),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         sugerencia.direccionResuelta,
-                        style: const TextStyle(fontSize: 13, color: AppColors.navy),
+                        style: TextStyle(fontSize: 13, color: AppColors.navy),
                       ),
                     ),
                   ],

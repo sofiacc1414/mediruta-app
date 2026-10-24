@@ -28,7 +28,7 @@ SnackBar snackBarExito(String mensaje) {
       ),
       child: Text(
         mensaje,
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.navy,
           fontSize: 14,
           fontWeight: FontWeight.w600,

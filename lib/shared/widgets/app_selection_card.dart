@@ -60,7 +60,7 @@ class AppSelectionCard extends StatelessWidget {
               Text(
                 sublabel!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.teal, fontSize: 12),
+                style: TextStyle(color: AppColors.teal, fontSize: 12),
               ),
           ],
         ),

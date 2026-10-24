@@ -5,13 +5,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
-import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/core/utils/politica_contrasena.dart';
 import '../../../../shared/widgets/app_form_notice.dart';
 import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field_glass.dart';
 import '../providers/usuario_providers.dart';
+
+// Pantalla previa al login — mantiene su gradiente de marca siempre en
+// claro, sin importar el modo oscuro elegido en Perfil (ese ajuste es
+// de la sesión autenticada, no aplica antes de iniciar sesión).
+const _navy = Color(0xFF2F4156);
+const _teal = Color(0xFF567C8D);
+const _skyBlue = Color(0xFFC8D9E6);
+const _beige = Color(0xFFF5EFEB);
 
 class RestablecerContrasenaScreen extends ConsumerStatefulWidget {
   const RestablecerContrasenaScreen({super.key, required this.correo});
@@ -126,9 +133,9 @@ class _RestablecerContrasenaScreenState
           );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('¡Contraseña actualizada! Inicia sesión de nuevo.'),
-          backgroundColor: AppColors.teal,
+          backgroundColor: _teal,
         ),
       );
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
@@ -144,16 +151,16 @@ class _RestablecerContrasenaScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: Colors.white,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppColors.white,
-              AppColors.beige,
-              AppColors.skyBlue.withOpacity(0.2),
+              Colors.white,
+              _beige,
+              _skyBlue.withOpacity(0.2),
             ],
             stops: const [0.0, 0.3, 0.85],
           ),
@@ -205,7 +212,7 @@ class _RestablecerContrasenaScreenState
                               'Restablecer contraseña',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(
-                                color: AppColors.navy,
+                                color: _navy,
                                 fontSize: 22,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: -0.3,
@@ -227,10 +234,10 @@ class _RestablecerContrasenaScreenState
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.teal.withOpacity(0.06),
+                                color: _teal.withOpacity(0.06),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: AppColors.teal.withOpacity(0.08),
+                                  color: _teal.withOpacity(0.08),
                                   width: 1,
                                 ),
                               ),
@@ -239,7 +246,7 @@ class _RestablecerContrasenaScreenState
                                 children: [
                                   Icon(
                                     Icons.email_rounded,
-                                    color: AppColors.teal,
+                                    color: _teal,
                                     size: 16,
                                   ),
                                   const SizedBox(width: 6),
@@ -248,7 +255,7 @@ class _RestablecerContrasenaScreenState
                                       'Código enviado a ${widget.correo}',
                                       softWrap: true,
                                       style: GoogleFonts.poppins(
-                                        color: AppColors.teal,
+                                        color: _teal,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
                                         height: 1.35,
@@ -297,7 +304,7 @@ class _RestablecerContrasenaScreenState
                                 'Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo.',
                                 style: GoogleFonts.poppins(
                                   fontSize: 9.5,
-                                  color: AppColors.navy.withOpacity(0.3),
+                                  color: _navy.withOpacity(0.3),
                                 ),
                               ),
                             ),
@@ -327,7 +334,7 @@ class _RestablecerContrasenaScreenState
                                   text: TextSpan(
                                     text: '← ',
                                     style: GoogleFonts.poppins(
-                                      color: AppColors.navy.withOpacity(0.4),
+                                      color: _navy.withOpacity(0.4),
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w400,
                                     ),
@@ -335,7 +342,7 @@ class _RestablecerContrasenaScreenState
                                       TextSpan(
                                         text: 'Volver a recuperar contraseña',
                                         style: GoogleFonts.poppins(
-                                          color: AppColors.navy,
+                                          color: _navy,
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -377,23 +384,23 @@ class _RestablecerContrasenaScreenState
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.navy.withOpacity(0.08),
-                    AppColors.teal.withOpacity(0.05),
+                    _navy.withOpacity(0.08),
+                    _teal.withOpacity(0.05),
                   ],
                 ),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.navy.withOpacity(0.06),
+                    color: _navy.withOpacity(0.06),
                     blurRadius: 20,
                     spreadRadius: 4,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.password_rounded,
-                color: AppColors.navy,
+                color: _navy,
                 size: 40,
               ),
             ),
@@ -417,16 +424,16 @@ class _RestablecerContrasenaScreenState
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  AppColors.navy,
+                  _navy,
                   const Color(0xFF3D5A73),
-                  AppColors.navy.withOpacity(0.9),
+                  _navy.withOpacity(0.9),
                 ],
                 stops: const [0.0, 0.5, 1.0],
               ),
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.navy.withOpacity(0.2),
+                  color: _navy.withOpacity(0.2),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -509,7 +516,7 @@ class _RestablecerContrasenaScreenState
                     center: const Alignment(0.3, 0.3),
                     radius: 0.7,
                     colors: [
-                      AppColors.skyBlue.withOpacity(0.15),
+                      _skyBlue.withOpacity(0.15),
                       Colors.transparent,
                     ],
                   ),
@@ -528,7 +535,7 @@ class _RestablecerContrasenaScreenState
                     center: const Alignment(0.7, 0.5),
                     radius: 0.6,
                     colors: [
-                      AppColors.teal.withOpacity(0.06),
+                      _teal.withOpacity(0.06),
                       Colors.transparent,
                     ],
                   ),
@@ -547,7 +554,7 @@ class _RestablecerContrasenaScreenState
                     center: const Alignment(0.5, 0.5),
                     radius: 0.5,
                     colors: [
-                      AppColors.beige.withOpacity(0.2),
+                      _beige.withOpacity(0.2),
                       Colors.transparent,
                     ],
                   ),

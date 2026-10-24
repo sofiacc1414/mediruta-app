@@ -11,14 +11,14 @@ class AppPromoBanner extends StatelessWidget {
     this.icono = Icons.local_shipping_outlined,
     this.accion,
     this.onTapAccion,
-    this.fondo = AppColors.navy,
+    this.fondo,
   });
 
   final String titulo;
   final IconData icono;
   final String? accion;
   final VoidCallback? onTapAccion;
-  final Color fondo;
+  final Color? fondo;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +26,7 @@ class AppPromoBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: fondo,
+        color: fondo ?? AppColors.navy,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
@@ -41,7 +41,7 @@ class AppPromoBanner extends StatelessWidget {
                         color: AppColors.white,
                         fontWeight: FontWeight.w700,
                       ) ??
-                      const TextStyle(
+                      TextStyle(
                         color: AppColors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.w700,

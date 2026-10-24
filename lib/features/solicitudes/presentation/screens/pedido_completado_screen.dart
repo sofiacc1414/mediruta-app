@@ -8,6 +8,8 @@ import '../../../../shared/widgets/app_status_pill.dart';
 import '../../domain/entities/pedido_activo.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 /// Detalle de solo lectura de un pedido ya entregado o cancelado, desde
 /// el tab "Historial" de "Mis pedidos" del Domiciliario — antes tocar
@@ -59,16 +61,21 @@ class _PedidoCompletadoScreenState extends ConsumerState<PedidoCompletadoScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.fondoPagina,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
+          icon: Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           _pedido?.codigoPedido ?? 'Pedido',
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 18,
             color: AppColors.navy,
@@ -107,16 +114,9 @@ class _PedidoCompletadoScreenState extends ConsumerState<PedidoCompletadoScreen>
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,7 +130,7 @@ class _PedidoCompletadoScreenState extends ConsumerState<PedidoCompletadoScreen>
                     color: AppColors.skyBlue.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.medication_outlined,
                     color: AppColors.teal,
                     size: 20,
@@ -140,7 +140,7 @@ class _PedidoCompletadoScreenState extends ConsumerState<PedidoCompletadoScreen>
                 Expanded(
                   child: Text(
                     pedido.codigoPedido ?? 'Pedido',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.navy,
                       fontWeight: FontWeight.w800,
                       fontSize: 18,
@@ -170,10 +170,10 @@ class _PedidoCompletadoScreenState extends ConsumerState<PedidoCompletadoScreen>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFF7F8FA),
+            color: AppColors.skyBlue.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const Row(
+          child: Row(
             children: [
               Icon(Icons.close, color: AppColors.teal, size: 20),
               SizedBox(width: 12),
@@ -190,9 +190,9 @@ class _PedidoCompletadoScreenState extends ConsumerState<PedidoCompletadoScreen>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            border: Border.all(color: AppColors.border),
           ),
           child: AppTrackingTimeline(
             estadoActual: pedido.estado,
@@ -240,7 +240,7 @@ class _FilaDireccion extends StatelessWidget {
               ),
               Text(
                 texto ?? 'Sin registrar',
-                style: const TextStyle(color: AppColors.navy, fontSize: 13),
+                style: TextStyle(color: AppColors.navy, fontSize: 13),
               ),
             ],
           ),

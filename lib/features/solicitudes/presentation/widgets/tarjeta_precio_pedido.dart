@@ -38,7 +38,7 @@ class TarjetaPrecioPedido extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
@@ -47,7 +47,7 @@ class TarjetaPrecioPedido extends StatelessWidget {
         children: [
           Text(
             titulo,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.navy,
               fontWeight: FontWeight.w700,
               fontSize: 15,
@@ -63,7 +63,7 @@ class TarjetaPrecioPedido extends StatelessWidget {
               precio.motivo == 'sin_nivel_copago'
                   ? 'Elegí tu nivel de copago en tu perfil para ver el precio.'
                   : mensajeSinUbicaciones,
-              style: const TextStyle(color: AppColors.teal, fontSize: 13),
+              style: TextStyle(color: AppColors.teal, fontSize: 13),
             )
           else ...[
             _filaPrecio('Copago', _formatearCop(precio.copago!)),
@@ -73,7 +73,7 @@ class TarjetaPrecioPedido extends StatelessWidget {
               _formatearCop(precio.domicilio!),
             ),
             const SizedBox(height: 10),
-            const Divider(height: 1, color: AppColors.skyBlue),
+            Divider(height: 1, color: AppColors.skyBlue),
             const SizedBox(height: 10),
             _filaPrecio('Total', _formatearCop(precio.total!), destacado: true),
           ],

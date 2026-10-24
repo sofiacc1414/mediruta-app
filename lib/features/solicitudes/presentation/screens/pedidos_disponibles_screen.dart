@@ -12,6 +12,8 @@ import '../../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../../domain/entities/pedido_disponible.dart';
 import '../providers/solicitud_providers.dart';
 import 'mi_pedido_activo_screen.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 /// HU-09 — pool de pedidos del Domiciliario, ordenado por distancia real
 /// (ya la trae calculada `listar_pedidos_disponibles`). Vacío tanto si no
@@ -138,11 +140,16 @@ class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScr
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.fondoPagina,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
+          icon: Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
           // No `Navigator.pop()`: esta pantalla siempre se llega desde
           // `MainBottomBar` con `pushNamedAndRemoveUntil` (reemplaza toda
           // la pila — "son destinos, no un volver", ver ese archivo), así
@@ -150,7 +157,7 @@ class _PedidosDisponiblesScreenState extends ConsumerState<PedidosDisponiblesScr
           // hacía que la flecha de atrás no tuviera ningún efecto visible.
           onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
         ),
-        title: const Text(
+        title: Text(
           'Pedidos disponibles',
           style: TextStyle(
             fontWeight: FontWeight.w700,
@@ -242,16 +249,9 @@ class _PedidoDisponibleCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
@@ -294,7 +294,7 @@ class _PedidoDisponibleCard extends StatelessWidget {
               children: [
                 Text(
                   pedido.codigoPedido ?? 'Pedido',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: AppColors.navy,

@@ -2,6 +2,7 @@ import '../entities/datos_solicitud.dart';
 import '../entities/documentos_paciente_para_recoger.dart';
 import '../entities/formula_extraida.dart';
 import '../entities/medicamento.dart';
+import '../entities/medios_pago_habilitados.dart';
 import '../entities/novedad_resumen.dart';
 import '../entities/pedido_activo.dart';
 import '../entities/pedido_disponible.dart';
@@ -51,12 +52,19 @@ abstract class SolicitudRepository {
   /// G05. Devuelve el código de pedido recién generado (`MR-000001`,
   /// ...) — no existía hasta este momento, un Borrador no es un pedido.
   /// `farmaciaVerificada`/`entregaVerificada` — ver
-  /// `VerificacionDireccionPrevia`.
+  /// `VerificacionDireccionPrevia`. Módulo 4 — `metodoPago` decide el
+  /// flujo ('efectivo' por defecto, igual que antes de este módulo);
+  /// `numeroTarjeta` solo aplica si es 'tarjeta' (pasarela simulada).
   Future<String> enviar(
     String solicitudId, {
     VerificacionDireccionPrevia? farmaciaVerificada,
     VerificacionDireccionPrevia? entregaVerificada,
+    String metodoPago = 'efectivo',
+    String? numeroTarjeta,
   });
+
+  /// Módulo 4 — qué medios de pago mostrar en el checkout.
+  Future<MediosPagoHabilitados> obtenerMediosPagoHabilitados();
 
   /// Estimado en vivo mientras se arma el borrador, antes de enviar.
   Future<PrecioPedido> estimarPrecio({

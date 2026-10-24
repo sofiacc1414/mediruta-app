@@ -15,6 +15,8 @@ void main() {
         direccionEntrega: 'Calle 1 #2-3',
         direccionFarmacia: 'Carrera 5 #6-7',
         creadoEn: '2026-08-20T10:00:00.000Z',
+        metodoPago: 'efectivo',
+        montoACobrar: 0,
         historial: [],
         novedadPropiaAbierta: null,
       );

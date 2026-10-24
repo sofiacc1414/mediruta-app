@@ -12,12 +12,21 @@ import '../../usuarios/presentation/providers/auth_session_provider.dart';
 import '../../usuarios/presentation/providers/usuario_providers.dart';
 import '../domain/mensaje_chat.dart';
 import 'chat_provider.dart';
+import '../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../shared/core/theme/modo_oscuro_provider.dart';
 
 /// Chat en tiempo real Paciente↔Domiciliario de un pedido. Se accede
 /// desde `SolicitudDetalleScreen` (Paciente) y `MiPedidoActivoScreen`
 /// (Domiciliario) pasando el `solicitudId` — la pantalla no reinventa
 /// ninguna regla de negocio (quién puede entrar, cuándo pasa a solo
 /// lectura): todo eso lo decide la API y acá solo se muestra.
+const _invertirColoresFondo = ColorFilter.matrix(<double>[
+  -1, 0, 0, 0, 255,
+  0, -1, 0, 0, 255,
+  0, 0, -1, 0, 255,
+  0, 0, 0, 1, 0,
+]);
+
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.solicitudId});
 
@@ -184,6 +193,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
@@ -196,7 +210,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               filterQuality: FilterQuality.high,
             ),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'Chat del pedido',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.navy),
             ),
@@ -206,19 +220,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
       body: Stack(
         children: [
           // Fondo tipo WhatsApp — un patrón de íconos médicos, sutil,
-          // detrás de los mensajes. Pedido explícito del usuario.
+          // detrás de los mensajes. Pedido explícito del usuario. El SVG
+          // es un asset claro fijo (no theme-aware); en modo oscuro se
+          // invierte con un ColorFilter en vez de duplicar el asset.
           Positioned.fill(
-            child: SvgPicture.asset(
-              'assets/images/chat_fondo.svg',
-              fit: BoxFit.cover,
-            ),
+            child: AppColors.modoOscuro
+                ? ColorFiltered(
+                    colorFilter: _invertirColoresFondo,
+                    child: SvgPicture.asset(
+                      'assets/images/chat_fondo.svg',
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                : SvgPicture.asset(
+                    'assets/images/chat_fondo.svg',
+                    fit: BoxFit.cover,
+                  ),
           ),
           SafeArea(
             child: Center(
@@ -278,7 +302,7 @@ class _ChatVacio extends StatelessWidget {
           children: [
             Icon(Icons.chat_bubble_outline_rounded, size: 48, color: AppColors.teal.withValues(alpha: 0.5)),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Escribile a la otra persona sobre este pedido.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.teal, fontSize: 14),
@@ -382,7 +406,7 @@ class _AvisoSoloLectura extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.navy, width: 1.2),
       ),
-      child: const Row(
+      child: Row(
         children: [
           Icon(Icons.lock_outline, color: AppColors.navy, size: 18),
           SizedBox(width: 10),
@@ -443,14 +467,14 @@ class _CampoEnvio extends StatelessWidget {
           const SizedBox(width: 8),
           IconButton.filled(
             onPressed: enviando ? null : onEnviar,
-            style: IconButton.styleFrom(backgroundColor: AppColors.navy),
+            style: IconButton.styleFrom(backgroundColor: AppColors.enfasis),
             icon: enviando
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.sobreEnfasis),
                   )
-                : const Icon(Icons.send_rounded, color: AppColors.white, size: 18),
+                : Icon(Icons.send_rounded, color: AppColors.sobreEnfasis, size: 18),
           ),
         ],
       ),

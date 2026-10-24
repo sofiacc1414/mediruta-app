@@ -79,15 +79,15 @@ class _AppTextFieldState extends State<AppTextField> {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: const BorderSide(color: AppColors.navy, width: 1.5),
+          borderSide: BorderSide(color: AppColors.navy, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: const BorderSide(color: AppColors.navy, width: 2),
+          borderSide: BorderSide(color: AppColors.navy, width: 2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: const BorderSide(color: AppColors.teal, width: 1.5),
+          borderSide: BorderSide(color: AppColors.teal, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       ),

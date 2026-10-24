@@ -19,11 +19,15 @@ class EnviarSolicitudUseCase {
     String solicitudId, {
     VerificacionDireccionPrevia? farmaciaVerificada,
     VerificacionDireccionPrevia? entregaVerificada,
+    String metodoPago = 'efectivo',
+    String? numeroTarjeta,
   }) {
     return _repository.enviar(
       solicitudId,
       farmaciaVerificada: farmaciaVerificada,
       entregaVerificada: entregaVerificada,
+      metodoPago: metodoPago,
+      numeroTarjeta: numeroTarjeta,
     );
   }
 }

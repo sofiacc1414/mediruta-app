@@ -16,6 +16,8 @@ import '../../usuarios/presentation/widgets/main_bottom_bar.dart';
 import '../domain/destino_notificacion.dart';
 import '../domain/notificacion.dart';
 import 'notificaciones_provider.dart';
+import '../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../shared/core/theme/modo_oscuro_provider.dart';
 
 class NotificacionesScreen extends ConsumerStatefulWidget {
   const NotificacionesScreen({super.key});
@@ -150,10 +152,15 @@ class _NotificacionesScreenState extends ConsumerState<NotificacionesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Notificaciones',
           style: TextStyle(
             fontWeight: FontWeight.w700,
@@ -165,7 +172,7 @@ class _NotificacionesScreenState extends ConsumerState<NotificacionesScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
@@ -240,32 +247,25 @@ class _TarjetaNotificacion extends StatelessWidget {
     final nueva = !item.leida;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: nueva ? null : AppColors.white,
           gradient: nueva
-              ? const LinearGradient(
+              ? LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFFF5FAFF), Color(0xFFEAF3FC)],
+                  colors: AppColors.gradienteSutil,
                 )
               : null,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: nueva
                 ? AppColors.skyBlue.withValues(alpha: 0.3)
-                : Colors.grey.withValues(alpha: 0.2),
+                : AppColors.border,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,7 +309,7 @@ class _TarjetaNotificacion extends StatelessWidget {
                           width: 8,
                           height: 8,
                           margin: const EdgeInsets.only(top: 6),
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             color: AppColors.teal,
                             shape: BoxShape.circle,
                           ),
@@ -357,14 +357,14 @@ class _VacioNotificaciones extends StatelessWidget {
               shape: BoxShape.circle,
               color: AppColors.skyBlue.withValues(alpha: 0.2),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.notifications_none_rounded,
               color: AppColors.navy,
               size: 32,
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Todavía no hay notificaciones',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -374,7 +374,7 @@ class _VacioNotificaciones extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Cuando tengas novedades sobre tus pedidos aparecerán aquí.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.teal, fontSize: 13, height: 1.4),

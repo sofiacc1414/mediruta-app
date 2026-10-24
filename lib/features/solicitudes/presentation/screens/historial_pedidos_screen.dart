@@ -18,6 +18,8 @@ import '../../domain/entities/pedido_historial.dart';
 import '../providers/solicitud_providers.dart';
 import 'mi_pedido_activo_screen.dart';
 import 'pedido_completado_screen.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 const _estadosHistorial = {'entregado', 'cancelada'};
 
@@ -128,6 +130,11 @@ class _HistorialPedidosScreenState extends ConsumerState<HistorialPedidosScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     final estadoRol = _estadoRolDomiciliario();
     final todos = _pedidos ?? const <PedidoHistorial>[];
     final esHistorial = _tab == 1;
@@ -135,13 +142,13 @@ class _HistorialPedidosScreenState extends ConsumerState<HistorialPedidosScreen>
         todos.where((p) => _estadosHistorial.contains(p.estado) == esHistorial).toList();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.fondoPagina,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
+          icon: Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
           onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
         ),
-        title: const Text(
+        title: Text(
           'Mis pedidos',
           style: TextStyle(
             fontWeight: FontWeight.w700,
@@ -376,16 +383,9 @@ class _PedidoHistorialCard extends StatelessWidget {
     final tarjeta = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
@@ -422,7 +422,7 @@ class _PedidoHistorialCard extends StatelessWidget {
               children: [
                 Text(
                   pedido.codigoPedido ?? 'Pedido',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: AppColors.navy,
@@ -481,7 +481,7 @@ class _PedidoHistorialCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   _formatearPrecio(pedido.total!),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: AppColors.navy,

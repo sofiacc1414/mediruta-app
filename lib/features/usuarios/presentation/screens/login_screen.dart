@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
-import '../../../../shared/core/theme/app_colors.dart';
 import '../../../chatbot/presentation/boton_asistente_chatbot.dart';
 import '../../../../shared/widgets/app_form_notice.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
@@ -13,6 +12,14 @@ import '../../../../shared/widgets/app_text_field_glass.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/usuario_providers.dart';
 import 'perfil_screen.dart';
+
+// Pantalla previa al login — mantiene su gradiente de marca siempre en
+// claro, sin importar el modo oscuro elegido en Perfil (ese ajuste es
+// de la sesión autenticada, no aplica antes de iniciar sesión).
+const _navy = Color(0xFF2F4156);
+const _teal = Color(0xFF567C8D);
+const _skyBlue = Color(0xFFC8D9E6);
+const _beige = Color(0xFFF5EFEB);
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -137,7 +144,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Cuenta desactivada',
-          style: TextStyle(color: AppColors.navy),
+          style: TextStyle(color: _navy),
         ),
         content: const Text(
           'Esta cuenta está desactivada. ¿Querés reactivarla? '
@@ -148,14 +155,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text(
               'Ahora no',
-              style: TextStyle(color: AppColors.navy),
+              style: TextStyle(color: _navy),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text(
               'Reactivar cuenta',
-              style: TextStyle(color: AppColors.teal),
+              style: TextStyle(color: _teal),
             ),
           ),
         ],
@@ -192,16 +199,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: Colors.white,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppColors.white,
-              AppColors.beige,
-              AppColors.skyBlue.withOpacity(0.2),
+              Colors.white,
+              _beige,
+              _skyBlue.withOpacity(0.2),
             ],
             stops: const [0.0, 0.3, 0.85],
           ),
@@ -258,7 +265,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               '¡Bienvenido de nuevo!',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(
-                                color: AppColors.navy,
+                                color: _navy,
                                 fontSize: 24,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: -0.3,
@@ -271,7 +278,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               'Accede para continuar cuidando tu salud.',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(
-                                color: AppColors.teal,
+                                color: _teal,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w400,
                               ),
@@ -328,7 +335,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 child: Text(
                                   '¿Olvidaste tu contraseña?',
                                   style: GoogleFonts.poppins(
-                                    color: AppColors.navy.withOpacity(0.5),
+                                    color: _navy.withOpacity(0.5),
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -363,7 +370,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   text: TextSpan(
                                     text: '¿No tienes cuenta? ',
                                     style: GoogleFonts.poppins(
-                                      color: AppColors.navy.withOpacity(0.6),
+                                      color: _navy.withOpacity(0.6),
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w400,
                                     ),
@@ -371,7 +378,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                       TextSpan(
                                         text: 'Regístrate',
                                         style: GoogleFonts.poppins(
-                                          color: AppColors.navy,
+                                          color: _navy,
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -411,16 +418,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  AppColors.navy,
+                  _navy,
                   const Color(0xFF3D5A73),
-                  AppColors.navy.withOpacity(0.9),
+                  _navy.withOpacity(0.9),
                 ],
                 stops: const [0.0, 0.5, 1.0],
               ),
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.navy.withOpacity(0.2),
+                  color: _navy.withOpacity(0.2),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -504,7 +511,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     center: const Alignment(0.3, 0.3),
                     radius: 0.7,
                     colors: [
-                      AppColors.skyBlue.withOpacity(0.15),
+                      _skyBlue.withOpacity(0.15),
                       Colors.transparent,
                     ],
                   ),
@@ -524,7 +531,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     center: const Alignment(0.7, 0.5),
                     radius: 0.6,
                     colors: [
-                      AppColors.teal.withOpacity(0.06),
+                      _teal.withOpacity(0.06),
                       Colors.transparent,
                     ],
                   ),
@@ -544,7 +551,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     center: const Alignment(0.5, 0.5),
                     radius: 0.5,
                     colors: [
-                      AppColors.beige.withOpacity(0.2),
+                      _beige.withOpacity(0.2),
                       Colors.transparent,
                     ],
                   ),

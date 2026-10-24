@@ -29,6 +29,8 @@ import '../providers/usuario_providers.dart';
 import '../widgets/boton_cambiar_modo.dart';
 import '../widgets/main_bottom_bar.dart';
 import '../widgets/tarjeta_estado_validacion_domiciliario.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -312,6 +314,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     final estado = ref.watch(authSessionProvider);
     final usuario = estado is AuthAutenticado ? estado.usuario : null;
     final roles = usuario?.roles ?? const <RolAsignado>[];
@@ -326,7 +333,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.fondoPagina,
       bottomNavigationBar: const MainBottomBar(),
       body: SafeArea(
         child: Stack(
@@ -397,7 +404,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final solicitud = _solicitudActiva;
 
     return [
-      const Text(
+      Text(
         'Mis pedidos',
         style: TextStyle(
           fontSize: 18,
@@ -532,8 +539,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
         ] else ...[
           // Si no está disponible, mostrar mensaje
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               'Activá "Disponible" para empezar a recibir pedidos cerca tuyo.',
               textAlign: TextAlign.center,
@@ -580,7 +587,7 @@ class _Encabezado extends StatelessWidget {
               children: [
                 Text(
                   saludo,
-                  style: const TextStyle(color: AppColors.teal, fontSize: 14),
+                  style: TextStyle(color: AppColors.teal, fontSize: 14),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -596,7 +603,7 @@ class _Encabezado extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     modoEtiqueta!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.teal,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -612,14 +619,14 @@ class _Encabezado extends StatelessWidget {
           IconButton(
             tooltip: 'Asistente MediRuta',
             onPressed: () => Navigator.pushNamed(context, ChatbotScreen.routeName),
-            icon: const Icon(Icons.support_agent_outlined, color: AppColors.navy),
+            icon: Icon(Icons.support_agent_outlined, color: AppColors.navy),
           ),
           IconButton(
             onPressed: onNotificaciones,
             icon: Badge(
               isLabelVisible: pendientes > 0,
               label: Text('$pendientes'),
-              child: const Icon(Icons.notifications_none, color: AppColors.navy),
+              child: Icon(Icons.notifications_none, color: AppColors.navy),
             ),
           ),
           const BotonCambiarModo(),
@@ -666,7 +673,7 @@ class _Avatar extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         letra,
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.navy,
           fontWeight: FontWeight.w700,
           fontSize: 20,
@@ -693,9 +700,9 @@ class _TarjetaStats extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -710,15 +717,15 @@ class _TarjetaStats extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white,
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  color: AppColors.white,
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: Icon(icono, color: AppColors.navy, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
                 valor,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                   color: AppColors.navy,
@@ -763,10 +770,10 @@ class _TarjetaHeroBienvenida extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 180),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFE3EFFD), Color(0xFFC0D9F5)],
+          colors: AppColors.gradienteHero,
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -789,7 +796,7 @@ class _TarjetaHeroBienvenida extends StatelessWidget {
                       color: AppColors.navy.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
+                    child: Text(
                       'MediRuta',
                       style: TextStyle(
                         color: AppColors.navy,
@@ -801,7 +808,7 @@ class _TarjetaHeroBienvenida extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     titulo,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.navy,
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -810,7 +817,7 @@ class _TarjetaHeroBienvenida extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     descripcion,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.navy,
                       fontSize: 13,
                       height: 1.4,
@@ -830,11 +837,11 @@ class _TarjetaHeroBienvenida extends StatelessWidget {
                   width: 90,
                   height: 90,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.white,
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.skyBlue, width: 2),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.local_shipping,
                     color: AppColors.navy,
                     size: 36,
@@ -863,10 +870,10 @@ class _TarjetaHeroBienvenidaDomiciliario extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 180),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFE3EFFD), Color(0xFFC0D9F5)],
+          colors: AppColors.gradienteHero,
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -889,7 +896,7 @@ class _TarjetaHeroBienvenidaDomiciliario extends StatelessWidget {
                       color: AppColors.navy.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
+                    child: Text(
                       'MediRuta - Domiciliario',
                       style: TextStyle(
                         color: AppColors.navy,
@@ -899,7 +906,7 @@ class _TarjetaHeroBienvenidaDomiciliario extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'Lleva salud a tu comunidad',
                     style: TextStyle(
                       color: AppColors.navy,
@@ -930,11 +937,11 @@ class _TarjetaHeroBienvenidaDomiciliario extends StatelessWidget {
                   width: 90,
                   height: 90,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.white,
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.skyBlue, width: 2),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.delivery_dining,
                     color: AppColors.navy,
                     size: 36,
@@ -961,16 +968,9 @@ class _TarjetaPedirMedicamentos extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -983,14 +983,14 @@ class _TarjetaPedirMedicamentos extends StatelessWidget {
               shape: BoxShape.circle,
               color: AppColors.skyBlue.withValues(alpha: 0.3),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.medication_outlined,
               color: AppColors.teal,
               size: 32,
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             '¿Necesitás pedir tus medicamentos?',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -1012,10 +1012,10 @@ class _TarjetaPedirMedicamentos extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFF2F4F7),
+                color: AppColors.skyBlue.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(30),
               ),
-              child: const Text(
+              child: Text(
                 'Nueva solicitud',
                 style: TextStyle(
                   color: AppColors.navy,
@@ -1043,16 +1043,9 @@ class _TarjetaVerPedidos extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -1065,14 +1058,14 @@ class _TarjetaVerPedidos extends StatelessWidget {
               shape: BoxShape.circle,
               color: AppColors.skyBlue.withValues(alpha: 0.3),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.list_alt_outlined,
               color: AppColors.teal,
               size: 32,
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             '¿Quieres ver tus pedidos?',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -1094,10 +1087,10 @@ class _TarjetaVerPedidos extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFF2F4F7),
+                color: AppColors.skyBlue.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(30),
               ),
-              child: const Text(
+              child: Text(
                 'Ver mis pedidos',
                 style: TextStyle(
                   color: AppColors.navy,
@@ -1139,10 +1132,10 @@ class _TarjetaHero extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFF5FAFF), Color(0xFFEAF3FC)],
+            colors: AppColors.gradienteSutil,
           ),
           border: Border.all(color: AppColors.skyBlue.withValues(alpha: 0.3)),
         ),
@@ -1154,7 +1147,7 @@ class _TarjetaHero extends StatelessWidget {
                 Expanded(
                   child: Text(
                     eyebrow.toUpperCase(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.navy,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -1168,7 +1161,7 @@ class _TarjetaHero extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               titulo,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.navy,
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
@@ -1179,13 +1172,13 @@ class _TarjetaHero extends StatelessWidget {
               children: [
                 Text(
                   accion,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.navy,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Icon(
+                Icon(
                   Icons.arrow_forward,
                   color: AppColors.navy,
                   size: 16,
@@ -1221,10 +1214,10 @@ class _TarjetaDisponibilidad extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFF5FAFF), Color(0xFFEAF3FC)],
+            colors: AppColors.gradienteSutil,
           ),
           border: Border.all(color: AppColors.skyBlue.withValues(alpha: 0.3)),
         ),
@@ -1254,7 +1247,7 @@ class _TarjetaDisponibilidad extends StatelessWidget {
                     disponible
                         ? 'Estás en línea'
                         : 'Disponible para recibir pedidos',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.navy,
                       fontWeight: FontWeight.w700,
                       fontSize: 15,

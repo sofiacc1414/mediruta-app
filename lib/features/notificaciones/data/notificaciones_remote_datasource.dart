@@ -17,4 +17,18 @@ class NotificacionesRemoteDatasource {
   Future<void> marcarLeida(String id) async {
     await _api.post('/notificaciones/$id/leida', autenticado: true);
   }
+
+  /// Registra el token FCM del dispositivo contra la cuenta logueada —
+  /// lo llama `NotificacionesPushService` después de loguear y de nuevo
+  /// cada vez que `onTokenRefresh` entrega un token nuevo.
+  Future<void> registrarDispositivo({
+    required String token,
+    required String plataforma,
+  }) async {
+    await _api.post(
+      '/notificaciones/dispositivo',
+      body: {'token': token, 'plataforma': plataforma},
+      autenticado: true,
+    );
+  }
 }

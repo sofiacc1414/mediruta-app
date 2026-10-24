@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../features/usuarios/presentation/screens/home_screen.dart';
 import '../core/theme/app_colors.dart';
+import '../core/theme/modo_alto_contraste_provider.dart';
+import '../core/theme/modo_oscuro_provider.dart';
 import 'app_button.dart';
 
 /// Pantalla completa que cierra el ciclo de un pedido — la reemplaza el
@@ -12,7 +15,7 @@ import 'app_button.dart';
 /// `SolicitudDetalleScreen` la dispara sola al detectar la transición)
 /// como el Domiciliario (al confirmar la entrega con el código,
 /// `MiPedidoActivoScreen` la empuja directo después de esa acción).
-class EntregaConfirmadaScreen extends StatelessWidget {
+class EntregaConfirmadaScreen extends ConsumerWidget {
   const EntregaConfirmadaScreen({
     super.key,
     required this.mensaje,
@@ -24,7 +27,9 @@ class EntregaConfirmadaScreen extends StatelessWidget {
   final String? codigoPedido;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -39,7 +44,7 @@ class EntregaConfirmadaScreen extends StatelessWidget {
                 Container(
                   width: 104,
                   height: 104,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,

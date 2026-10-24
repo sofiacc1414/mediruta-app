@@ -5,12 +5,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../shared/core/network/api_exception.dart';
-import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_form_notice.dart';
 import '../../../../shared/widgets/app_icon_badge.dart';
 import '../../../../shared/widgets/app_loading_button.dart';
 import '../../../../shared/widgets/app_text_field_glass.dart';
 import '../providers/usuario_providers.dart';
+
+// Pantalla previa al login — mantiene su gradiente de marca siempre en
+// claro, sin importar el modo oscuro elegido en Perfil (ese ajuste es
+// de la sesión autenticada, no aplica antes de iniciar sesión).
+const _navy = Color(0xFF2F4156);
+const _teal = Color(0xFF567C8D);
+const _skyBlue = Color(0xFFC8D9E6);
+const _beige = Color(0xFFF5EFEB);
 
 class RecuperarContrasenaScreen extends ConsumerStatefulWidget {
   const RecuperarContrasenaScreen({super.key});
@@ -125,16 +132,16 @@ class _RecuperarContrasenaScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: Colors.white,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppColors.white,
-              AppColors.beige,
-              AppColors.skyBlue.withOpacity(0.2),
+              Colors.white,
+              _beige,
+              _skyBlue.withOpacity(0.2),
             ],
             stops: const [0.0, 0.3, 0.85],
           ),
@@ -186,7 +193,7 @@ class _RecuperarContrasenaScreenState
                               'Recuperar contraseña',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(
-                                color: AppColors.navy,
+                                color: _navy,
                                 fontSize: 22,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: -0.3,
@@ -253,7 +260,7 @@ class _RecuperarContrasenaScreenState
                                   text: TextSpan(
                                     text: '← ',
                                     style: GoogleFonts.poppins(
-                                      color: AppColors.navy.withOpacity(0.4),
+                                      color: _navy.withOpacity(0.4),
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w400,
                                     ),
@@ -261,7 +268,7 @@ class _RecuperarContrasenaScreenState
                                       TextSpan(
                                         text: 'Volver al inicio de sesión',
                                         style: GoogleFonts.poppins(
-                                          color: AppColors.navy,
+                                          color: _navy,
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -303,14 +310,14 @@ class _RecuperarContrasenaScreenState
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.navy.withOpacity(0.08),
-                    AppColors.teal.withOpacity(0.05),
+                    _navy.withOpacity(0.08),
+                    _teal.withOpacity(0.05),
                   ],
                 ),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.navy.withOpacity(0.06),
+                    color: _navy.withOpacity(0.06),
                     blurRadius: 20,
                     spreadRadius: 4,
                     offset: const Offset(0, 4),
@@ -318,14 +325,14 @@ class _RecuperarContrasenaScreenState
                 ],
               ),
               child: _solicitudEnviada
-                  ? const Icon(
+                  ? Icon(
                       Icons.mark_email_read_rounded,
-                      color: AppColors.teal,
+                      color: _teal,
                       size: 40,
                     )
-                  : const Icon(
+                  : Icon(
                       Icons.lock_reset_rounded,
-                      color: AppColors.navy,
+                      color: _navy,
                       size: 40,
                     ),
             ),
@@ -341,7 +348,7 @@ class _RecuperarContrasenaScreenState
       'Ingresa tu correo y te enviaremos un código\npara restablecer tu contraseña.',
       textAlign: TextAlign.center,
       style: GoogleFonts.poppins(
-        color: AppColors.navy.withOpacity(0.6),
+        color: _navy.withOpacity(0.6),
         fontSize: 13,
         fontWeight: FontWeight.w400,
         height: 1.5,
@@ -358,15 +365,15 @@ class _RecuperarContrasenaScreenState
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.teal.withOpacity(0.06),
-            AppColors.skyBlue.withOpacity(0.04),
+            _teal.withOpacity(0.06),
+            _skyBlue.withOpacity(0.04),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.teal.withOpacity(0.1), width: 1),
+        border: Border.all(color: _teal.withOpacity(0.1), width: 1),
         boxShadow: [
           BoxShadow(
-            color: AppColors.teal.withOpacity(0.04),
+            color: _teal.withOpacity(0.04),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -374,13 +381,13 @@ class _RecuperarContrasenaScreenState
       ),
       child: Column(
         children: [
-          Icon(Icons.check_circle_rounded, color: AppColors.teal, size: 44),
+          Icon(Icons.check_circle_rounded, color: _teal, size: 44),
           const SizedBox(height: 8),
           Text(
             '¡Correo enviado!',
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
-              color: AppColors.teal,
+              color: _teal,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -390,7 +397,7 @@ class _RecuperarContrasenaScreenState
             'Si el correo está registrado, recibirás\nun código de recuperación.',
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
-              color: AppColors.navy.withOpacity(0.5),
+              color: _navy.withOpacity(0.5),
               fontSize: 12,
               fontWeight: FontWeight.w400,
               height: 1.5,
@@ -415,16 +422,16 @@ class _RecuperarContrasenaScreenState
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  AppColors.navy,
+                  _navy,
                   const Color(0xFF3D5A73),
-                  AppColors.navy.withOpacity(0.9),
+                  _navy.withOpacity(0.9),
                 ],
                 stops: const [0.0, 0.5, 1.0],
               ),
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.navy.withOpacity(0.2),
+                  color: _navy.withOpacity(0.2),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -498,13 +505,13 @@ class _RecuperarContrasenaScreenState
               gradient: LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
-                colors: [AppColors.teal, AppColors.teal.withOpacity(0.85)],
+                colors: [_teal, _teal.withOpacity(0.85)],
                 stops: const [0.0, 1.0],
               ),
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.teal.withOpacity(0.25),
+                  color: _teal.withOpacity(0.25),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -581,7 +588,7 @@ class _RecuperarContrasenaScreenState
                     center: const Alignment(0.3, 0.3),
                     radius: 0.7,
                     colors: [
-                      AppColors.skyBlue.withOpacity(0.15),
+                      _skyBlue.withOpacity(0.15),
                       Colors.transparent,
                     ],
                   ),
@@ -600,7 +607,7 @@ class _RecuperarContrasenaScreenState
                     center: const Alignment(0.7, 0.5),
                     radius: 0.6,
                     colors: [
-                      AppColors.teal.withOpacity(0.06),
+                      _teal.withOpacity(0.06),
                       Colors.transparent,
                     ],
                   ),
@@ -619,7 +626,7 @@ class _RecuperarContrasenaScreenState
                     center: const Alignment(0.5, 0.5),
                     radius: 0.5,
                     colors: [
-                      AppColors.beige.withOpacity(0.2),
+                      _beige.withOpacity(0.2),
                       Colors.transparent,
                     ],
                   ),

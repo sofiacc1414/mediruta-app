@@ -27,9 +27,12 @@ import '../../domain/value-objects/tipo_documento_domiciliario.dart';
 import '../providers/auth_session_provider.dart';
 import '../providers/perfil_providers.dart';
 import '../providers/usuario_providers.dart';
+import '../../../wallet/presentation/screens/wallet_screen.dart';
 import '../widgets/confirmacion_direccion_perfil.dart';
 import '../widgets/main_bottom_bar.dart';
 import 'cambiar_contrasena_screen.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 /// Capitaliza cada palabra del nombre completo ("juan pérez" ->
 /// "Juan Pérez") — se aplica al guardar, así queda consistente en
@@ -426,7 +429,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
           ],
           child: Theme(
             data: Theme.of(dialogContext).copyWith(
-              colorScheme: const ColorScheme.light(
+              colorScheme: ColorScheme.light(
                 primary: AppColors.navy,
                 onPrimary: AppColors.white,
                 surface: AppColors.white,
@@ -470,17 +473,17 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     return showDialog<void>(
       context: dialogContext,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.fondoPagina,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           'No se pudo guardar',
           style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700),
         ),
-        content: Text(mensaje, style: const TextStyle(color: AppColors.navy)),
+        content: Text(mensaje, style: TextStyle(color: AppColors.navy)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Entendido', style: TextStyle(color: AppColors.navy)),
+            child: Text('Entendido', style: TextStyle(color: AppColors.navy)),
           ),
         ],
       ),
@@ -550,11 +553,11 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       // SNACKBAR PERSONALIZADO: Fondo blanco, letra azul
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
+          content: Text(
             'Guardado exitosamente',
             style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
           ),
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.fondoPagina,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           elevation: 4,
@@ -584,6 +587,11 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     if (_requiereBiometria && !_desbloqueado) {
       return _PantallaBloqueoBiometrico(
         verificando: _verificandoBiometria,
@@ -602,9 +610,9 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     final estadoRolDomiciliario = rolesDomiciliario.isEmpty ? null : rolesDomiciliario.first.estado;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.fondoPagina,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Tu perfil',
           style: TextStyle(
             fontWeight: FontWeight.w700,
@@ -638,8 +646,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                       const SizedBox(height: 32),
 
                       // SECCIÓN: CUENTA
-                      const Padding(
-                        padding: EdgeInsets.only(left: 4, bottom: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 8),
                         child: Text(
                           'Cuenta',
                           style: TextStyle(
@@ -652,8 +660,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                       
                       // LISTA DE ROLES (SIN CAJÓN GRIS)
                       if (roles.isNotEmpty) ...[
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
                           child: Text(
                             'Mis roles',
                             style: TextStyle(
@@ -675,7 +683,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                               ),
                               child: Text(
                                 rol.codigo,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.navy,
@@ -713,6 +721,15 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                           onTap: () => _showDomiciliarioDialog(),
                         ),
                       if (esDomiciliario) const SizedBox(height: 12),
+                      if (esDomiciliario)
+                        _CardAccion(
+                          icon: Icons.account_balance_wallet_outlined,
+                          iconColor: AppColors.navy,
+                          titulo: 'Mi billetera',
+                          subtitulo: 'Saldo disponible y deuda de efectivo',
+                          onTap: () => Navigator.of(context).pushNamed(WalletScreen.routeName),
+                        ),
+                      if (esDomiciliario) const SizedBox(height: 12),
                       // Botón para agregar otro rol solo si falta alguno
                       if (!tienePaciente || !tieneDomiciliario) ...[
                         _CardAccion(
@@ -728,8 +745,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                       const SizedBox(height: 40),
 
                       // SECCIÓN: NOTIFICACIONES
-                      const Padding(
-                        padding: EdgeInsets.only(left: 4, bottom: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 8),
                         child: Text(
                           'Notificaciones',
                           style: TextStyle(
@@ -751,8 +768,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                       const SizedBox(height: 40),
 
                       // SECCIÓN: ACCESIBILIDAD
-                      const Padding(
-                        padding: EdgeInsets.only(left: 4, bottom: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 8),
                         child: Text(
                           'Accesibilidad',
                           style: TextStyle(
@@ -770,12 +787,44 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
                         valor: ref.watch(modoAdultoMayorProvider),
                         onChanged: (val) => ref.read(modoAdultoMayorProvider.notifier).cambiar(val),
                       ),
-                      
+                      const SizedBox(height: 12),
+                      _CardSwitch(
+                        icon: Icons.contrast_rounded,
+                        iconColor: AppColors.navy,
+                        titulo: 'Alto contraste',
+                        subtitulo: 'Más contraste entre texto y fondo',
+                        valor: ref.watch(modoAltoContrasteProvider),
+                        onChanged: (val) => ref.read(modoAltoContrasteProvider.notifier).cambiar(val),
+                      ),
+
+                      const SizedBox(height: 40),
+
+                      // SECCIÓN: APARIENCIA
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 8),
+                        child: Text(
+                          'Apariencia',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.navy,
+                          ),
+                        ),
+                      ),
+                      _CardSwitch(
+                        icon: Icons.dark_mode_outlined,
+                        iconColor: AppColors.navy,
+                        titulo: 'Modo oscuro',
+                        subtitulo: 'Fondos oscuros, texto claro',
+                        valor: ref.watch(modoOscuroProvider),
+                        onChanged: (val) => ref.read(modoOscuroProvider.notifier).cambiar(val),
+                      ),
+
                       const SizedBox(height: 40),
 
                       // SECCIÓN: SEGURIDAD
-                      const Padding(
-                        padding: EdgeInsets.only(left: 4, bottom: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 8),
                         child: Text(
                           'Seguridad',
                           style: TextStyle(
@@ -981,16 +1030,16 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Divider(color: AppColors.skyBlue, height: 1),
+            Divider(color: AppColors.skyBlue, height: 1),
             const SizedBox(height: 12),
             _SelectorNivelCopago(
               nivelActualId: _perfil?.paciente?.nivelCopagoId,
               onCambio: _recargarSoloPerfil,
             ),
             const SizedBox(height: 16),
-            const Divider(color: AppColors.skyBlue, height: 1),
+            Divider(color: AppColors.skyBlue, height: 1),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Documentos',
               style: TextStyle(
                 color: AppColors.navy,
@@ -1142,9 +1191,9 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             inputFormatters: [_MayusculasTextFormatter()],
           ),
           const SizedBox(height: 16),
-          const Divider(color: AppColors.skyBlue, height: 1),
+          Divider(color: AppColors.skyBlue, height: 1),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Documentos de validación',
             style: TextStyle(
               color: AppColors.navy,
@@ -1294,7 +1343,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
       builder: (context) => _EditarPerfilBottomSheet(
         title: 'Agregar otro rol',
         children: [
-          const Text(
+          Text(
             'Usá la misma cuenta para ambos roles',
             style: TextStyle(color: AppColors.teal, fontSize: 14),
           ),
@@ -1392,9 +1441,9 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.warning_amber_rounded, color: AppColors.navy, size: 24),
+                Icon(Icons.warning_amber_rounded, color: AppColors.navy, size: 24),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Esta acción es permanente y no se puede deshacer. '
                     'Tu cuenta pasará a estado inactivo y se cerrará tu sesión.',
@@ -1462,7 +1511,7 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
@@ -1482,11 +1531,11 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.beige,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.photo_camera_outlined, color: AppColors.teal),
+                  child: Icon(Icons.photo_camera_outlined, color: AppColors.teal),
                 ),
                 title: const Text('Tomar foto', style: TextStyle(fontWeight: FontWeight.w500)),
                 onTap: () => Navigator.of(context).pop(ImageSource.camera),
@@ -1494,11 +1543,11 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.beige,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.photo_library_outlined, color: AppColors.teal),
+                  child: Icon(Icons.photo_library_outlined, color: AppColors.teal),
                 ),
                 title: const Text('Elegir de la galería', style: TextStyle(fontWeight: FontWeight.w500)),
                 onTap: () => Navigator.of(context).pop(ImageSource.gallery),
@@ -1548,7 +1597,7 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
       alignment: Alignment.center,
       child: Text(
         letra,
-        style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 26),
+        style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 26),
       ),
     );
   }
@@ -1560,7 +1609,7 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white, // Fondo blanco
+        color: AppColors.white, // Fondo blanco
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.15)), // Borde gris muy suave
       ),
@@ -1594,7 +1643,7 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
                     width: 22,
                     height: 22,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.white,
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.skyBlue, width: 1.5),
                     ),
@@ -1603,7 +1652,7 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
                             padding: EdgeInsets.all(4),
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.camera_alt_outlined, size: 12, color: AppColors.navy),
+                        : Icon(Icons.camera_alt_outlined, size: 12, color: AppColors.navy),
                   ),
                 ),
               ),
@@ -1616,7 +1665,7 @@ class _ProfileHeaderMinimalistaState extends ConsumerState<_ProfileHeaderMinimal
               children: [
                 Text(
                   widget.nombre.isEmpty ? 'Usuario' : widget.nombre,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: AppColors.navy,
@@ -1653,9 +1702,9 @@ class _PantallaBloqueoBiometrico extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.fondoPagina,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Tu perfil',
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.navy),
         ),
@@ -1677,15 +1726,15 @@ class _PantallaBloqueoBiometrico extends StatelessWidget {
                   color: AppColors.skyBlue.withValues(alpha: 0.3),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.fingerprint, color: AppColors.navy, size: 44),
+                child: Icon(Icons.fingerprint, color: AppColors.navy, size: 44),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Tu perfil está protegido',
                 style: TextStyle(color: AppColors.navy, fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Confirmá tu huella o la clave de tu teléfono para verlo.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.teal, fontSize: 13.5, height: 1.4),
@@ -1731,7 +1780,7 @@ class _CardSwitch extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
@@ -1740,7 +1789,7 @@ class _CardSwitch extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.white,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
             ),
@@ -1753,7 +1802,7 @@ class _CardSwitch extends StatelessWidget {
               children: [
                 Text(
                   titulo,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: AppColors.navy,
@@ -1805,7 +1854,7 @@ class _CardAccion extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
@@ -1815,7 +1864,7 @@ class _CardAccion extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
           ),
@@ -1827,7 +1876,7 @@ class _CardAccion extends StatelessWidget {
         ),
         title: Text(
           titulo,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: AppColors.navy,
@@ -1866,7 +1915,7 @@ class _EditarPerfilBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1908,7 +1957,7 @@ class _EditarPerfilBottomSheet extends StatelessWidget {
                     const SizedBox(width: 10),
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: AppColors.navy,
@@ -1951,7 +2000,7 @@ class _RolOption extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
@@ -1961,7 +2010,7 @@ class _RolOption extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
           ),
@@ -1969,7 +2018,7 @@ class _RolOption extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             color: AppColors.navy,
             fontSize: 15,
@@ -1988,7 +2037,7 @@ class _RolOption extends StatelessWidget {
             color: AppColors.teal,
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Text(
+          child: Text(
             'Solicitar',
             style: TextStyle(
               color: AppColors.white,
@@ -2017,7 +2066,7 @@ class _HelpOption extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
@@ -2027,7 +2076,7 @@ class _HelpOption extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
           ),
@@ -2035,7 +2084,7 @@ class _HelpOption extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             color: AppColors.navy,
             fontSize: 15,
@@ -2081,7 +2130,7 @@ class _CampoPerfil extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
@@ -2091,7 +2140,7 @@ class _CampoPerfil extends StatelessWidget {
         enabled: enabled,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 15,
           color: AppColors.navy,
         ),
@@ -2111,7 +2160,7 @@ class _CampoPerfil extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: AppColors.teal, width: 2),
+            borderSide: BorderSide(color: AppColors.teal, width: 2),
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -2150,7 +2199,7 @@ class _CampoPerfilDropdown extends StatelessWidget {
     final valorActual = opciones.contains(controller.text) ? controller.text : null;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
@@ -2165,7 +2214,7 @@ class _CampoPerfilDropdown extends StatelessWidget {
         items: opciones
             .map((opcion) => DropdownMenuItem(value: opcion, child: Text(opcion)))
             .toList(),
-        style: const TextStyle(fontSize: 15, color: AppColors.navy),
+        style: TextStyle(fontSize: 15, color: AppColors.navy),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(
@@ -2182,7 +2231,7 @@ class _CampoPerfilDropdown extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: AppColors.teal, width: 2),
+            borderSide: BorderSide(color: AppColors.teal, width: 2),
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -2212,7 +2261,7 @@ class _CampoFechaPerfil extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
         ),
@@ -2323,7 +2372,7 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
               'Nivel actualizado a "${nivel.nombre}"',
               style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w600),
             ),
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.fondoPagina,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -2364,7 +2413,7 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Nivel de copago',
           style: TextStyle(
             color: AppColors.navy,
@@ -2373,7 +2422,7 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Puedes elegir el que te aplica — se suma al costo del domicilio.',
           style: TextStyle(color: AppColors.teal, fontSize: 12),
         ),
@@ -2399,12 +2448,12 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
                   decoration: BoxDecoration(
                     color: nivel.id == _seleccionadoId
                         ? AppColors.skyBlue.withValues(alpha: 0.25)
-                        : Colors.white,
+                        : AppColors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: nivel.id == _seleccionadoId
                           ? AppColors.teal
-                          : Colors.grey.withValues(alpha: 0.25),
+                          : AppColors.border,
                     ),
                   ),
                   child: Row(
@@ -2415,14 +2464,14 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
                             : Icons.radio_button_off,
                         color: nivel.id == _seleccionadoId
                             ? AppColors.teal
-                            : Colors.grey,
+                            : AppColors.textSecondary,
                         size: 20,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           nivel.nombre,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.navy,
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
@@ -2431,7 +2480,7 @@ class _SelectorNivelCopagoState extends ConsumerState<_SelectorNivelCopago> {
                       ),
                       Text(
                         _formatearCopago(nivel.copago),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.navy,
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
@@ -2487,7 +2536,7 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
@@ -2507,11 +2556,11 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.photo_camera_outlined, color: AppColors.teal),
+                  child: Icon(Icons.photo_camera_outlined, color: AppColors.teal),
                 ),
                 title: const Text('Tomar foto', style: TextStyle(fontWeight: FontWeight.w500)),
                 onTap: () => Navigator.of(context).pop(_OrigenDocumento.camara),
@@ -2519,11 +2568,11 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.photo_library_outlined, color: AppColors.teal),
+                  child: Icon(Icons.photo_library_outlined, color: AppColors.teal),
                 ),
                 title: const Text('Elegir de la galería', style: TextStyle(fontWeight: FontWeight.w500)),
                 onTap: () => Navigator.of(context).pop(_OrigenDocumento.galeria),
@@ -2531,11 +2580,11 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.teal),
+                  child: Icon(Icons.picture_as_pdf_outlined, color: AppColors.teal),
                 ),
                 title: const Text('Elegir PDF', style: TextStyle(fontWeight: FontWeight.w500)),
                 onTap: () => Navigator.of(context).pop(_OrigenDocumento.pdf),
@@ -2623,7 +2672,7 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
             ),
@@ -2663,7 +2712,7 @@ class _DocumentoUploadRowState extends State<_DocumentoUploadRow> {
                           )
                         : Text(
                             yaSubido ? 'Reemplazar' : 'Subir',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.teal,
                               fontWeight: FontWeight.w500,
                               fontSize: 13,
@@ -2708,7 +2757,7 @@ class _Miniatura extends StatelessWidget {
           shape: BoxShape.circle,
           border: Border.all(color: Colors.grey.withValues(alpha: 0.3), width: 2),
         ),
-        child: const Icon(Icons.add, color: AppColors.teal, size: 16),
+        child: Icon(Icons.add, color: AppColors.teal, size: 16),
       );
     }
 
@@ -2719,7 +2768,7 @@ class _Miniatura extends StatelessWidget {
         shape: BoxShape.circle,
         color: AppColors.skyBlue.withValues(alpha: 0.45),
       ),
-      child: const Icon(Icons.check, color: AppColors.navy, size: 18),
+      child: Icon(Icons.check, color: AppColors.navy, size: 18),
     );
   }
 }
@@ -2783,7 +2832,7 @@ class _CalendarioNacimientoState extends State<_CalendarioNacimiento> {
     return AlertDialog(
       backgroundColor: AppColors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text(
+      title: Text(
         'Fecha de nacimiento',
         style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700, fontSize: 18),
       ),
@@ -2937,7 +2986,7 @@ class _GrillaDias extends StatelessWidget {
       children: [
         for (final dia in nombres)
           Center(
-            child: Text(dia, style: const TextStyle(color: AppColors.teal, fontSize: 12)),
+            child: Text(dia, style: TextStyle(color: AppColors.teal, fontSize: 12)),
           ),
         for (var i = 0; i < celdas; i++)
           if (i < offset)

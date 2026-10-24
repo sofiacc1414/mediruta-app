@@ -6,6 +6,8 @@ import '../../../../shared/core/utils/politica_contrasena.dart';
 import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../providers/usuario_providers.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 class CambiarContrasenaScreen extends ConsumerStatefulWidget {
   const CambiarContrasenaScreen({super.key});
@@ -64,14 +66,14 @@ class _CambiarContrasenaScreenState
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
+          content: Text(
             'Contraseña actualizada.',
             style: TextStyle(
               color: AppColors.navy,
               fontWeight: FontWeight.w600,
             ),
           ),
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.fondoPagina,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -95,10 +97,15 @@ class _CambiarContrasenaScreenState
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.fondoPagina,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Cambiar contraseña',
           style: TextStyle(
             fontWeight: FontWeight.w700,
@@ -110,7 +117,7 @@ class _CambiarContrasenaScreenState
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new,
             color: AppColors.navy,
             size: 20,
@@ -132,7 +139,7 @@ class _CambiarContrasenaScreenState
                     color: AppColors.skyBlue.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.lock_reset_outlined,
                     color: AppColors.teal,
                     size: 32,
@@ -212,7 +219,7 @@ class _CambiarContrasenaScreenState
                       elevation: 0,
                     ),
                     child: _cargando
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
@@ -263,7 +270,7 @@ class _CampoContrasena extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: errorText != null
@@ -276,7 +283,7 @@ class _CampoContrasena extends StatelessWidget {
         obscureText: ocultar,
         enabled: enabled,
         autofillHints: autofillHints,
-        style: const TextStyle(fontSize: 15, color: AppColors.navy),
+        style: TextStyle(fontSize: 15, color: AppColors.navy),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(
@@ -313,7 +320,7 @@ class _CampoContrasena extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: AppColors.teal, width: 2),
+            borderSide: BorderSide(color: AppColors.teal, width: 2),
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),

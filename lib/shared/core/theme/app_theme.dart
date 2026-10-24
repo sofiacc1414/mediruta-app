@@ -22,7 +22,7 @@ ThemeData buildAppTheme() {
   return ThemeData(
     useMaterial3: true,
     scaffoldBackgroundColor: AppColors.white,
-    colorScheme: const ColorScheme.light(
+    colorScheme: ColorScheme.light(
       primary: AppColors.navy,
       secondary: AppColors.teal,
       surface: AppColors.white,
@@ -40,7 +40,7 @@ ThemeData buildAppTheme() {
       headlineSmall: bodyTextTheme.headlineSmall?.merge(_headingFallback),
       titleLarge: bodyTextTheme.titleLarge?.merge(_headingFallback),
     ),
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: AppColors.navy,
       foregroundColor: AppColors.white,
     ),

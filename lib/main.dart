@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,6 +18,7 @@ import 'features/solicitudes/presentation/screens/pedido_completado_screen.dart'
 import 'features/solicitudes/presentation/screens/pedidos_disponibles_screen.dart';
 import 'features/solicitudes/presentation/screens/solicitud_detalle_screen.dart';
 import 'features/tracking/presentation/seguimiento_mapa_screen.dart';
+import 'features/wallet/presentation/screens/wallet_screen.dart';
 import 'features/usuarios/presentation/providers/auth_session_provider.dart';
 import 'features/usuarios/presentation/screens/cambiar_contrasena_screen.dart';
 import 'features/notificaciones/presentation/notificaciones_screen.dart';
@@ -25,12 +29,27 @@ import 'features/usuarios/presentation/screens/perfil_screen.dart';
 import 'features/usuarios/presentation/screens/recuperar_contrasena_screen.dart';
 import 'features/usuarios/presentation/screens/registro_screen.dart';
 import 'features/usuarios/presentation/screens/restablecer_contrasena_screen.dart';
+import 'shared/core/navigation/app_navigator_key.dart';
+import 'shared/core/notificaciones_push/notificaciones_push_providers.dart';
 import 'shared/core/storage/shared_preferences_provider.dart';
+import 'shared/core/theme/app_colors.dart';
 import 'shared/core/theme/app_theme.dart';
 import 'shared/core/theme/modo_adulto_mayor_provider.dart';
+import 'shared/core/theme/modo_alto_contraste_provider.dart';
+import 'shared/core/theme/modo_oscuro_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+  } catch (error) {
+    // Sin `google-services.json` (todavía no lo subió el dueño del
+    // proyecto) o cualquier otro fallo de configuración de Firebase, la
+    // app tiene que poder arrancar igual — push queda simplemente
+    // desactivado (`NotificacionesPushService.iniciarSesion` también
+    // está en try/catch por si falla algo más adelante).
+    debugPrint('Firebase.initializeApp falló: $error');
+  }
   final prefs = await SharedPreferences.getInstance();
   runApp(
     ProviderScope(
@@ -46,7 +65,18 @@ class MediRutaApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final modoAdultoMayor = ref.watch(modoAdultoMayorProvider);
+    final modoOscuro = ref.watch(modoOscuroProvider);
+    final altoContraste = ref.watch(modoAltoContrasteProvider);
+    // `AppColors` no tiene acceso a `ref` (lo usan pantallas/widgets sin
+    // BuildContext) — se configura acá, una sola vez por rebuild de la
+    // raíz, antes de construir nada que lo lea. Cada pantalla de nivel
+    // superior hace `ref.watch(modoOscuroProvider)`/
+    // `ref.watch(modoAltoContrasteProvider)` (ver `PerfilScreen` y el
+    // resto) para que Riverpod la reconstruya cuando cambian — sin eso,
+    // una pantalla ya montada no se repintaría sola al togglear acá.
+    AppColors.configurar(oscuro: modoOscuro, altoContraste: altoContraste);
     return MaterialApp(
+      navigatorKey: appNavigatorKey,
       title: 'MediRuta',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
@@ -75,6 +105,7 @@ class MediRutaApp extends ConsumerWidget {
         PedidosDisponiblesScreen.routeName: (_) => const PedidosDisponiblesScreen(),
         MiPedidoActivoScreen.routeName: (_) => const MiPedidoActivoScreen(),
         HistorialPedidosScreen.routeName: (_) => const HistorialPedidosScreen(),
+        WalletScreen.routeName: (_) => const WalletScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == RestablecerContrasenaScreen.routeName) {
@@ -144,6 +175,21 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   @override
   Widget build(BuildContext context) {
     final estado = ref.watch(authSessionProvider);
+
+    // Push (FCM) necesita sesión para registrar el token
+    // (`/notificaciones/dispositivo` requiere auth) — se arranca acá,
+    // recién cuando el estado pasa a autenticado (login, registro o
+    // sesión restaurada al abrir la app), y se para al cerrar sesión.
+    // `AuthGate` vive durante toda la vida de la app (es el `home` del
+    // `MaterialApp`), así que este listener no se pierde entre medio.
+    ref.listen<AuthEstado>(authSessionProvider, (previous, next) {
+      final servicio = ref.read(notificacionesPushServiceProvider);
+      if (next is AuthAutenticado) {
+        unawaited(servicio.iniciarSesion());
+      } else if (next is AuthAnonimo) {
+        unawaited(servicio.detenerSesion());
+      }
+    });
 
     return switch (estado) {
       AuthCargando() => const Scaffold(

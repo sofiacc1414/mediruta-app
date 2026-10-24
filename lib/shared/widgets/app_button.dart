@@ -31,7 +31,7 @@ class AppButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.navy,
-          side: const BorderSide(color: AppColors.teal, width: 1.8),
+          side: BorderSide(color: AppColors.teal, width: 1.8),
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
@@ -49,14 +49,14 @@ class AppButton extends StatelessWidget {
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
           colors: [
-            AppColors.navy,
-            AppColors.navy.withOpacity(0.85),
+            AppColors.enfasis,
+            AppColors.enfasis.withOpacity(0.85),
           ],
         ),
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withOpacity(0.25),
+            color: AppColors.enfasis.withOpacity(0.25),
             blurRadius: 25,
             offset: const Offset(0, 8),
           ),
@@ -66,7 +66,7 @@ class AppButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
-          foregroundColor: AppColors.white,
+          foregroundColor: AppColors.sobreEnfasis,
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
@@ -88,9 +88,9 @@ class AppButton extends StatelessWidget {
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
           valueColor: AlwaysStoppedAnimation<Color>(
-            variante == AppButtonVariante.secondary 
-                ? AppColors.navy 
-                : AppColors.white,
+            variante == AppButtonVariante.secondary
+                ? AppColors.navy
+                : AppColors.sobreEnfasis,
           ),
         ),
       );

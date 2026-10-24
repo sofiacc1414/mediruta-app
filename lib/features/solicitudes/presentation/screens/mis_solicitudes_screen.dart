@@ -17,6 +17,8 @@ import '../../../calificaciones/presentation/screens/pedidos_calificacion_screen
 import '../providers/solicitud_providers.dart';
 import 'nueva_solicitud_screen.dart';
 import 'solicitud_detalle_screen.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 /// G02 — HU-03. "Mis solicitudes", con filtro Activas/Historial.
 class MisSolicitudesScreen extends ConsumerStatefulWidget {
@@ -111,20 +113,20 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
       final ir = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.fondoPagina,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Completa tu perfil', style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700)),
+          title: Text('Completa tu perfil', style: TextStyle(color: AppColors.navy, fontWeight: FontWeight.w700)),
           content: const Text(
             'Necesitás una foto de tu cédula en tu perfil antes de crear una solicitud.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Ahora no', style: TextStyle(color: AppColors.navy)),
+              child: Text('Ahora no', style: TextStyle(color: AppColors.navy)),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Ir a Mi perfil', style: TextStyle(color: AppColors.teal)),
+              child: Text('Ir a Mi perfil', style: TextStyle(color: AppColors.teal)),
             ),
           ],
         ),
@@ -159,6 +161,11 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     final todas = _solicitudes ?? const <SolicitudResumen>[];
     final esHistorial = _tab == 1;
     final visibles = todas
@@ -166,9 +173,9 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
         .toList();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.fondoPagina,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Mis solicitudes',
           style: TextStyle(
             fontWeight: FontWeight.w700,
@@ -180,14 +187,14 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new, color: AppColors.navy, size: 20),
           onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
         ),
       ),
       bottomNavigationBar: const MainBottomBar(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _onNuevaSolicitud,
-        backgroundColor: const Color(0xFFE3E8EF),
+        backgroundColor: AppColors.skyBlue.withValues(alpha: 0.3),
         foregroundColor: AppColors.navy,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -214,7 +221,7 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                       Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.grey.withValues(alpha: 0.08),
+                          color: AppColors.skyBlue.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
@@ -239,7 +246,7 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                           onPressed: () => Navigator.of(context).pushNamed(
                             PedidosCalificacionScreen.routeName,
                           ),
-                          child: const Text(
+                          child: Text(
                             'Calificar entregas',
                             style: TextStyle(
                               color: AppColors.teal,
@@ -276,7 +283,7 @@ class _MisSolicitudesScreenState extends ConsumerState<MisSolicitudesScreen> {
                                     ? 'No tenés solicitudes activas. Creá una con el botón de abajo.'
                                     : 'Todavía no hay solicitudes en tu historial.',
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(color: AppColors.teal),
+                                style: TextStyle(color: AppColors.teal),
                               ),
                             ],
                           ),
@@ -333,12 +340,12 @@ class _OpcionTab extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: seleccionado ? Colors.white : Colors.transparent,
+            color: seleccionado ? AppColors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             boxShadow: seleccionado
                 ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: AppColors.shadow,
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -349,7 +356,7 @@ class _OpcionTab extends StatelessWidget {
             child: Text(
               texto,
               style: TextStyle(
-                color: seleccionado ? AppColors.navy : Colors.grey,
+                color: seleccionado ? AppColors.navy : AppColors.textSecondary,
                 fontWeight: seleccionado ? FontWeight.w700 : FontWeight.w500,
                 fontSize: 14,
               ),
@@ -383,9 +390,9 @@ class _TarjetaSolicitud extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
@@ -401,11 +408,11 @@ class _TarjetaSolicitud extends StatelessWidget {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+                    border: Border.all(color: AppColors.border),
                   ),
-                  child: const Icon(Icons.local_shipping_outlined, color: AppColors.navy, size: 26),
+                  child: Icon(Icons.local_shipping_outlined, color: AppColors.navy, size: 26),
                 ),
               ),
             ),
@@ -416,7 +423,7 @@ class _TarjetaSolicitud extends StatelessWidget {
                 children: [
                   Text(
                     titulo,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.navy,
                       fontWeight: FontWeight.w600,
                       fontSize: 15,

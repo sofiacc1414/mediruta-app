@@ -101,6 +101,8 @@ class SolicitudRemoteDatasource {
     String solicitudId, {
     VerificacionDireccionPrevia? farmaciaVerificada,
     VerificacionDireccionPrevia? entregaVerificada,
+    String metodoPago = 'efectivo',
+    String? numeroTarjeta,
   }) async {
     final respuesta = await _apiClient.post(
       '/solicitudes/$solicitudId/enviar',
@@ -115,9 +117,17 @@ class SolicitudRemoteDatasource {
           'entregaLat': entregaVerificada.lat,
           'entregaLng': entregaVerificada.lng,
         },
+        'metodoPago': metodoPago,
+        if (numeroTarjeta != null) 'numeroTarjeta': numeroTarjeta,
       },
       autenticado: true,
     );
+    return respuesta as Map<String, dynamic>;
+  }
+
+  /// Módulo 4 — qué medios de pago mostrar en el checkout.
+  Future<Map<String, dynamic>> obtenerMediosPagoHabilitados() async {
+    final respuesta = await _apiClient.get('/solicitudes/medios-pago', autenticado: true);
     return respuesta as Map<String, dynamic>;
   }
 

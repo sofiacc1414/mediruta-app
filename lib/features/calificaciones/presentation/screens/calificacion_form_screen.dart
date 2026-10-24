@@ -8,6 +8,8 @@ import '../providers/calificacion_providers.dart';
 import '../widgets/aviso_calificacion.dart';
 import '../widgets/experiencia_cierre_visual.dart';
 import 'calificacion_confirmacion_screen.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 class CalificacionFormArgs {
   const CalificacionFormArgs({
@@ -147,7 +149,7 @@ class _CalificacionFormScreenState extends ConsumerState<CalificacionFormScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 '¿Quieres retirar tu experiencia?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -159,7 +161,7 @@ class _CalificacionFormScreenState extends ConsumerState<CalificacionFormScreen>
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Tu valoración será retirada, pero conservaremos la información mínima necesaria para auditoría.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.teal, height: 1.4, fontSize: 15),
@@ -183,8 +185,8 @@ class _CalificacionFormScreenState extends ConsumerState<CalificacionFormScreen>
                     child: FilledButton(
                       onPressed: () => Navigator.of(context).pop(true),
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.navy,
-                        foregroundColor: AppColors.white,
+                        backgroundColor: AppColors.enfasis,
+                        foregroundColor: AppColors.sobreEnfasis,
                         minimumSize: const Size.fromHeight(48),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                       ),
@@ -217,7 +219,7 @@ class _CalificacionFormScreenState extends ConsumerState<CalificacionFormScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'Calificación retirada',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -228,7 +230,7 @@ class _CalificacionFormScreenState extends ConsumerState<CalificacionFormScreen>
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'Tu calificación ha sido eliminada correctamente.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.teal, height: 1.4),
@@ -237,7 +239,8 @@ class _CalificacionFormScreenState extends ConsumerState<CalificacionFormScreen>
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.navy,
+                    backgroundColor: AppColors.enfasis,
+                    foregroundColor: AppColors.sobreEnfasis,
                     minimumSize: const Size.fromHeight(48),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                   ),
@@ -260,14 +263,19 @@ class _CalificacionFormScreenState extends ConsumerState<CalificacionFormScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     final editar = widget.args.editar;
     final curva = CurvedAnimation(parent: _entrada, curve: Curves.easeOutCubic);
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: const Color(0xFFF5EFEB),
+      backgroundColor: AppColors.beige,
       body: ExperienciaFondo(
         child: _cargando
-            ? const Center(child: CircularProgressIndicator(color: AppColors.teal))
+            ? Center(child: CircularProgressIndicator(color: AppColors.teal))
             : FadeTransition(
                 opacity: curva,
                 child: SafeArea(

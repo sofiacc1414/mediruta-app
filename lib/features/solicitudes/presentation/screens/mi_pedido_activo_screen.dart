@@ -23,6 +23,9 @@ import '../../domain/entities/pedido_activo.dart';
 import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
 import '../widgets/tarjeta_novedad.dart';
+import 'cobro_efectivo_screen.dart';
+import '../../../../shared/core/theme/modo_alto_contraste_provider.dart';
+import '../../../../shared/core/theme/modo_oscuro_provider.dart';
 
 /// Estados en los que el domiciliario transmite su ubicación en vivo
 /// (y el paciente puede verla) — desde que acepta hasta `en_sitio`.
@@ -295,6 +298,43 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
     );
     if (codigo == null || !mounted) return;
 
+    // Módulo 4 — efectivo abre la pantalla de cobro antes de cerrar la
+    // transacción; tarjeta/transferencia ya están pagados, solo se
+    // avisa y se finaliza directo (nada que cobrar).
+    if (pedido.metodoPago == 'efectivo') {
+      final confirmado = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => CobroEfectivoScreen(
+            montoACobrar: pedido.montoACobrar,
+            codigoPedido: pedido.codigoPedido,
+          ),
+        ),
+      );
+      if (confirmado != true || !mounted) return;
+    } else {
+      final medioPagoLabel = pedido.metodoPago == 'tarjeta' ? 'tarjeta' : 'transferencia';
+      final continuar = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Pedido ya pagado'),
+          content: Text(
+            'Este pedido ya fue pagado por $medioPagoLabel. No hay nada que cobrar.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Finalizar entrega'),
+            ),
+          ],
+        ),
+      );
+      if (continuar != true || !mounted) return;
+    }
+
     final codigoPedido = pedido.codigoPedido;
     await _ejecutarPaso(
       (id) => ref.read(entregarPedidoUseCaseProvider).execute(id, codigo),
@@ -466,18 +506,23 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Fuerza repintar esta pantalla ya montada cuando se togglea modo
+    // oscuro/alto contraste desde Perfil (ver AppColors.configurar en
+    // main.dart) — sin este watch, Riverpod no sabría que repintar.
+    ref.watch(modoOscuroProvider);
+    ref.watch(modoAltoContrasteProvider);
     final pedido = _pedido;
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.fondoPagina,
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
+            icon: Icon(Icons.arrow_back_ios, color: AppColors.navy, size: 22),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          title: const Text(
+          title: Text(
             'Mi pedido activo',
             style: TextStyle(
               fontWeight: FontWeight.w700,
@@ -493,7 +538,7 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
           // Paciente (`SolicitudDetalleScreen`).
           bottom: pedido == null
               ? null
-              : const TabBar(
+              : TabBar(
                   labelColor: AppColors.navy,
                   unselectedLabelColor: AppColors.teal,
                   indicatorColor: AppColors.navy,
@@ -594,16 +639,9 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -617,7 +655,7 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
                             color: AppColors.skyBlue.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.medication_outlined,
                             color: AppColors.teal,
                             size: 20,
@@ -627,7 +665,7 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
                         Expanded(
                           child: Text(
                             pedido.codigoPedido ?? 'Pedido',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.navy,
                               fontWeight: FontWeight.w800,
                               fontSize: 18,
@@ -668,9 +706,9 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: AppTrackingTimeline(
                   estadoActual: pedido.estado,
@@ -712,17 +750,17 @@ class _MiPedidoActivoScreenState extends ConsumerState<MiPedidoActivoScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF7F8FA),
+                    color: AppColors.skyBlue.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Todavía no hay novedades reportadas sobre este pedido.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.teal, fontSize: 13),
                   ),
                 ),
               ] else ...[
-                const Text(
+                Text(
                   'Novedades de este pedido',
                   style: TextStyle(
                     color: AppColors.navy,
@@ -851,7 +889,7 @@ class _FilaDireccion extends StatelessWidget {
               ),
               Text(
                 texto ?? 'Sin dirección',
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.navy,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -913,14 +951,14 @@ class _HojaDocumentosPaciente extends StatelessWidget {
                       color: AppColors.skyBlue.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.credit_card_outlined,
                       color: AppColors.teal,
                       size: 20,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     'Documentos del paciente',
                     style: TextStyle(
                       color: AppColors.navy,
@@ -931,7 +969,7 @@ class _HojaDocumentosPaciente extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Mostrá la cédula y la fórmula médica del paciente para retirar el pedido.',
                 style: TextStyle(color: AppColors.teal, fontSize: 13),
               ),
@@ -966,7 +1004,7 @@ class _FotoDocumento extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.navy,
             fontWeight: FontWeight.w600,
             fontSize: 14,

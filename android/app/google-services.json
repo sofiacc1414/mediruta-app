@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "615953893512",
+    "project_id": "mediruta-b8d85",
+    "storage_bucket": "mediruta-b8d85.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:615953893512:android:6a33f8a915ad5e4a54773d",
+        "android_client_info": {
+          "package_name": "com.mediruta.mediruta_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEC2C-T_KpO3ikACvj873tQX6aR3ZyBrQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
