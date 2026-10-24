@@ -8,5 +8,5 @@ import 'notificaciones_push_service.dart';
 /// (ver `AuthGate`).
 final Provider<NotificacionesPushService> notificacionesPushServiceProvider =
     Provider<NotificacionesPushService>((ref) {
-      return NotificacionesPushService(ref.watch(notificacionesDatasourceProvider));
+      return NotificacionesPushService(ref.watch(notificacionesDatasourceProvider), ref);
     });

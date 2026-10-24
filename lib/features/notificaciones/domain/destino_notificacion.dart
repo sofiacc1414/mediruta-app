@@ -1,6 +1,13 @@
 /// A dónde lleva un toque, según el tipo y el modo activo.
 /// El permiso real lo confirma la API al abrir el pedido.
-enum DestinoNotificacion { detallePedido, pedidoAsignado, perfil, chatPedido, sinPermiso }
+enum DestinoNotificacion {
+  detallePedido,
+  pedidoAsignado,
+  perfil,
+  chatPedido,
+  calificarPedido,
+  sinPermiso,
+}
 
 DestinoNotificacion destinoNotificacion({
   required String tipo,
@@ -19,6 +26,9 @@ DestinoNotificacion destinoNotificacion({
   // sea paciente o domiciliario del pedido al abrir `ChatScreen`).
   if (tipo == 'mensaje_chat' && (modo == 'PACIENTE' || modo == 'DOMICILIARIO')) {
     return DestinoNotificacion.chatPedido;
+  }
+  if (tipo == 'calificacion' && modo == 'PACIENTE') {
+    return DestinoNotificacion.calificarPedido;
   }
   return DestinoNotificacion.sinPermiso;
 }

@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/notificaciones/data/notificaciones_remote_datasource.dart';
+import '../../../features/notificaciones/presentation/navegar_notificacion.dart';
 import '../../../features/notificaciones/presentation/notificaciones_screen.dart';
 import '../../widgets/snackbar_exito.dart';
 import '../navigation/app_navigator_key.dart';
@@ -16,9 +18,10 @@ import '../navigation/app_navigator_key.dart';
 /// antes de que haya sesión: `/notificaciones/dispositivo` requiere auth,
 /// así que pedir permiso/token sin sesión no tendría a quién asociarlos.
 class NotificacionesPushService {
-  NotificacionesPushService(this._datasource);
+  NotificacionesPushService(this._datasource, this._ref);
 
   final NotificacionesRemoteDatasource _datasource;
+  final Ref _ref;
 
   StreamSubscription<String>? _tokenRefreshSub;
   StreamSubscription<RemoteMessage>? _onMessageSub;
@@ -55,13 +58,13 @@ class NotificacionesPushService {
 
       // Se tocó la notificación con la app en background.
       _onMessageOpenedAppSub = FirebaseMessaging.onMessageOpenedApp.listen(
-        (_) => _irANotificaciones(),
+        (mensaje) => _irAlDestino(mensaje.data),
       );
 
       // Se tocó la notificación con la app cerrada del todo.
       final mensajeInicial = await FirebaseMessaging.instance.getInitialMessage();
       if (mensajeInicial != null) {
-        _irANotificaciones();
+        _irAlDestino(mensajeInicial.data);
       }
     } catch (error) {
       // Sin `google-services.json` real (o cualquier otro fallo de FCM)
@@ -104,13 +107,28 @@ class NotificacionesPushService {
     ScaffoldMessenger.of(contexto).showSnackBar(snackBarExito(texto));
   }
 
-  /// Fallback deliberado: el payload trae `referenciaTipo`/`referenciaId`
-  /// (ver `AvisoPush`/`fcm-push.adapter.ts` del lado API), pero mapear
-  /// cada tipo a su pantalla exacta necesita el "modo activo" de la
-  /// cuenta (ver `destino_notificacion.dart`), que no está disponible
-  /// acá fuera del árbol de widgets. Hasta que se resuelva eso, cualquier
-  /// toque de push lleva a la pantalla de notificaciones, donde la lista
-  /// ya sabe navegar bien según `destinoNotificacion`.
+  /// El payload trae `tipo`/`referenciaId` (ver `AvisoPush`/
+  /// `fcm-push.adapter.ts` del lado API) — con eso alcanza para navegar
+  /// al mismo destino exacto que su equivalente en la lista interna (ver
+  /// `navegarNotificacion`/`destinoNotificacion`).
+  void _irAlDestino(Map<String, dynamic> data) {
+    final contexto = appNavigatorKey.currentState?.context;
+    if (contexto == null) return;
+    final tipo = data['tipo'] as String?;
+    if (tipo == null || tipo.isEmpty) {
+      // Compatibilidad con pushes viejos ya en vuelo (sin `tipo`) o
+      // cualquier payload inesperado.
+      _irANotificaciones();
+      return;
+    }
+    navegarNotificacion(
+      contexto,
+      _ref.read,
+      tipo: tipo,
+      referenciaId: data['referenciaId'] as String?,
+    );
+  }
+
   void _irANotificaciones() {
     appNavigatorKey.currentState?.pushNamed(NotificacionesScreen.routeName);
   }

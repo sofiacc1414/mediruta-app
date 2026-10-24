@@ -4,17 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/core/network/api_exception.dart';
 import '../../../shared/core/theme/app_colors.dart';
 import '../../../shared/widgets/app_error_banner.dart';
-import '../../chat/presentation/chat_screen.dart';
-import '../../solicitudes/presentation/providers/solicitud_providers.dart';
-import '../../solicitudes/presentation/screens/mi_pedido_activo_screen.dart';
-import '../../solicitudes/presentation/screens/pedido_completado_screen.dart';
-import '../../solicitudes/presentation/screens/solicitud_detalle_screen.dart';
-import '../../usuarios/domain/entities/rol_asignado.dart';
-import '../../usuarios/presentation/providers/auth_session_provider.dart';
-import '../../usuarios/presentation/screens/perfil_screen.dart';
 import '../../usuarios/presentation/widgets/main_bottom_bar.dart';
-import '../domain/destino_notificacion.dart';
 import '../domain/notificacion.dart';
+import 'navegar_notificacion.dart';
 import 'notificaciones_provider.dart';
 import '../../../shared/core/theme/modo_alto_contraste_provider.dart';
 import '../../../shared/core/theme/modo_oscuro_provider.dart';
@@ -72,13 +64,6 @@ class _NotificacionesScreenState extends ConsumerState<NotificacionesScreen> {
     return 'No se pudieron cargar las notificaciones.';
   }
 
-  String? _modo() {
-    final estado = ref.read(authSessionProvider);
-    final usuario = estado is AuthAutenticado ? estado.usuario : null;
-    final roles = usuario?.roles ?? const <RolAsignado>[];
-    return ref.read(modoActivoProvider) ?? (roles.isNotEmpty ? roles.first.codigo : null);
-  }
-
   Future<void> _abrir(Notificacion item) async {
     if (!item.leida) {
       try {
@@ -108,46 +93,7 @@ class _NotificacionesScreenState extends ConsumerState<NotificacionesScreen> {
     }
 
     if (!mounted) return;
-    final destino = destinoNotificacion(tipo: item.tipo, modo: _modo());
-    switch (destino) {
-      case DestinoNotificacion.detallePedido:
-        final id = item.referenciaId;
-        if (id == null) return;
-        await Navigator.pushNamed(context, SolicitudDetalleScreen.routeName, arguments: id);
-      case DestinoNotificacion.pedidoAsignado:
-        await _abrirPedidoDomiciliario(item.referenciaId);
-      case DestinoNotificacion.perfil:
-        await ref.read(authSessionProvider.notifier).refrescarIdentidad();
-        if (!mounted) return;
-        await Navigator.pushNamed(context, PerfilScreen.routeName);
-      case DestinoNotificacion.chatPedido:
-        final id = item.referenciaId;
-        if (id == null) return;
-        await Navigator.pushNamed(context, ChatScreen.routeName, arguments: id);
-      case DestinoNotificacion.sinPermiso:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No puedes abrir esta información.')),
-        );
-    }
-  }
-
-  Future<void> _abrirPedidoDomiciliario(String? id) async {
-    if (id == null) return;
-    try {
-      final pedido = await ref.read(obtenerPedidoDomiciliarioUseCaseProvider).execute(id);
-      if (!mounted) return;
-      final cerrado = pedido.estado == 'entregado' || pedido.estado == 'cancelada';
-      if (cerrado) {
-        await Navigator.pushNamed(context, PedidoCompletadoScreen.routeName, arguments: id);
-      } else {
-        await Navigator.pushNamed(context, MiPedidoActivoScreen.routeName);
-      }
-    } on ApiException {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No puedes ver este pedido.')),
-      );
-    }
+    await navegarNotificacion(context, ref.read, tipo: item.tipo, referenciaId: item.referenciaId);
   }
 
   @override
