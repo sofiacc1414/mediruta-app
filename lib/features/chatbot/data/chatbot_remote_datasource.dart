@@ -12,6 +12,7 @@ class ChatbotRemoteDatasource {
     String? regimen,
     String? rangoIngresos,
     int intentosSinExitoSeguidos = 0,
+    String? intencionForzada,
   }) async {
     final respuesta = await _api.post(
       '/chatbot/mensaje',
@@ -21,6 +22,7 @@ class ChatbotRemoteDatasource {
         if (regimen != null) 'regimen': regimen,
         if (rangoIngresos != null) 'rangoIngresos': rangoIngresos,
         'intentosSinExitoSeguidos': intentosSinExitoSeguidos,
+        if (intencionForzada != null) 'intencionForzada': intencionForzada,
       },
       autenticado: true,
     );

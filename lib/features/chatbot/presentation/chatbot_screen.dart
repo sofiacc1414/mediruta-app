@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/core/network/api_exception.dart';
 import '../../../shared/core/theme/app_colors.dart';
 import 'chatbot_provider.dart';
+import '../domain/respuesta_chatbot.dart';
 import '../../../shared/core/theme/modo_alto_contraste_provider.dart';
 import '../../../shared/core/theme/modo_oscuro_provider.dart';
 
@@ -23,6 +24,20 @@ class _FlujoPendiente {
   final String tipo;
   final String mensajeOriginal;
   final String? regimenElegido;
+}
+
+/// Sugerencias ofrecidas sobre un mensaje puntual del bot — se
+/// descartan apenas el usuario envía otra cosa (texto nuevo, o elige
+/// una de las opciones, que a su vez reenvía el mensaje original con
+/// `intencionForzada`).
+class _SugerenciasPendientes {
+  const _SugerenciasPendientes({
+    required this.mensajeOriginal,
+    required this.opciones,
+  });
+
+  final String mensajeOriginal;
+  final List<SugerenciaChatbot> opciones;
 }
 
 const _opcionesRango = {
@@ -61,6 +76,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
   bool _enviando = false;
   int _fallosSeguidos = 0;
   _FlujoPendiente? _pendiente;
+  _SugerenciasPendientes? _sugerencias;
 
   @override
   void dispose() {
@@ -132,16 +148,28 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
     );
   }
 
+  Future<void> _elegirSugerencia(SugerenciaChatbot sugerencia) async {
+    final pendientes = _sugerencias;
+    if (pendientes == null) return;
+    await _enviar(
+      pendientes.mensajeOriginal,
+      intencionForzada: sugerencia.intencion,
+      mostrarComoMensajeUsuario: sugerencia.etiqueta,
+    );
+  }
+
   Future<void> _enviar(
     String mensaje, {
     String? eps,
     String? regimen,
     String? rangoIngresos,
+    String? intencionForzada,
     String? mostrarComoMensajeUsuario,
   }) async {
     setState(() {
       _enviando = true;
       _pendiente = null;
+      _sugerencias = null;
       if (mostrarComoMensajeUsuario != null) {
         _mensajes.add(_MensajeLocal(texto: mostrarComoMensajeUsuario, esUsuario: true));
       }
@@ -155,6 +183,7 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
             regimen: regimen,
             rangoIngresos: rangoIngresos,
             intentosSinExitoSeguidos: _fallosSeguidos,
+            intencionForzada: intencionForzada,
           );
 
       setState(() {
@@ -162,6 +191,11 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
         _fallosSeguidos = respuesta.intencion == 'desconocido' ? _fallosSeguidos + 1 : 0;
         if (respuesta.requiereDatos != null) {
           _pendiente = _FlujoPendiente(tipo: respuesta.requiereDatos!, mensajeOriginal: mensaje);
+        } else if (respuesta.sugerencias != null && respuesta.sugerencias!.isNotEmpty) {
+          _sugerencias = _SugerenciasPendientes(
+            mensajeOriginal: mensaje,
+            opciones: respuesta.sugerencias!,
+          );
         }
       });
     } catch (err) {
@@ -226,6 +260,12 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
                     deshabilitado: _enviando,
                     onRegimen: _elegirRegimen,
                     onRango: _elegirRango,
+                  ),
+                if (_sugerencias != null)
+                  _SugerenciasChatbot(
+                    opciones: _sugerencias!.opciones,
+                    deshabilitado: _enviando,
+                    onElegir: _elegirSugerencia,
                   ),
                 _CampoEnvio(
                   controller: _controller,
@@ -313,6 +353,40 @@ class _OpcionesCopago extends StatelessWidget {
                 side: BorderSide(color: AppColors.teal),
               ),
               child: Text(etiqueta),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SugerenciasChatbot extends StatelessWidget {
+  const _SugerenciasChatbot({
+    required this.opciones,
+    required this.deshabilitado,
+    required this.onElegir,
+  });
+
+  final List<SugerenciaChatbot> opciones;
+  final bool deshabilitado;
+  final void Function(SugerenciaChatbot sugerencia) onElegir;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final opcion in opciones)
+            OutlinedButton(
+              onPressed: deshabilitado ? null : () => onElegir(opcion),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.navy,
+                side: BorderSide(color: AppColors.teal),
+              ),
+              child: Text(opcion.etiqueta),
             ),
         ],
       ),
