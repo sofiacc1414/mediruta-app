@@ -436,6 +436,12 @@ class FilaResumenMedicamento extends StatelessWidget {
       medicamento.cantidad,
     ].where((valor) => valor != null && valor.trim().isNotEmpty).join(' · ');
 
+    // La fórmula no siempre trae la cantidad explícita (ej. "a libre
+    // demanda", donde no hay forma de calcularla) — se avisa acá, en
+    // vez de dejar que el paciente descubra el campo vacío recién al
+    // intentar enviar el pedido entre varios medicamentos de la lista.
+    final faltaCantidad = medicamento.cantidad == null || medicamento.cantidad!.trim().isEmpty;
+
     return InkWell(
       onTap: enabled ? onEditar : null,
       borderRadius: BorderRadius.circular(16),
@@ -469,6 +475,26 @@ class FilaResumenMedicamento extends StatelessWidget {
                   if (detalle.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(detalle, style: TextStyle(color: AppColors.teal, fontSize: 13)),
+                  ],
+                  if (faltaCantidad) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 14),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            'Falta la cantidad — tócalo para completarla',
+                            style: TextStyle(
+                              color: Colors.orange.shade800,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ],
               ),
