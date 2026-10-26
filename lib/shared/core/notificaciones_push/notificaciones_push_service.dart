@@ -99,6 +99,15 @@ class NotificacionesPushService {
   }
 
   void _mostrarEnForeground(RemoteMessage mensaje) {
+    // Las estrellas deben aparecer justo al terminar el pedido, sin
+    // que el paciente tenga que tocar la notificación — a diferencia
+    // del resto de tipos (que solo avisan con un snackbar), acá se
+    // navega directo también con la app en primer plano.
+    if (mensaje.data['tipo'] == 'calificacion') {
+      _irAlDestino(mensaje.data);
+      return;
+    }
+
     final contexto = appNavigatorKey.currentState?.context;
     final titulo = mensaje.notification?.title;
     final cuerpo = mensaje.notification?.body;

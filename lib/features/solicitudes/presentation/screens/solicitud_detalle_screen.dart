@@ -10,7 +10,6 @@ import '../../../../shared/core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_error_banner.dart';
 import '../../../../shared/widgets/app_image_viewer.dart';
 import '../../../../shared/widgets/app_status_pill.dart';
-import '../../../../shared/widgets/entrega_confirmada_screen.dart';
 import '../../../../shared/widgets/botones_flotantes_pedido.dart';
 import '../../../../shared/widgets/snackbar_exito.dart';
 import '../../../usuarios/presentation/providers/usuario_providers.dart';
@@ -21,6 +20,7 @@ import '../providers/solicitud_providers.dart';
 import '../widgets/app_tracking_timeline.dart';
 import '../widgets/tarjeta_novedad.dart';
 import '../../../calificaciones/presentation/widgets/seccion_calificacion_pedido.dart';
+import '../../../notificaciones/presentation/navegar_notificacion.dart';
 import '../widgets/tarjeta_precio_pedido.dart';
 import 'nueva_solicitud_screen.dart';
 import 'solicitar_edicion_pedido_screen.dart';
@@ -134,21 +134,24 @@ class _SolicitudDetalleScreenState extends ConsumerState<SolicitudDetalleScreen>
         _solicitud = resultados[0] as Solicitud;
         _novedades = resultados[1] as List<NovedadResumen>;
       });
-      // Cierra el ciclo del pedido con una pantalla completa, no solo
-      // el cambio de color del estado en el timeline — solo dispara
-      // ante una transición real (recién pasó a "entregado" en este
-      // refresco), nunca al abrir un pedido que ya estaba entregado
-      // de antes.
+      // Las estrellas deben aparecer justo cuando el domiciliario
+      // entrega, no quedar atadas a que el paciente toque la
+      // notificación push — va directo a calificar en vez de una
+      // pantalla "¡Entregado!" que terminaba en un callejón sin salida
+      // (volvía al inicio, sin enlazar con la calificación). Mismo
+      // destino que usa la notificación push de tipo "calificacion"
+      // (ver `navegarNotificacion`), con guard propio ahí para no
+      // abrirla dos veces si ambos canales llegan casi juntos. Solo
+      // dispara ante una transición real (recién pasó a "entregado" en
+      // este refresco), nunca al abrir un pedido ya entregado de antes.
       if (estadoAnterior != null &&
           estadoAnterior != 'entregado' &&
           _solicitud?.estado == 'entregado') {
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => EntregaConfirmadaScreen(
-              codigoPedido: _solicitud?.codigoPedido,
-              mensaje: 'Gracias por confiar en MediRuta para cuidar tu salud.',
-            ),
-          ),
+        await navegarNotificacion(
+          context,
+          ref.read,
+          tipo: 'calificacion',
+          referenciaId: widget.solicitudId,
         );
       }
     } on ApiException {

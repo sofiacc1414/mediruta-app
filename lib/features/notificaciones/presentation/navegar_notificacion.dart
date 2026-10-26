@@ -20,6 +20,13 @@ import '../domain/destino_notificacion.dart';
 /// desde un servicio plano que solo tiene un `Ref` (`_ref.read`).
 typedef LectorProvider = T Function<T>(ProviderListenable<T> provider);
 
+/// Evita abrir la pantalla de calificación dos veces para el mismo
+/// pedido en la misma sesión de la app — el push de FCM y el socket de
+/// `SolicitudDetalleScreen` pueden disparar casi al mismo tiempo la
+/// transición a "entregado" (dos canales independientes para el mismo
+/// evento real), y ambos terminan acá.
+final Set<String> _pedidosYaEnNavegacionCalificacion = {};
+
 /// Modo activo de la cuenta (rol con el que se está usando la app ahora),
 /// el mismo que usa `destinoNotificacion` para decidir a dónde navegar.
 /// Compartido entre `NotificacionesScreen` y `NotificacionesPushService`
@@ -85,6 +92,7 @@ Future<void> _abrirPedidoDomiciliario(BuildContext context, LectorProvider read,
 
 Future<void> _abrirCalificacion(BuildContext context, LectorProvider read, String? id) async {
   if (id == null) return;
+  if (!_pedidosYaEnNavegacionCalificacion.add(id)) return;
   try {
     final solicitud = await read(obtenerSolicitudUseCaseProvider).execute(id);
     if (!context.mounted) return;
